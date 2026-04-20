@@ -35,7 +35,7 @@ class Employee extends Model
     public function leaves() 
 
     {
-        return $this->hasMany(Leave::class);
+        return $this->hasMany(Leave::class)->latest();
     }
     public function contractArchives()
     {

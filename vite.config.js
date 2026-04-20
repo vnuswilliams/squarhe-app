@@ -16,6 +16,8 @@ export default defineConfig({
         cors: true,
         watch: {
             ignored: ['**/storage/framework/views/**'],
+            usePolling: false,
         },
+        hmr : false,
     },
 });

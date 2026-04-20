@@ -15,7 +15,6 @@ class Leave extends Model
     protected $fillable = [
         'ref',
         'employee_id',
-        'company_id',
         'type',
         'start_date',
         'end_date',
@@ -66,7 +65,7 @@ class Leave extends Model
                 $leave->approbation_date = now();
             endif;
 
-            if ($leave->approved_by):
+            if (empty($leave->approved_by)):
                 $leave->approved_by = auth()->user()->name;
             endif;
         });

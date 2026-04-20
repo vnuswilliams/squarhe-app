@@ -14,46 +14,13 @@ use Spatie\Activitylog\Facades\Activity;
 class EmployeeObserver
 {
 
-     /*TODO  les changements dans la methode changes ne fonctionne pas  lorsque je creer les moddeles ou je update verifier le modeles pourtant les notifications et les activitylog fonctionne sans accross
-     
    
 public function changes(Employee $employee): void
     {
         $needsSave = false;
 
         // Rule 1: Civility Male -> child = 0
-        if ($employee->civility === CivilityEnum::MALE->value) {
-            if (!isset($employee->data['child']) || $employee->data['child'] !== 0) {
-                $employee->data['child'] = 0;
-                $needsSave = true;
-            }
-        }
-
-        // Rule 2: Nationality Foreign -> contract_type CDD/ESSAY
-        if ($employee->nationality === NationalityEnum::FOREIGN->value) {
-            if (!in_array($employee->contract_type, [ContractTypeEnum::CDD->value, ContractTypeEnum::ESSAY->value])) {
-                $employee->contract_type = ContractTypeEnum::CDD->value;
-                $needsSave = true;
-            }
-        }
-
-        // Rule 3: ContractType CDD & no end_date -> end_date = start_date + 2 years
-        if ($employee->contract_type === ContractTypeEnum::CDD->value && !$employee->end_date && $employee->start_date) {
-            $employee->end_date = Carbon::parse($employee->start_date)->addYears(2);
-            $needsSave = true;
-        }
-
-        if ($needsSave) {
-            $employee->saveQuietly();
-        }
-    }*/
-
-public function changes(Employee $employee): void
-    {
-        $needsSave = false;
-
-        // Rule 1: Civility Male -> child = 0
-        if ($employee->civility === CivilityEnum::MALE->value) {
+        if (($employee->data['civility'] ?? null) === CivilityEnum::MALE->value) {
             if (!isset($employee->data['child']) || $employee->data['child'] !== 0) {
                 $employee->data['child'] = 0;
                 $needsSave = true;

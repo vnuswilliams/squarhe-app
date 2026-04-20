@@ -12,7 +12,7 @@ Route::livewire('/notifications', 'pages::notifs.notifications')->name('notif');
 Route::livewire('/employees', 'pages::employees.employee')->name('employees');
 Route::livewire('/employees/add', 'pages::employees.add-employee')->name('employees.add');
 Route::livewire('/employees/import', 'pages::employees.employee-import')->name('employees.import');
-   Route::livewire('employee/profil/{employee:uuid}', 'pages::employees.employee-profil')->name('employees.show');
+   Route::livewire('employee/profil/{uuid:uuid}', 'pages::employees.employee-profil')->name('employees.show');
     
 });
 

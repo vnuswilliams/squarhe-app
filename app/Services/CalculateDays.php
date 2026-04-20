@@ -29,7 +29,7 @@ class CalculateDays {
         $end = Carbon::parse($endDate);
 
         // Jours fériés fixes (format 'm-d')
-        $fixedHolidays = auth()->user()->companies()->first()->companySetting->data['fixedHolidays'] ?? config('squarhe.fixedHolidays');
+        $fixedHolidays = auth()->user()->company()->first()->data['fixedHolidays'] ?? config('squarhe.fixedHolidays');
 
         $days = 0;
         // Utiliser CarbonPeriod::create qui est inclusif par défaut.

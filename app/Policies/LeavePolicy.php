@@ -3,9 +3,9 @@
 namespace App\Policies;
 
 use App\Enums\CompanyRoleEnum;
+use App\Enums\PermissionEnum;
 use App\Models\Leave;
 use App\Models\User;
-use App\Models\Company;
 use Illuminate\Auth\Access\Response;
 
 class LeavePolicy
@@ -31,7 +31,7 @@ class LeavePolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('create leave') || $user->hasRole(CompanyRoleEnum::OWNER->value);;
+        return $user->hasPermissionTo(PermissionEnum::CREATE_LEAVE->adminPermission()) || $user->hasRole(CompanyRoleEnum::OWNER->value);;
     }
 
     /**
@@ -39,7 +39,7 @@ class LeavePolicy
      */
     public function update(User $user, Leave $leave): bool
     {
-        return $user->hasPermissionTo('update leave') || $user->hasRole(CompanyRoleEnum::OWNER->value);;
+        return $user->hasPermissionTo(PermissionEnum::UPDATE_LEAVE->adminPermission()) || $user->hasRole(CompanyRoleEnum::OWNER->value);;
     }
 
     /**
@@ -47,7 +47,7 @@ class LeavePolicy
      */
     public function delete(User $user, Leave $leave): bool
     {
-        return $user->hasPermissionTo('delete leave') || $user->hasRole(CompanyRoleEnum::OWNER->value);;
+        return $user->hasPermissionTo(PermissionEnum::DELETE_LEAVE->adminPermission()) || $user->hasRole(CompanyRoleEnum::OWNER->value);;
     }
 
     /**

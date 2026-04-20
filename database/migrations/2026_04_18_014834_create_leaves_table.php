@@ -16,7 +16,6 @@ return new class extends Migration
 
             $table->string('ref');
             $table->foreignId('employee_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->string('type'); // type d'absence
             $table->date('start_date'); // début
             $table->date('end_date'); // fin
@@ -24,6 +23,7 @@ return new class extends Migration
             $table->string('status')->nullable(); // pending, approved, rejected
             $table->string('notes', 100)->nullable(); // notes
             $table->string('approved_by'); // qui a approuvé
+            $table->date('approbation_date'); // qui a approuvé
              $table->date('last_leave')->nullable();
             $table->string('leaves_balance')->default(0);
             $table->string('leaves_majority')->default(0);

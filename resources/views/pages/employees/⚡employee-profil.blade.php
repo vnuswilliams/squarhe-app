@@ -14,9 +14,9 @@ new class extends Component
     public $uuid;
     public $id, $motif;
 
-    public function mount($employee)
+    public function mount($uuid)
     {
-        $this->uuid = $employee;
+        $this->uuid = $uuid;
     }
      public function showPayslipModal()
     {
@@ -52,7 +52,7 @@ new class extends Component
     public function employee()
     {
         return Employee::where('uuid', $this->uuid)
-            ->with(['contractArchives'])
+            ->with(['contractArchives', 'leaves'])
             ->first();
     }//
 
@@ -92,31 +92,24 @@ new class extends Component
     ]">
         <x-slot:tab1>
 
-            @livewire('employees.employee-remuneration', ['employee' => $this->employee])
-
         </x-slot:tab1>
         <x-slot:tab2>
-            @livewire('employees.employee-contract', ['employee' => $this->employee])
 
         </x-slot:tab2>
         <x-slot:tab3>
-            @livewire('employees.employee-leaves', ['employee' => $this->employee])
+            <livewire:employees.employee-leaves :employee="$this->employee"/>
         </x-slot:tab3>
 
         <x-slot:tab4>
-            @livewire('employees.employee-overtime', ['employee' => $this->employee])
 
         </x-slot:tab4>
 
         <x-slot:tab5>
-            @livewire('employees.employee-document', ['employee' => $this->employee])
         </x-slot:tab5>
 
         <x-slot:tab6>
-            @livewire('employees.employee-impot', ['employee' => $this->employee])
         </x-slot:tab6>
         <x-slot:tab7>
-            @livewire('employees.employee-setting', ['employee' => $this->employee])
 
         </x-slot:tab7>
 

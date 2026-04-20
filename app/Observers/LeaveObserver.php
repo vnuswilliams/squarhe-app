@@ -15,20 +15,22 @@ class LeaveObserver
     /**
      * Handle the Leave "saving" event.
      */
-    public function saving(Leave $leave): void
+    public function changes(Leave $leave): void
     {
-        if ($leave->type === LeaveTypeEnum::SUSPENSION) {
-            if ($leave->days > 8) {
+        $needsSave = false;
+        if ($leave->type === LeaveTypeEnum::SUSPENSION->value && $leave->days > 8) {
                 $leave->days = 8;
                 $leave->end_date = $leave->start_date->copy()->addDays(8);
-            }
+                $needsSave = true;
         }
 
-        if ($leave->type === LeaveTypeEnum::MATERNITY) {
-            if ($leave->days < 98) {
+        if ($leave->type === LeaveTypeEnum::MATERNITY->value && $leave->days < 98) {
                 $leave->days = 98;
                 $leave->end_date = $leave->start_date->copy()->addDays(98);
-            }
+                $needsSave = true;
+        }
+        if ($needsSave) {
+            $leave->saveQuietly();
         }
     }
 
@@ -37,6 +39,7 @@ class LeaveObserver
      */
     public function created(Leave $leave): void
     {
+        $this->changes($leave);
         $this->logActivity($leave, 'created', __('Congé ajouté à :name', ['name' => $leave->employee->name]));
 
         (new LeaveBalanceService())->updateLeaveBalance($leave);
@@ -47,6 +50,7 @@ class LeaveObserver
      */
     public function updated(Leave $leave): void
     {
+        $this->changes($leave);
         $this->logActivity($leave, 'updated', __('Congé modifié pour :name', ['name' => $leave->employee->name]));
 
         (new LeaveBalanceService())->updateLeaveBalance($leave);
