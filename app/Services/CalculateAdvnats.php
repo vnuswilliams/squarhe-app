@@ -14,7 +14,7 @@ class CalculateAdvnats
         $advnats = $this->employee->remunerations()
             ->whereIn('name', AdvnatEnum::cases())
             ->get();
-        $intermediateGrossTaxableSalary = $this->employee->salaries?->intermediate_taxable_gross_salary;
+        $intermediateGrossTaxableSalary = $this->employee->salary?->intermediate_taxable_gross_salary;
         $totalAdvnatsAmount = 0;
 
 
@@ -22,11 +22,9 @@ class CalculateAdvnats
             foreach ($advnats as $advnat) {
                 $limit_fisc = $intermediateGrossTaxableSalary * $advnat->name->taux();
                 $this->employee->advnats()->create([
-                    'company_id' => $this->employee->company->id,
                     'name' => $advnat->name,
                     'amount' => $advnat->amount,
                     'limit_fisc' => $limit_fisc,
-                    'excedent' => max($advnat->amount, $limit_fisc) - min($advnat->amount, $limit_fisc),
                 ]);
             }
             return;

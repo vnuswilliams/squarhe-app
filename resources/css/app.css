@@ -51,6 +51,10 @@
     @apply grid gap-2;
 }
 
+button , th, ui-switch, ui-radio, ui-checkbox{
+    @apply cursor-pointer;
+}
+
 [data-flux-label] {
     @apply  !mb-0 !leading-tight;
 }

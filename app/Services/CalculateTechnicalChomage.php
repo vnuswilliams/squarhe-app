@@ -2,25 +2,24 @@
 
 namespace App\Services;
 
-use App\Enums\Impact;
-use App\Enums\RemunerationElement;
-use App\Enums\RemunerationType;
-use App\Enums\Periodicity;
+use App\Enums\ImpactEnum;
+use App\Enums\RemunerationEnum;
+use App\Enums\RemunerationTypeEnum;
+use App\Enums\PeriodicityEnum;
 use App\Models\Employee;
 
 class CalculateTechnicalChomage
 {
-    public function __construct(public Employee $employee, public int $month = 1, public bool $inDatabase = false)
+    public function __construct(public Employee $employee, public int $month = 1, public bool $inDatabase = false) {}
+    public function handle()
     {
-    }
-    public function handle()    {
-        $salaries = $this->employee->salaries->first();
-        $baseSalary = $salaries->base_salary ?? $this->employee->contract->base_salary;
-        $calculatePanc = new CalculatePanc($this->employee, $salaries->smic ?? $baseSalary);
+        $salaries = $this->employee->salary;
+        $baseSalary = $salaries->base_salary ?? $this->employee->base_salary;
+        $calculatePanc = (new CalculatePanc($this->employee))->handle();
 
-        $panc = $this->employee->remunerations->where('name', RemunerationElement::PRIME_ANCIENNETE->value)->first();
+        $panc = $calculatePanc;
 
-        $baseOfCacul = $baseSalary + $panc->amount;
+        $baseOfCacul = $baseSalary + $panc;
         // cumulative rates: month 1 adds 50%, month 2 adds 40%, etc.
         // months > 6 add 20% each
         $rates = [
@@ -43,25 +42,21 @@ class CalculateTechnicalChomage
         if ($this->inDatabase) {
             $this->employee->remunerations()->updateOrCreate(
                 [
-                    'name' => RemunerationElement::INDEMNITE_CHOMAGE_TECHNIQUE->value,
-                    'company_id' => $this->employee->company->id,
+                    'name' => RemunerationEnum::INDEMNITE_CHOMAGE_TECHNIQUE->value,
                 ],
                 [
                     'employee_id' => $this->employee->id,
-                    'company_id' => $this->employee->company->id,
-                    'name' => RemunerationElement::INDEMNITE_CHOMAGE_TECHNIQUE->value,
-                    'type' => RemunerationType::ALLOCATION->value,
-                    'amount' => number_format($indemniteChomage, 0,'', ''),
-                    'periodicity' => Periodicity::MONTHLY->value,
-                    'impact' => Impact::TAXCOT->value,
+                    'name' => RemunerationEnum::INDEMNITE_CHOMAGE_TECHNIQUE->value,
+                    'type' => RemunerationTypeEnum::ALLOCATION->value,
+                    'amount' => number_format($indemniteChomage, 0, '', ''),
+                    'periodicity' => PeriodicityEnum::MONTHLY->value,
+                    'impact' => ImpactEnum::TAXCOT->value,
                     'notes' => 'Indemnité de chômage technique'
                 ]
             );
         } else {
-            return number_format($indemniteChomage, 0,'', '');
+            return number_format($indemniteChomage, 0, '', '');
         }
         return 0;
     }
-
-
 }

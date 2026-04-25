@@ -2,8 +2,17 @@
 
 namespace App\Concerns;
 
+use Illuminate\Support\Str;
+
 trait EmployeeAccessors
 {
+
+
+
+public function getShortNameAttribute()
+{
+    return Str::limit($this->name, 10, '.');
+}
     //
     public function getCivilityAttribute()
     {
@@ -41,5 +50,21 @@ trait EmployeeAccessors
     public function getCategoryAttribute()
     {
         return $this->data['category'] ?? null; 
+    }
+
+    public function getAncAttribute()
+    {
+        $diff = $this->start_date->diff(now());
+
+        if($diff->y === 0)
+            {
+                return $diff->m . ' mois';
+            }
+        if($diff->m === 0)
+            {
+                return $diff->y .' '.  ($diff->y > 1 ? 'ans' : 'an');
+            }
+
+            return $diff->y  .' '. ($diff->y > 1 ? 'ans' : 'an').' et '.  $diff->m . ' mois';
     }
 }

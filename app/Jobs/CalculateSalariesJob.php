@@ -2,13 +2,12 @@
 
 namespace App\Jobs;
 
-use App\Enums\AvantageEnNatureType;
-use App\Enums\Impact;
+use App\Enums\ImpactEnum;
 use App\Enums\IranEnum;
-use App\Enums\LeavesType;
-use App\Enums\RemunerationElement;
-use App\Enums\RemunerationType;
-use App\Enums\RetenuesEnums;
+use App\Enums\LeaveTypeEnum;
+use App\Enums\RemunerationEnum;
+use App\Enums\RemunerationTypeEnum;
+use App\Enums\RetenuesEnum;
 use App\Models\Employee;
 use App\Services\CalculateAdvnats;
 use App\Services\CalculateHsupp;
@@ -32,23 +31,23 @@ class CalculateSalariesJob implements ShouldQueue
     {
 
         $this->exclude = [
-            RemunerationElement::RETENUE_AVANCE_SALAIRE->value,
-            RemunerationElement::RETENUE_PRET_EMPLOYE->value,
-            RemunerationElement::RETENUE_SANCTION->value,
-            RemunerationElement::SAISIE_SALAIRE->value,
-            RemunerationElement::RETENUE_CANTINE->value,
-            RemunerationElement::ACCOMPTE_SALAIRE->value,
-            RemunerationElement::IRPP->value,
-            RemunerationElement::CENTIME_COMMUNAL->value,
-            RemunerationElement::FNE->value,
-            RemunerationElement::CREDIT_FONCIER->value,
-            RemunerationElement::TAXE_DEVELOPPEMENT->value,
-            RemunerationElement::REDEVANCE_AUDIO_VISUELLE->value,
-            RemunerationElement::SYNDICAT->value,
-            RemunerationElement::CNPS_VIEILLESSE_SALARIALE->value,
-            RemunerationElement::CNPS_VIEILLESSE_PATRONALE->value,
-            RemunerationElement::CNPS_ALLOCATION_FAMILIALE->value,
-            RemunerationElement::CNPS_ACCIDENT_MALADIE_PRO->value,
+            RemunerationEnum::RETENUE_AVANCE_SALAIRE->value,
+            RemunerationEnum::RETENUE_PRET_EMPLOYE->value,
+            RemunerationEnum::RETENUE_SANCTION->value,
+            RemunerationEnum::SAISIE_SALAIRE->value,
+            RemunerationEnum::RETENUE_CANTINE->value,
+            RemunerationEnum::ACCOMPTE_SALAIRE->value,
+            RemunerationEnum::IRPP->value,
+            RemunerationEnum::CENTIME_COMMUNAL->value,
+            RemunerationEnum::FNE->value,
+            RemunerationEnum::CREDIT_FONCIER->value,
+            RemunerationEnum::TAXE_DEVELOPPEMENT->value,
+            RemunerationEnum::REDEVANCE_AUDIO_VISUELLE->value,
+            RemunerationEnum::SYNDICAT->value,
+            RemunerationEnum::CNPS_VIEILLESSE_SALARIALE->value,
+            RemunerationEnum::CNPS_VIEILLESSE_PATRONALE->value,
+            RemunerationEnum::CNPS_ALLOCATION_FAMILIALE->value,
+            RemunerationEnum::CNPS_ACCIDENT_MALADIE_PRO->value,
         ];
     }
 
@@ -60,12 +59,12 @@ class CalculateSalariesJob implements ShouldQueue
         $employee = $this->employee;
 
         // vide d'abord la table et ensuite demarre les calculs
-        $base_salary = $employee->contract->base_salary;
+        $base_salary = $employee->base_salary;
         // calcul du salaire moyen
-        $salaries = $employee->salaries;
+        $salaries = $employee->salary;
 
-        $avgSalary = $salaries?->average_salary ?: $base_salary;
-        $smic = $salaries?->smic ?: $base_salary;
+        $avgSalary = $employee->data['average_salary'] ?: $base_salary;
+        $smic = $employee->data['smic'] ?: $base_salary;
 
         // Recuperation des conges payé annuel and hsupp and seiority bonus
         $calculatePanc = (new CalculatePanc($employee))->handle();
@@ -75,13 +74,13 @@ class CalculateSalariesJob implements ShouldQueue
         // Calcul du salaire brut
         $grossSalary = $employee->remunerations()
             ->whereNotIn('name', $this->exclude)
-            ->whereNotIn('type', [RemunerationType::IMPOT->value])
+            ->whereNotIn('type', [RemunerationTypeEnum::IMPOT->value])
             ->sum('amount') + $base_salary + $calculatePanc + $calculateLeave + $caculateHsupp;
 
         // calcul du salaire brut taxable intermediaire
         $intermediateGrossTaxableSalary = $grossSalary - $employee->remunerations()
-            ->where('impact', Impact::NEUTRE->value)
-            ->whereIn('name', AvantageEnNatureType::cases())
+            ->where('ImpactEnum', ImpactEnum::NEUTRE->value)
+            ->whereIn('name', IranEnum::cases())
             ->sum('amount');
 
         // calculate advnats and irans
@@ -95,31 +94,29 @@ class CalculateSalariesJob implements ShouldQueue
 
         // Caclcul du salaire cotisable
         $contributorSalary = $base_salary + $employee->remunerations()
-            ->whereIn('impact', [Impact::COTISABLE->value, Impact::TAXCOT->value])
+            ->whereIn('ImpactEnum', [ImpactEnum::COTISABLE->value, ImpactEnum::TAXCOT->value])
             ->sum('amount') + $employee->remunerations()
             ->whereIn('name', IranEnum::cases())->sum('amount') + $employee->advnats()->sum('excedent');
 
         // retenues aplicable
         $retenues = 0;
         $retenues = $employee->remunerations()
-            ->whereIn('name', RetenuesEnums::cases())
+            ->whereIn('name', RetenuesEnum::cases())
             ->sum('amount');
         $daysLeft = $employee->leaves()
-            ->whereIn('type', [LeavesType::SUSPENSION, LeavesType::INJUSTIFY_LEAVE])
+            ->whereIn('type', [LeaveTypeEnum::SUSPENSION, LeaveTypeEnum::INJUSTIFY_LEAVE])
             ->sum('days');
-        $retenues += ($base_salary / $employee->company->companySetting->data['labourHours']) * $daysLeft;
+        $retenues += ($base_salary / $employee->company->data['labourHours']) * $daysLeft;
 
         // net a payer salaire brut - (retenues + elements de contributions salarialles)
         $nap = $grossSalary - ($retenues + $employee->employeeContributions?->total);
         // ajout dans la table salaries (mise à jour des enregistrements liés)
-        $employee->salaries()->updateOrCreate(
+        $employee->salary()->updateOrCreate(
             [
                 'employee_id' => $employee->id,
-                'company_id' => $employee->company->id,
             ],
             [
                 'employee_id' => $employee->id,
-                'company_id' => $employee->company->id,
                 'base_salary' => $base_salary,
                 'gross_salary' => $grossSalary,
                 'intermediate_taxable_gross_salary' => $intermediateGrossTaxableSalary,

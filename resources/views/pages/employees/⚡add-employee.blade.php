@@ -3,7 +3,7 @@
 use App\Enums\CivilityEnum;
 use App\Enums\ContractTypeEnum;
 use App\Enums\NationalityEnum;
-use App\Livewire\Forms\AddEmployee;
+use App\Livewire\Forms\EmployeeForm;
 use Flux\Flux;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -11,22 +11,24 @@ use Livewire\Component;
 
 new #[Title('Ajouter un employé')] class extends Component
 {
-    public AddEmployee $form;
+    public EmployeeForm $form;
 
     #[Computed]
-    public function company()    
+    public function company()
     {
-       return  auth()->user()->company()->first(); 
+        return  auth()->user()->company()->first();
     }
 
     public function save()
     {
+        $this->form->average_salary  = (empty($this->form->average_salary) || $this->form->average_salary === null || $this->form->average_salary  === 0) ? $this->form->base_salary : $this->form->average_salary;
+        $this->form->smic  = (empty($this->form->smic) || $this->form->smic === null || $this->form->smic  === 0) ? $this->form->base_salary : $this->form->smic;
+
         $employee = $this->form->create();
-        
-        Flux::toast(variant:'success', text:'l\'employé(e) a été crée(e) avec succès');
+
+        Flux::toast(variant: 'success', text: " L' employé(e) a été crée(e) avec succès");
 
         $this->redirect(route('employees.show', ['uuid' => $employee->uuid]), navigate: true);
-        
     }
 };
 ?>
@@ -43,14 +45,13 @@ new #[Title('Ajouter un employé')] class extends Component
             <flux:breadcrumbs.item>{{ __('add.employee') }}</flux:breadcrumbs.item>
         </flux:breadcrumbs>
     </div>
-@if($this->company)
+    @if($this->company)
 
     <form wire:submit="save" class="space-y-8">
         <!-- EMPLOYEE DETAILS -->
         <div
             class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md p-6 rounded-2xl  border border-zinc-100 dark:border-zinc-800">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
-                {{-- <x-icon name="user" class="w-5 h-5 text-primary-600" /> --}}
                 {{ __('Employee Details') }}
             </h2>
 
@@ -59,7 +60,7 @@ new #[Title('Ajouter un employé')] class extends Component
                 <flux:select id="civility" wire:model="form.civility" :label="__('Civility')">
                     <flux:select.option value=""> Choisir une option</flux:select.option>
                     @foreach (CivilityEnum::cases() as $case)
-                        <option value="{{ $case->value }}">{{ $case->name }}</option>
+                    <option value="{{ $case->value }}">{{ $case->name }}</option>
                     @endforeach
                 </flux:select>
 
@@ -79,7 +80,7 @@ new #[Title('Ajouter un employé')] class extends Component
                 <flux:select id="nationality" wire:model="form.nationality" :label="__('Nationality')">
                     <flux:select.option value=""> Choisir une option</flux:select.option>
                     @foreach (NationalityEnum::cases() as $case)
-                        <option value="{{ $case->value }}">{{ $case->name }}</option>
+                    <option value="{{ $case->value }}">{{ $case->name }}</option>
                     @endforeach
                 </flux:select>
 
@@ -104,7 +105,7 @@ new #[Title('Ajouter un employé')] class extends Component
             </h2>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              
+
 
                 <!-- Department -->
                 <flux:input id="department" wire:model="form.department" type="text" :label="__('Department')" />
@@ -116,7 +117,7 @@ new #[Title('Ajouter un employé')] class extends Component
                 <flux:select id="contract_type" wire:model="form.contract_type" :label="__('Contract Type')">
                     <flux:select.option value=""> Choisir une option</flux:select.option>
                     @foreach (ContractTypeEnum::cases() as $case)
-                        <option value="{{ $case->value }}">{{ $case->name }}</option>
+                    <option value="{{ $case->value }}">{{ $case->name }}</option>
                     @endforeach
                 </flux:select>
 
@@ -126,9 +127,19 @@ new #[Title('Ajouter un employé')] class extends Component
                 <!-- End Date -->
                 <flux:input id="end_date" wire:model="form.end_date" type="date" :label="__('End Date (optional)')" />
 
+
                 <!-- Base Salary -->
-                <flux:input id="base_salary" wire:model="form.base_salary" type="number" step="0.01"
+                <flux:input id="base_salary" wire:model.blur="form.base_salary" type="number"
                     :label="__('Base Salary')" />
+
+               
+                <!-- Average salary -->
+                <flux:input id="average_salary" wire:model="form.average_salary" type="number"
+                    :label="__('Salaire moyen (Optionnel')" />
+
+                <!-- Smic -->
+                <flux:input id="smic" wire:model="form.smic" type="number"
+                    :label="__('Smic (Optionnel')" />
 
                 <!-- Professional Category -->
                 <flux:input id="category" wire:model="form.category" type="text"
@@ -141,11 +152,9 @@ new #[Title('Ajouter un employé')] class extends Component
             <flux:button type="submit" variant="primary" class="px-6 py-2">
                 {{ __('Save Employee') }}
             </flux:button>
-
-            
         </div>
     </form>
-@else
-<x-no-company />
-@endif
+    @else
+    <x-no-company />
+    @endif
 </section>

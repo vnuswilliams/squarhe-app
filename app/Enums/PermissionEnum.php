@@ -19,6 +19,7 @@ enum PermissionEnum: string
     case UPDATE_COMPANY_SETTING = 'update_company_setting';
     case CREATE_CONTRACT = 'create_contract';
     case UPDATE_CONTRACT = 'update_contract';
+    case DELETE_CONTRACT = 'delete_contract';
     case VIEW_DOCUMENT = 'view_document';
     case CREATE_DOCUMENT = 'create_document';
     case UPDATE_DOCUMENT = 'update_document';
@@ -49,6 +50,7 @@ enum PermissionEnum: string
             self::UPDATE_ROLE => 'update role',
             self::UPDATE_COMPANY_SETTING => 'update company setting',
             self::CREATE_CONTRACT => 'create contract',
+    self::DELETE_CONTRACT => 'delete contract',
             self::UPDATE_CONTRACT => 'update contract',
             self::VIEW_DOCUMENT => 'view document',
             self::CREATE_DOCUMENT => 'create document',

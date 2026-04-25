@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
+
 #[Fillable(['name',        'email',        'phone',        'adresse',        'city',        'nui',        'cnps',        'rccm',        'join_code',        'data',])]
 #[ObservedBy(CompanyObserver::class)]
 class Company extends Model

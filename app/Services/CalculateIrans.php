@@ -15,7 +15,7 @@ class CalculateIrans
         $irans = $this->employee->remunerations()
             ->whereIn('name', IranEnum::cases())
             ->get();
-        $intermediateGrossTaxableSalary = $this->employee->salaries?->intermediate_taxable_gross_salary;
+        $intermediateGrossTaxableSalary = $this->employee->salary?->intermediate_taxable_gross_salary;
         $totalIransAmount = 0;
 
 
@@ -23,11 +23,9 @@ class CalculateIrans
             foreach ($irans as $iran) {
                 $limit_fisc = $intermediateGrossTaxableSalary * $iran->name->taux();
                 $this->employee->irans()->create([
-                    'company_id' => $this->employee->company->id,
                     'name' => $iran->name,
                     'amount' => $iran->amount,
                     'limit_fisc' => $limit_fisc,
-                    'quote' => min($iran->amount, $limit_fisc),
                 ]);
             }
             return;

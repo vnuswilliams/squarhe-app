@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Enums\Impact;
-use App\Enums\Periodicity;
-use App\Enums\RemunerationElement;
-use App\Enums\RemunerationType;
+use App\Enums\ImpactEnum;
+use App\Enums\PeriodicityEnum;
+use App\Enums\RemunerationEnum;
+use App\Enums\RemunerationTypeEnum;
 use App\Models\Employee;
 
 /**
@@ -30,21 +30,20 @@ class CalculateHsupp
 
             // Récuperation des hsupp et envoie dans la table elemnts
             foreach ($ifovertimes as $overtime) {
-                $hsupps += $overtime->hours * $overtime->hours_rate * $overtime->multiplier;
+                $hsupps += $overtime->alloc;
             }
 
             if ($this->inDatabase) {
                 if ($hsupps != 0) {
                     $this->employee->remunerations()->updateOrCreate(
-                        ['name' => RemunerationElement::HEURE_SUPP->value],
+                        ['name' => RemunerationEnum::HEURE_SUPP->value],
                         [
-                            'company_id' => $this->employee->company->id,
-                            'name' => RemunerationElement::HEURE_SUPP->value,
-                            'type' => RemunerationType::ALLOCATION->value,
+                            'name' => RemunerationEnum::HEURE_SUPP->value,
+                            'type' => RemunerationTypeEnum::ALLOCATION->value,
                             'amount' => $hsupps,
-                            'periodicity' => Periodicity::MONTHLY->value,
-                            'impact' => Impact::TAXCOT->value,
-                            'notes' => 'Total des heures supp. voir les details dans l\'onglet h supp',
+                            'periodicity' => PeriodicityEnum::UNIQUE->value,
+                            'impact' => ImpactEnum::TAXCOT->value,
+                            'notes' => 'Total des heures supp.',
                         ]
                     );
                 }
@@ -54,5 +53,16 @@ class CalculateHsupp
         }
 
         return 0;
+    }
+
+    public function hourRate($employee)
+    {
+        $smic = $employee->data['smic'];
+        $addon = $employee->remunerations()
+            ->whereIn('name', [RemunerationEnum::PRIME_TECHNICITE, RemunerationEnum::PRIME_RENDEMENT, RemunerationEnum::PRIME_FONCTION])
+            ->whereNotIn('name', [RemunerationEnum::PRIME_PANIER, RemunerationEnum::PRIME_ANCIENNETE, RemunerationEnum::INDEMNITE_LOGEMENT, RemunerationEnum::INDEMNITE_DEPLACEMENT, RemunerationEnum::INDEMNITE_TRANSPORT,             RemunerationEnum::PRIME_OUTILLAGE, RemunerationEnum::PRIME_ASSIDUITE])
+            ->sum('amount');
+        $rate = ($smic + $addon) / $employee->company->data['labourHours'];
+        return number_format($rate, 2, '.', '');
     }
 }

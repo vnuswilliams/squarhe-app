@@ -21,7 +21,10 @@ return new class extends Migration
             $table->date('start_date');
             $table->date('end_date');
             $table->decimal('base_salary', 10, 2);
+            $table->decimal('smic', 10, 2);
+            $table->decimal('average_salary', 10, 2);
             $table->string('category')->nullable();
+            $table->string('added_by')->nullable();
             $table->timestamps();
         });
     }

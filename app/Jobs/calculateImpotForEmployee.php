@@ -26,22 +26,19 @@ class calculateImpotForEmployee implements ShouldQueue
     public function handle(): void
     {
         $company = $this->employee->company;
-        $companySetting = $company->companySetting;
-        $salary = $this->employee->salaries;
+        $salary = $this->employee->salary;
 
         //salaire cot plafonne
         $plafondCotisableSalary = min($salary->contributory_salary, 750000);
-       $this->employee->employeeContributions()?->forceDelete();
-        $this->employee->employerContributions()?->forceDelete();
         //pension vieillesses
-        $oldAgePension = $companySetting->data['oldAgePension']['enabled'] ? $plafondCotisableSalary * $companySetting->data['oldAgePension']['employeeShare'] : 0;
+        $oldAgePension = $company->data['oldAgePension']['enabled'] ? $plafondCotisableSalary * $company->data['oldAgePension']['employeeShare'] : 0;
 
         //calcul cfc
-        $cfc = $companySetting->data['cfc']['enabled'] ? floor($salary->taxable_gross_salary / 1000) * 1000 * 0.01 : 0;
+        $cfc = $company->data['cfc']['enabled'] ? floor($salary->taxable_gross_salary / 1000) * 1000 * 0.01 : 0;
 
         //calcil syndicat
         $syndicat = $this->isUnionMember ? ($salary->base_salary * 0.01) : 0;
-        if ($companySetting->data['rav']):
+        if ($company->data['rav']):
             //calcul rav
             $rav = 0;
 
@@ -81,7 +78,7 @@ class calculateImpotForEmployee implements ShouldQueue
                     break;
             }
         endif;
-        if ($companySetting->data['tdl']):
+        if ($company->data['tdl']):
             //calcul tdl
             $tdl = 0;
 
@@ -115,7 +112,7 @@ class calculateImpotForEmployee implements ShouldQueue
                     break;
             }
         endif;
-        if ($companySetting->data['irpp']):
+        if ($company->data['irpp']):
             //Calcul IRPP
             $snc = ($salary->taxable_gross_salary * 12) - ($salary->taxable_gross_salary * 0.3) - ($oldAgePension * 12);
             $ba = 500000;
@@ -147,17 +144,21 @@ class calculateImpotForEmployee implements ShouldQueue
             $cac = $irpp * 0.1;
         endif;
 
-        $contri = $this->employee->employeeContributions()->create(            [
+        $contri = $this->employee->employeeContributions()->updateOrCreate(
+            [
                 'employee_id' => $this->employee->id,
-                'company_id' => $this->employee->company->id,
-                'old_age_pension' => (int) number_format($oldAgePension,0,'',''),
-                'irpp' => (int) number_format($irpp,0,'',''),
-                'cac' => (int) number_format($cac,0,'','') ?? 0,
-                'cfc' => (int) number_format($cfc,0,'','') ?? 0,
-                'syndicat' => (int) number_format($syndicat,0,'',''),
-                'rav' => (int) number_format($rav,0,'','') ?? 0,
-                'tdl' => (int) number_format($tdl,0,'','') ?? 0,
-            ]        );
+            ],
+            [
+                'employee_id' => $this->employee->id,
+                'old_age_pension' => (int) number_format($oldAgePension, 0, '', ''),
+                'irpp' => (int) number_format($irpp, 0, '', ''),
+                'cac' => (int) number_format($cac, 0, '', '') ?? 0,
+                'cfc' => (int) number_format($cfc, 0, '', '') ?? 0,
+                'syndicat' => (int) number_format($syndicat, 0, '', ''),
+                'rav' => (int) number_format($rav, 0, '', '') ?? 0,
+                'tdl' => (int) number_format($tdl, 0, '', '') ?? 0,
+            ]
+        );
 
         $employ = 0;
         $employ += $contri->old_age_pension;
@@ -174,23 +175,27 @@ class calculateImpotForEmployee implements ShouldQueue
         ]);
         //allocation familiale   
 
-        $familyAllowance = $companySetting->data['familyAllowances']['enabled'] ? $companySetting->data['familyAllowances']['rate'] * $plafondCotisableSalary : 0;
+        $familyAllowance = $company->data['familyAllowances']['enabled'] ? $company->data['familyAllowances']['rate'] * $plafondCotisableSalary : 0;
         //pension vieillesse employer
-        $oldAgePensionEmployer = $companySetting->data['oldAgePension']['enabled'] ? $plafondCotisableSalary * $companySetting->data['oldAgePension']['employerShare'] : 0;
+        $oldAgePensionEmployer = $company->data['oldAgePension']['enabled'] ? $plafondCotisableSalary * $company->data['oldAgePension']['employerShare'] : 0;
         //accident maladie pro
-        $accident = $companySetting->data['accident']['enabled'] ? $salary->contributory_salary * $companySetting->data['accident']['rate'] : 0;
+        $accident = $company->data['accident']['enabled'] ? $salary->contributory_salary * $company->data['accident']['rate'] : 0;
         //fne
-        $fne = $companySetting->data['fne']['enabled'] ? $companySetting->data['fne']['employerShare'] * $salary->taxable_gross_salary : 0;
+        $fne = $company->data['fne']['enabled'] ? $company->data['fne']['employerShare'] * $salary->taxable_gross_salary : 0;
         //cfc        
-        $cfc = $companySetting->data['cfc']['enabled'] ? $companySetting->data['cfc']['employerShare'] * $salary->taxable_gross_salary : 0;
-        $this->employee->employerContributions()->create(            [
+        $cfc = $company->data['cfc']['enabled'] ? $company->data['cfc']['employerShare'] * $salary->taxable_gross_salary : 0;
+        $this->employee->employerContributions()->updateOrCreate(
+            [
                 'employee_id' => $this->employee->id,
-                'company_id' => $this->employee->company->id,
-                'family_allowance' => (int) number_format($familyAllowance,0,'','') ?? 0,
-                'old_age_pension' => (int) number_format($oldAgePensionEmployer,0,'','') ?? 0,
-                'accident' => (int) number_format($accident,0,'','') ?? 0,
-                'cfc' => (int) number_format($cfc,0,'','') ?? 0,
-                'fne' => (int) number_format($fne,0,'','') ?? 0,
-            ]        );
+            ],
+            [
+                'employee_id' => $this->employee->id,
+                'family_allowance' => (int) number_format($familyAllowance, 0, '', '') ?? 0,
+                'old_age_pension' => (int) number_format($oldAgePensionEmployer, 0, '', '') ?? 0,
+                'accident' => (int) number_format($accident, 0, '', '') ?? 0,
+                'cfc' => (int) number_format($cfc, 0, '', '') ?? 0,
+                'fne' => (int) number_format($fne, 0, '', '') ?? 0,
+            ]
+        );
     }
 }

@@ -1,7 +1,10 @@
 <?php
 
+use App\Enums\CivilityEnum;
 use App\Enums\ContractTypeEnum;
+use App\Enums\NationalityEnum;
 use App\Jobs\CalculatePayslipJob;
+use App\Livewire\Forms\EmployeeForm;
 use App\Models\Employee;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Flux\Flux;
@@ -11,15 +14,25 @@ use Livewire\Component;
 
 new class extends Component
 {
+    public $activeTab = 0;
     public $uuid;
     public $id, $motif;
-
+    public EmployeeForm $form;
     public function mount($uuid)
     {
         $this->uuid = $uuid;
     }
-     public function showPayslipModal()
+
+    public function render()
     {
+        return        $this->view()->title('Profil de ' . $this->employee->shortName);
+    }
+
+
+    public function showPayslipModal()
+    {
+
+        $this->employee->payslip?->delete();
         CalculatePayslipJob::dispatch($this->employee);
         Flux::modal('payslip-modal')->show();
     }
@@ -33,7 +46,7 @@ new class extends Component
         }, 'payslip.pdf');
     }
 
-      public function with()
+    public function with()
     {
         $sal = [];
         $contributionsArray = [];
@@ -48,14 +61,30 @@ new class extends Component
             'contributions' => $contributionsArray,
         ];
     }
+
+
     #[Computed]
     public function employee()
     {
         return Employee::where('uuid', $this->uuid)
-            ->with(['contractArchives', 'leaves'])
-            ->first();
-    }//
+            ->with(['employeeContributions', 'employerContributions', 'overtimes', 'payslip', 'contractArchives', 'remunerations', 'leaves'])
+            ->firstOrFail();
+    } //
 
+    public function editEmployee()
+    {
+        $this->form->setEmployee($this->employee);
+        Flux::modal('edit-employee')->show();
+    }
+    public function update()
+    {
+        $this->form->isCreating = false;
+        $this->form->update();
+        Flux::modal('edit-employee')->close();
+        $this->form->reset();
+        $name = Str::limit($this->employee->name, 10, '.');
+        Flux::toast(variant: 'success', text: "Les infos personnelles de $name ont été mises à jour.");
+    }
 };
 ?>
 
@@ -68,7 +97,7 @@ new class extends Component
         </flux:breadcrumbs>
     </div>
 
-    <div class="flex items-center justify-between gap-4 mb-16">
+    <div class="flex items-center justify-between  mb-16">
         <div class="flex items-center justify-start gap-4">
             <flux:avatar name="{{ $this->employee->name }}" />
             <div>
@@ -76,47 +105,140 @@ new class extends Component
                 <flux:text>{{ $this->employee->job_title . ' . ' . $this->employee->department }}</flux:text>
             </div>
         </div>
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
 
             <flux:button variant="primary" wire:click="showPayslipModal">Voir le bulletin</flux:button>
+            <flux:button wire:click="editEmployee" icon="pencil" />
         </div>
     </div>
-<x-tabs :tabs="[
-        'Rémunération.',
+
+
+    <x-delta-card :cards="[
+        [
+            'label' => 'Salaire de base',
+            'current' => number_format($this->employee->base_salary, 0, ',', ' ') . ' F cfa',
+            'delta' => '',
+                        'color' => 'blue',
+        ],
+        [
+            'label' => 'Date embauche',
+            'current' => $this->employee->start_date?->format('d M Y') ?? 'N/A',
+            'delta' => '',
+                        'color' => 'emerald',
+        ],
+        [
+            'label' => 'Ancienneté',
+            'current' => ($this->employee->anc),
+            'delta' => '',
+                        'color' => 'violet',
+        ],
+        [
+            'label' => 'Type de contrat',
+            'current' => ContractTypeEnum::from($this->employee->contract_type)->label(),
+            'delta' => '',
+            'color' => 'amber',
+        ],
+    ]" />
+
+
+
+
+    <x-tabs :tabs="[
+    'Vue d\'ensemble',
+        'Rémunération',
         'Contrat',
         'Absences',
         'Heures supp.',
         'Documents',
-        'Impôts',
-        'Réglages',
     ]">
         <x-slot:tab1>
+            <livewire:employees.employee-general :employee="$this->employee" />
 
         </x-slot:tab1>
         <x-slot:tab2>
+            <livewire:employees.employee-remuneration :employee="$this->employee" />
 
         </x-slot:tab2>
         <x-slot:tab3>
-            <livewire:employees.employee-leaves :employee="$this->employee"/>
+            <livewire:employees.employee-contract :employee="$this->employee" />
         </x-slot:tab3>
 
         <x-slot:tab4>
-
+            <livewire:employees.employee-leaves :employee="$this->employee" />
         </x-slot:tab4>
 
         <x-slot:tab5>
+            <livewire:employees.employee-overtime :employee="$this->employee" />
         </x-slot:tab5>
 
         <x-slot:tab6>
+            <livewire:employees.employee-document :employee="$this->employee" />
         </x-slot:tab6>
-        <x-slot:tab7>
-
-        </x-slot:tab7>
-
-
     </x-tabs>
-    
-    <flux:modal name="payslip-modal" class="min-w-[900px]">
+
+    <flux:modal name="edit-employee" class="min-w-225">
+        <div class="space-y-6 pt-5">
+            <div class="flex items-center justify-between">
+                <flux:heading size="lg">Editer l'employee {{ $this->employee->name }}</flux:heading>
+            </div>
+
+            <form wire:submit="update" class="container mx-auto p-4 max-w-4xl space-y-4">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
+                        {{-- <x-icon name="user" class="w-5 h-5 text-primary-600" /> --}}
+                        {{ __('Employee Details') }}
+                    </h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Civility -->
+                        <flux:select id="civility" wire:model="form.civility" :label="__('Civility')">
+                            <flux:select.option value=""> Choisir une option</flux:select.option>
+                            @foreach (CivilityEnum::cases() as $case)
+                            <option value="{{ $case->value }}">{{ $case->name }}</option>
+                            @endforeach
+                        </flux:select>
+
+                        <!-- Name -->
+                        <flux:input id="name" wire:model="form.name" type="text" :label="__('Full Name')" />
+
+                        <!-- Email -->
+                        <flux:input id="email" wire:model="form.email" type="email" :label="__('Email Address')" />
+
+                        <!-- Phone -->
+                        <flux:input id="phone" wire:model="form.phone" type="text" :label="__('Phone (9 digits)')" />
+
+                        <!-- Birth Date -->
+                        <flux:input id="birth_date" wire:model="form.birth_date" type="date" :label="__('Birth Date')" />
+
+                        <!-- Nationality -->
+                        <flux:select id="nationality" wire:model="form.nationality" :label="__('Nationality')">
+                            <flux:select.option value=""> Choisir une option</flux:select.option>
+                            @foreach (NationalityEnum::cases() as $case)
+                            <option value="{{ $case->value }}">{{ $case->name }}</option>
+                            @endforeach
+                        </flux:select>
+
+                        <!-- Number of Children -->
+                        <flux:input id="child" wire:model="form.child" type="number" min="0"
+                            :label="__('Number of Children')" />
+
+                        <!-- NIU -->
+                        <flux:input id="niu" wire:model="form.niu" type="text" :label="__('NIU')" />
+
+                        <!-- CNPS -->
+                        <flux:input id="cnps_number" wire:model="form.cnps_number" type="text" :label="__('CNPS Number')" />
+                    </div>
+                </div>
+                <div class="flex gap-2 justify-end">
+                    <flux:spacer />
+                    <flux:button variant="primary" type="submit">
+                        Enregistrer
+                    </flux:button>
+                </div>
+            </form>
+        </div>
+    </flux:modal>
+    <flux:modal name="payslip-modal" class="min-w-225">
         <div class="space-y-6 pt-5">
             <div class="flex items-center justify-between">
                 <flux:heading size="lg">Bulletin de {{ $this->employee->name }}</flux:heading>
@@ -129,7 +251,7 @@ new class extends Component
                 'contributions' => $contributions,
                 ])
                 @elseif (!$this->employee->payslip)
-                <div wire:poll.visible="showPayslipModal"
+                <div wire:poll.visible.5s="showPayslipModal"
                     class="flex flex-col items-center justify-center h-full p-8 text-zinc-500">
                     <div
                         class="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-700 dark:bg-zinc-800">

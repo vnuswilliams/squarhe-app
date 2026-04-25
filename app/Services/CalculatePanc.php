@@ -3,24 +3,22 @@
 namespace App\Services;
 
 use App\Models\Employee;
-use App\Enums\RemunerationElement;
-use App\Enums\RemunerationType;
-use App\Enums\Periodicity;
-use App\Enums\Impact;
+use App\Enums\RemunerationEnum;
+use App\Enums\RemunerationTypeEnum;
+use App\Enums\PeriodicityEnum;
+use App\Enums\ImpactEnum;
 
 class CalculatePanc
 {
 
 
-    public function __construct(public Employee $employee, public bool $inDatabase = false)
-    {
-    }
+    public function __construct(public Employee $employee, public bool $inDatabase = false) {}
     public function handle()
     {
-        $age = $this->employee->contract->start_date->age;
-        $seniorityBonus = $this->employee->company->companySetting->data['seniorityBonus'];
+        $age = $this->employee->start_date->age;
+        $seniorityBonus = $this->employee->company->data['seniorityBonus'];
 
-        $smic = $this->employee->salaries->first()->smic ?? $this->employee->contract->base_salary;
+        $smic = $this->employee->salary->smic ?? $this->employee->base_salary;
 
         if ($age > 1 && $seniorityBonus['enabled']):
 
@@ -28,17 +26,15 @@ class CalculatePanc
             if ($this->inDatabase) {
                 $this->employee->remunerations()->updateOrCreate(
                     [
-                        'name' => RemunerationElement::PRIME_ANCIENNETE->value,
-                        'company_id' => $this->employee->company->id,
+                        'name' => RemunerationEnum::PRIME_ANCIENNETE->value,
                     ],
                     [
                         'employee_id' => $this->employee->id,
-                        'company_id' => $this->employee->company->id,
-                        'name' => RemunerationElement::PRIME_ANCIENNETE->value,
-                        'type' => RemunerationType::PRIME->value,
+                        'name' => RemunerationEnum::PRIME_ANCIENNETE->value,
+                        'type' => RemunerationTypeEnum::PRIME->value,
                         'amount' => $panc,
-                        'periodicity' => Periodicity::MONTHLY->value,
-                        'impact' => Impact::TAXCOT->value,
+                        'periodicity' => PeriodicityEnum::UNIQUE->value,
+                        'impact' => ImpactEnum::TAXCOT->value,
                     ]
                 );
             } else {
@@ -47,5 +43,4 @@ class CalculatePanc
         endif;
         return 0;
     }
-
 }

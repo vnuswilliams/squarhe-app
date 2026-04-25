@@ -7,8 +7,7 @@ use App\Enums\LeaveTypeEnum;
 use App\Observers\LeaveObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
-
-
+  
 #[ObservedBy(LeaveObserver::class)]
 class Leave extends Model
 {
@@ -66,6 +65,11 @@ class Leave extends Model
             endif;
 
             if (empty($leave->approved_by)):
+                $leave->approved_by = auth()->user()->name;
+            endif;
+        });
+        static::updating(function ($leave) {
+              if ($leave->approved_by):
                 $leave->approved_by = auth()->user()->name;
             endif;
         });

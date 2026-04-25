@@ -106,7 +106,7 @@ new class extends Component
                     @foreach ($expiredContracts as $employee)
                     <div class="flex items-center justify-between p-2 rounded-lg bg-white/10">
                         <span class="font-medium">{{ $employee->name }}</span>
-                        <flux:button href="{{ route('employees.show', ['employee' => $employee]) }}" wire:navigate
+                        <flux:button href="{{ route('employees.show', ['uuid' => $employee->uuid]) }}" wire:navigate
                             variant="primary" size="sm" icon="eye">
                         </flux:button>
                     </div>
@@ -126,7 +126,7 @@ new class extends Component
                     @foreach ($expiringContracts as $employee)
                     <div class="flex items-center justify-between p-2 rounded-lg bg-white/10">
                         <span class="font-medium">{{ $employee->name }}</span>
-                        <flux:button href="{{ route('employees.show', ['employee' => $employee]) }}" wire:navigate
+                        <flux:button href="{{ route('employees.show',  ['uuid' => $employee->uuid]) }}" wire:navigate
                             variant="primary" size="sm" icon="eye">
                         </flux:button>
                     </div>
@@ -146,7 +146,7 @@ new class extends Component
                     @foreach ($trialEndingContracts as $employee)
                     <div class="flex items-center justify-between p-2 rounded-lg bg-white/10">
                         <span class="font-medium">{{ $employee->name }}</span>
-                        <flux:button href="{{ route('employees.show', ['employee' => $employee]) }}" wire:navigate
+                        <flux:button href="{{ route('employees.show',  ['uuid' => $employee->uuid]) }}" wire:navigate
                             variant="primary" size="sm" icon="eye">
                         </flux:button>
                     </div>

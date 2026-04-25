@@ -254,10 +254,6 @@
                                 <td class="py-2"><p class="text-zinc-500 dark:text-zinc-400">Congés pris</p></td>
                                 <td class="py-2 text-right"><p class="font-medium text-lg">{{ $employee->payslip['employee_data']['leave_taken'] ??  '0'}}</p></td>
                             </tr>
-                             <tr>
-                                <td class="py-2"><p class="text-zinc-500 dark:text-zinc-400">Congés restant(s)</p></td>
-                                <td class="py-2 text-right"><p class="font-medium text-lg">{{ $employee->payslip['employee_data']['leaves_still'] ?? 0 }} </p></td> 
-                            </tr>
                         </table>
                     </td>
                 </tr>

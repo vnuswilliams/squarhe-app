@@ -8,16 +8,11 @@ use App\Services\CalculateDays;
 use Carbon\Carbon;
 use Flux\Flux;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
-use Livewire\WithFileUploads;
-use Rap2hpoutre\FastExcel\FastExcel;
 
 new class extends Component
 {
-    use WithFileUploads;
     public $employee;
     public $showImportLeave = false;
     public $showAddLeaveForm = false;
@@ -54,7 +49,9 @@ new class extends Component
 
     public function edit($leaveId)
     {
-        $leaveToUpdate  = Leave::find($leaveId);
+        $leaveToUpdate  = Leave::whereId($leaveId)  
+        ->whereEmployeeId($this->employee->id)
+            ->firstOrFail();
         $this->form->setLeave($leaveToUpdate);
         Flux::modal('edit-leave-modal')->show();
     }
@@ -72,7 +69,9 @@ new class extends Component
     public $leaveToDelete = null;
     public function confirmBeforeDelete($idLeaveWeWantToDelete)
     {
-        $this->leaveToDelete = Leave::find($idLeaveWeWantToDelete);
+        $this->leaveToDelete = Leave::whereId($idLeaveWeWantToDelete)
+            ->whereEmployeeId($this->employee->id)
+            ->firstOrFail();
         Flux::modal('delete-leave-modal')->show();
     }
     public function delete()
@@ -99,140 +98,6 @@ new class extends Component
         $this->showAddLeaveForm = false;
     }
 
-    public function downloadTemplate()
-    {
-        // Use the existing template file from public to avoid generating on the fly
-        $publicPath = public_path('leaves_template.xlsx');
-
-        if (!file_exists($publicPath)) {
-            Flux::toast(variant: 'danger', text: "Template introuvable, Veuillez réessayer plus tard.");
-            return;
-        }
-        return response()->download($publicPath, 'leaves_template.xlsx');
-        Flux::toast(variant: 'success', text: 'Le téléchargement du template va démarrer...');
-    }
-
-    public function updatedImportFile()
-    {
-        $this->validate([
-            'importFile' => 'required|file|mimes:xlsx,xls',
-        ]);
-        $this->previewData = [];
-        $this->importErrors = [];
-        $this->validationStep = false;
-
-        $path = $this->importFile->getRealPath();
-        $fastExcel = new FastExcel();
-        $rows = $fastExcel->import($path);
-
-
-        $rowIndex = 0;
-
-        foreach ($rows as $row) {
-            if (is_null($row) || (is_array($row) && empty(array_filter($row)))) {
-                continue; // Skip empty rows
-            }
-
-            $rowIndex++;
-
-            // Map column headers to expected fields
-            $data = [
-                'type' => $row['Type'] ?? $row['type'] ?? null,
-                'days' => $row['Nbres jrs'],
-                'status' => $row['Statut'],
-                'approved_by' => $row['Approuvé par'],
-                'approbation_date' => $row["Date approbation(AAAA/MM/JJ)"] ?? $row['approbation_date'] ?? null,
-                'start_date' => $row['Date de début(AAAA/MM/JJ)'] ?? $row['start_date'] ?? null,
-                'end_date' => $row['Date de fin(AAAA/MM/JJ)'] ?? $row['end_date'] ?? null,
-                'notes' => $row['Notes'] ?? $row['notes'] ?? null,
-            ];
-
-            $rules = [
-                'days' => ['required', 'numeric'],
-                'approved_by' => ['required', 'string', 'max:100'],
-                'approbation_date' => ['required', 'date'],
-                'status' => ['required', 'string', Rule::in(StatusEnum::values())],
-                'type' => ['required', 'string', Rule::in(LeaveTypeEnum::values())],
-                'start_date' => ['required', 'date'],
-                'end_date' => ['required', 'date', 'after_or_equal:start_date'],
-                'notes' => ['nullable', 'string', 'max:100'],
-            ];
-            $validator = Validator::make($data, $rules);
-
-
-            if ($validator->fails()) {
-                $this->importErrors[$rowIndex] = [
-                    'rowNumber' => $rowIndex,
-                    'errors' => $validator->errors()->all(),
-                    'data' => $data
-                ];
-            } else {
-                $this->previewData[] = [
-                    'rowNumber' => $rowIndex,
-                    'data' => $row
-                ];
-            }
-        }
-    }
-    public function confirmImport()
-    {
-        Gate::authorize('create', [Leave::class]);
-
-        if (empty($this->previewData)) {
-            Flux::toast(variant: 'danger', text: 'Aucune donnée valide à importer.');
-            return;
-        }
-
-        // Extract only the data portion for the job
-        $dataToImport = array_map(fn($item) => $item['data'], $this->previewData);
-
-        //ImportLeavesJob::dispatch($dataToImport, $this->company_id);
-
-        $this->resetImport();
-        Flux::toast(variant: 'success', text: 'Importation en cours...');
-    }
-
-    public function proceedToValidation()
-    {
-
-        Gate::authorize('create', [Leave::class]);
-        if (empty($this->previewData)) {
-            Flux::toast(variant: 'danger', text: 'Aucune donnée valide à importer.');
-            return;
-        }
-
-        foreach ($this->previewData as $item):
-
-            $leaveData = [
-                'employee_id' => $this->employee->id,
-                'type' =>  $item['data']['Type'],
-                'start_date' => $item['data']['Date de début(AAAA/MM/JJ)'],
-                'end_date' => $item['data']['Date de fin(AAAA/MM/JJ)'],
-                'days' => $item['data']['Nbres jrs'],
-                'status' =>  $item['data']['Statut'],
-                'notes' => $item['data']['Notes'],
-                'approved_by' =>  $item['data']['Approuvé par'],
-                'approbation_date' =>  $item['data']["Date approbation(AAAA/MM/JJ)"],
-            ];
-
-            $leave = $this->employee->leaves()->create($leaveData);
-
-        /*if ($leave->type === LeaveTypeEnum::ANNUAL->value) {
-                UpdateLeaveBalanceJob::dispatch($this->employee->id, $leave->days, $leave->end_date);
-            }*/
-        endforeach;
-
-        $this->validationStep = true;
-        $this->resetImport();
-        Flux::toast(variant: 'success', text: __('Demande de congé et absence sont en cours d\' importation.'));
-    }
-    public function resetImport()
-    {
-        $this->importFile = null;
-        $this->previewData = [];
-        $this->importErrors = [];
-        $this->validationStep = false;
-    }
 };
 ?>
 
@@ -297,127 +162,7 @@ new class extends Component
         </form>
     </x-container>
     @endif
-    @if ($showImportLeave)
-
-
-    <x-container wire:transition>
-        <div class="flex align-items-center justify-between">
-            <h3 class="font-semibold text-lg">Étape 1: Sélectionnez votre fichier</h3>
-            <flux:button wire:click="downloadTemplate" variant="outline">
-                Télécharger le modèle
-            </flux:button>
-        </div>
-        <div class="space-y-3">
-            <flux:text variant="subtle">Acceptés: Excel (.xlsx, .xls)</flux:text>
-            <div class="flex items-center gap-2">
-
-                <flux:input type="file" wire:model="importFile" label="Fichier Excel ou CSV" accept=".xlsx,.xls,.csv" required />
-                <div wire:loading wire:target="importFile" class="flex items-center gap-2 text-sm text-zinc-600 mt-2">
-                    <svg class="w-4 h-4 animate-spin text-zinc-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                    </svg>
-                    <span>Traitement du fichier…</span>
-                </div>
-            </div>
-        </div>
-    </x-container>
-    @if ($importFile && (count($previewData) > 0 || count($importErrors) > 0))
-    <x-container wire:transition>
-        <h3 class="font-semibold text-lg">Étape 2: Aperçu des données</h3>
-
-        @if (count($importErrors) > 0)
-        <div class="border border-red-200 dark:border-red-800 rounded-xl p-4 bg-red-50 dark:bg-red-900/20">
-            <div class="flex items-center gap-2 mb-4">
-                <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                </svg>
-                <h4 class="font-semibold text-red-900 dark:text-red-100">
-                    {{ count($importErrors) }} erreur(s) de validation
-                </h4>
-            </div>
-            <div class="space-y-3 max-h-64 overflow-y-auto">
-                @foreach ($importErrors as $error)
-                <div class="border-l-4 border-red-600 pl-3 py-2">
-                    <p class="font-medium text-red-800 dark:text-red-200">Ligne {{ $error['rowNumber'] }}</p>
-                    <ul class="text-sm text-red-700 dark:text-red-300 list-disc list-inside mt-1">
-                        @foreach ($error['errors'] as $msg)
-                        <li>{{ $msg }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-                @endforeach
-            </div>
-        </div>
-        @endif
-
-        @if (count($previewData) > 0)
-        <div wire:transition>
-            <div class="flex items-center gap-2 mb-4">
-                <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <h4 class="font-semibold text-green-900 dark:text-green-100">
-                    {{ count($previewData) }} congé(s) valide(s)
-                </h4>
-            </div>
-
-            <div class="overflow-x-auto rounded-lg border border-green-200 dark:border-green-800">
-                <table class="w-full text-sm">
-                    <thead class="bg-green-100 dark:bg-green-800/50 border-b border-green-200 dark:border-green-800">
-                        <tr>
-                            <th class="px-4 py-3 text-left font-semibold text-green-900 dark:text-green-100">#</th>
-                            <th class="px-4 py-3 text-left font-semibold text-green-900 dark:text-green-100">Type</th>
-                            <th class="px-4 py-3 text-left font-semibold text-green-900 dark:text-green-100">Date début</th>
-                            <th class="px-4 py-3 text-left font-semibold text-green-900 dark:text-green-100">Date fin</th>
-                            <th class="px-4 py-3 text-left font-semibold text-green-900 dark:text-green-100">Nbres jrs</th>
-                            <th class="px-4 py-3 text-left font-semibold text-green-900 dark:text-green-100">Statut</th>
-                            <th class="px-4 py-3 text-left font-semibold text-green-900 dark:text-green-100">Approuvé par</th>
-                            <th class="px-4 py-3 text-left font-semibold text-green-900 dark:text-green-100">Approuvé le</th>
-                            <th class="px-4 py-3 text-left font-semibold text-green-900 dark:text-green-100">Notes</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-green-200 dark:divide-green-800">
-                        @foreach (array_slice($previewData, 0, 100) as $item)
-                        <tr class="hover:bg-green-100/50 dark:hover:bg-green-900/20 transition">
-                            <td class="px-4 py-3 text-green-900 dark:text-green-100">{{ $item['rowNumber'] }}</td>
-                            <td class="px-4 py-3 text-green-900 dark:text-green-100">{{ $item['data']['Type']}}</td>
-                            <td class="px-4 py-3 text-green-900 dark:text-green-100">{{ $item['data']['Date de début(AAAA/MM/JJ)']?? 'N/A' }}</td>
-                            <td class="px-4 py-3 text-green-900 dark:text-green-100">{{ $item['data'][ 'Date de fin(AAAA/MM/JJ)'] ?? 'N/A' }}</td>
-                            <td class="px-4 py-3 text-green-900 dark:text-green-100">{{ $item['data']['Nbres jrs']?? 'N/A' }}</td>
-                            <td class="px-4 py-3 text-green-900 dark:text-green-100">{{ $item['data']['Statut']?? 'N/A' }}</td>
-                            <td class="px-4 py-3 text-green-900 dark:text-green-100">{{ $item['data']['Approuvé par'] ?? 'N/A' }}</td>
-                            <td class="px-4 py-3 text-green-900 dark:text-green-100">{{ $item['data']["Date approbation(AAAA/MM/JJ)"] ?? 'N/A' }}</td>
-                            <td class="px-4 py-3 text-green-900 dark:text-green-100">{{ $item['data']['Notes'] ?? 'N/A' }}</td>
-
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-
-                @if (count($previewData) > 100)
-                <p class="mt-3 text-xs text-green-600 dark:text-green-400">
-                    ... et {{ count($previewData) - 100 }} autre(s) enregistrement(s)
-                </p>
-                @endif
-            </div>
-        </div>
-        <div class="flex justify-end items-center gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-700">
-            <flux:button wire:click="resetImport">
-                Annuler l'import
-            </flux:button>
-            <div class="flex items-center gap-3">
-                <flux:button wire:click="proceedToValidation" variant="primary" wire:loading.attr="disabled">
-                    Valider l'import
-                </flux:button>
-                <span wire:loading wire:target="proceedToValidation" class="text-sm text-zinc-500">Préparation…</span>
-            </div>
-        </div>
-        @endif
-    </x-container>
-
-    @endif
-    @endif
+    
 
     <x-container>
         <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
@@ -456,7 +201,16 @@ new class extends Component
                 <tr wire:key="{{ $leave->id }}">
 
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">
-                        {{ $leave->type->label() }}
+                        <flux:heading class="flex items-center gap-2">
+                            {{ $leave->type->label() }}
+                            <flux:tooltip toggleable>
+                                <flux:button icon="information-circle" size="sm" variant="ghost" />
+                                <flux:tooltip.content>
+                                    {{ $leave->notes }}
+                                </flux:tooltip.content>
+                            </flux:tooltip>
+
+                        </flux:heading>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">
                         {{ Carbon::parse($leave->start_date)->translatedFormat('d M Y') }}

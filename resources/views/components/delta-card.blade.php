@@ -114,8 +114,8 @@ $defaultColor = ['dot' => 'bg-slate-400', 'ring' => 'ring-slate-400/20'];
     $arrow = $isUp ? '↑' : '↓';
     @endphp
 
-    <div class="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4
-                    hover:bg-white/[0.055] hover:border-white/[0.10]
+    <div class="bg-white/3 border border-white/6 rounded-xl p-4
+                    hover:bg-white/5.5 hover:border-white/10
                     transition-colors duration-200">
 
         {{-- En-tête : label + badge delta --}}

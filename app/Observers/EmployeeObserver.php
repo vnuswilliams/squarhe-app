@@ -14,25 +14,21 @@ use Spatie\Activitylog\Facades\Activity;
 class EmployeeObserver
 {
 
-   
-public function changes(Employee $employee): void
+
+    public function changes(Employee $employee): void
     {
         $needsSave = false;
-
+        $data = $employee->data;
         // Rule 1: Civility Male -> child = 0
-        if (($employee->data['civility'] ?? null) === CivilityEnum::MALE->value) {
-            if (!isset($employee->data['child']) || $employee->data['child'] !== 0) {
-                $employee->data['child'] = 0;
-                $needsSave = true;
-            }
+        if ($data['civility'] === CivilityEnum::MALE->value &&  $data['child'] !== 0) {
+            $data['child'] = 0;
+            $needsSave = true;
         }
 
         // Rule 2: Nationality Foreign -> contract_type CDD/ESSAY
-        if ($employee->nationality === NationalityEnum::FOREIGN->value) {
-            if (!in_array($employee->contract_type, [ContractTypeEnum::CDD->value, ContractTypeEnum::ESSAY->value])) {
-                $employee->contract_type = ContractTypeEnum::CDD->value;
-                $needsSave = true;
-            }
+        if ($data['nationality'] === NationalityEnum::FOREIGN->value && !in_array($employee->contract_type, [ContractTypeEnum::CDD->value, ContractTypeEnum::ESSAY->value])) {
+            $employee->contract_type = ContractTypeEnum::CDD->value;
+            $needsSave = true;
         }
 
         // Rule 3: ContractType CDD & no end_date -> end_date = start_date + 2 years
@@ -40,8 +36,8 @@ public function changes(Employee $employee): void
             $employee->end_date = Carbon::parse($employee->start_date)->addYears(2);
             $needsSave = true;
         }
-
         if ($needsSave) {
+            $employee->data = $data;
             $employee->saveQuietly();
         }
     }
@@ -50,10 +46,16 @@ public function changes(Employee $employee): void
      */
     public function created(Employee $employee): void
     {
-       $this->changes($employee);
+
+        $employee->salary()->create([
+            'base_salary' => $employee->base_salary,
+        ]);
+
+
+        $this->changes($employee);
         $user = Auth::user();
         $company = $employee->company;
-        
+
         if ($user && $company) {
             // Log activity
             Activity::causedBy($user)
@@ -65,7 +67,7 @@ public function changes(Employee $employee): void
 
             // Send notification to company users
             $this->notifyCompanyUsers(
-          $company,
+                $company,
                 'created',
                 'Employee',
                 $employee->name,
@@ -80,30 +82,33 @@ public function changes(Employee $employee): void
      */
     public function updated(Employee $employee): void
     {
-       $this->changes($employee);
-       
-       $user = Auth::user();
-       $company = $employee->company;
-       
-       if ($user && $company) {
-           // Log activity
-           Activity::causedBy($user)
-               ->performedOn($employee)
-               ->inLog('employee')
-               ->event('updated')
-               ->withProperties(['name' => $employee->name])
-               ->log(__('Employé modifié'));
+          $employee->salary()->update([
+            'base_salary' => $employee->base_salary,
+        ]);
+        $this->changes($employee);
 
-           // Send notification to company users
-           $this->notifyCompanyUsers(
-               $company,
-               'updated',
-               'Employee',
-               $employee->name,
-               $user->name,
-               $company->name
-           );
-       }
+        $user = Auth::user();
+        $company = $employee->company;
+
+        if ($user && $company) {
+            // Log activity
+            Activity::causedBy($user)
+                ->performedOn($employee)
+                ->inLog('employee')
+                ->event('updated')
+                ->withProperties(['name' => $employee->name])
+                ->log(__('Employé modifié'));
+
+            // Send notification to company users
+            $this->notifyCompanyUsers(
+                $company,
+                'updated',
+                'Employee',
+                $employee->name,
+                $user->name,
+                $company->name
+            );
+        }
     }
 
     /**
@@ -111,9 +116,9 @@ public function changes(Employee $employee): void
      */
     public function deleted(Employee $employee): void
     {
-         $user = Auth::user();
+        $user = Auth::user();
         $company = $employee->company;
-        
+
         if ($user && $company) {
             // Log activity
             Activity::causedBy($user)
@@ -132,7 +137,7 @@ public function changes(Employee $employee): void
                 $user->name,
                 $company->name
             );
-        }   
+        }
     }
 
     /**
