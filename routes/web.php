@@ -8,12 +8,14 @@ Route::view('/', 'welcome')->name('home');
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
 
-Route::livewire('/notifications', 'pages::notifs.notifications')->name('notif');
-Route::livewire('/employees', 'pages::employees.employee')->name('employees');
-Route::livewire('/employees/add', 'pages::employees.add-employee')->name('employees.add');
-Route::livewire('/employees/import', 'pages::employees.employee-import')->name('employees.import');
-   Route::livewire('employee/profil/{uuid:uuid}', 'pages::employees.employee-profil')->name('employees.show');
-    
+    Route::livewire('/notifications', 'pages::notifs.notifications')->name('notif');
+    Route::livewire('/employees', 'pages::employees.employee')->name('employees');
+    Route::livewire('/documents', 'pages::documents.document')->name('documents');
+    Route::livewire('/pay', 'pages::payroll.pay')->name('pay');
+    //Route::livewire('/pay/check/payslips', 'pages::payroll.check-payslip')->name('pay.check.payslips');
+    Route::livewire('/employees/add', 'pages::employees.add-employee')->name('employees.add');
+    Route::livewire('/employees/import', 'pages::employees.employee-import')->name('employees.import');
+    Route::livewire('employee/profil/{uuid:uuid}', 'pages::employees.employee-profil')->name('employees.show');
 });
 
 
@@ -25,4 +27,4 @@ Route::get('/language/{locale}', function ($locale) {
 });
 Route::passkeys();
 
-require __DIR__.'/settings.php';
+require __DIR__ . '/settings.php';

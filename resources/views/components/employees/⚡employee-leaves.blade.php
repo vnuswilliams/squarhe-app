@@ -5,6 +5,7 @@ use App\Enums\StatusEnum;
 use App\Livewire\Forms\EmployeeLeaveForm;
 use App\Models\Leave;
 use App\Services\CalculateDays;
+use App\Services\DeterminateLeaveEmployeeQuotaService;
 use Carbon\Carbon;
 use Flux\Flux;
 use Illuminate\Support\Facades\Gate;
@@ -27,6 +28,8 @@ new class extends Component
     public function mount($employee)
     {
         $this->employee = $employee;
+
+         
     }
     #[Computed]
     public function leaves()
@@ -163,7 +166,34 @@ new class extends Component
     </x-container>
     @endif
     
-
+    <x-delta-card :cards="[
+            [
+                'label' => 'Congés/absences pris ce mois',
+                'current' => $this->leaves->sum('days').' jrs',
+                'delta' => '',
+                'color' => 'blue'
+            ],
+            [
+                'label' => 'Dernier congé (date de retour) ',
+                'current' =>  $this->leaves->whereIn('type', [LeaveTypeEnum::ANNUAL, LeaveTypeEnum::UNPAID])
+                ->first()?->last_leave ?? 'Jamais en congé',
+                'delta' => '',
+                'color' => 'emerald'
+            ],
+            [
+                'label' => 'Solde congé',
+                'current' =>  $this->leaves->whereIn('type', [LeaveTypeEnum::ANNUAL, LeaveTypeEnum::UNPAID])
+                ->first()?->leaves_balance.' jrs' ?? '0',               
+                'delta' => '',
+                'color' => 'rose'
+            ],            [
+                'label' => 'Solde acquis ce                                          mois',
+                'current' =>  $this->employee->data['leaves_majority'] + $this->employee->data['leaves_seniority'] + $this->employee->data['leaves_child'].' jrs' , 
+                'delta' => '',
+                'color' => 'rose'
+            ],
+           
+        ]" />
     <x-container>
         <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
             <thead class="bg-gray-50 dark:bg-neutral-700">

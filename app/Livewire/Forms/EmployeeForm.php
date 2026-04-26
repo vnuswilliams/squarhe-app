@@ -90,8 +90,8 @@ class EmployeeForm extends Form
         $this->end_date = $employee->end_date?->format('Y-m-d');
         $this->base_salary = $employee->base_salary;
         $this->category = $this->employee->data['category'];
-        $this->average_salary = $this->employee->data['average_salary'];
-        $this->smic = $this->employee->data['smic'];
+        $this->average_salary = $this->employee->data['average_salary'] ?? 0;
+        $this->smic = $this->employee->data['smic'] ?? 0;
     }
     public function create()
     {

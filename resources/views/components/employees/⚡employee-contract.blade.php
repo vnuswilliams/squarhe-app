@@ -163,8 +163,7 @@ new class extends Component
     </x-container>
     @endif
 
-
-    <x-container>
+     <x-container>
         <flux:heading level="2" class="font-bold mb-4">{{ __('Contrat actuel') }}</flux:heading>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
@@ -177,7 +176,9 @@ new class extends Component
             </div>
             <div>
                 <flux:text class="text-gray-300 font-semibold">{{ __('Type de contrat') }}</flux:text>
-                <flux:text class="text-gray-200">{{ $employee->contract_type }}</flux:text>
+                <flux:text class="text-gray-200">
+                    {{ ContractTypeEnum::from($employee->contract_type)->label() }}
+                </flux:text>
             </div>
             <div>
                 <flux:text class="text-gray-300 font-semibold"> {{ __('Date de début') }} </flux:text>
@@ -188,7 +189,7 @@ new class extends Component
             <div>
                 <flux:text class="text-gray-300 font-semibold">{{ __('Date de fin') }}</flux:text>
                 <flux:text class="text-gray-200">
-                                     {{ $employee->end_date->translatedFormat('d M Y') ?? '-'}}
+                                     {{ $employee->end_date?->translatedFormat('d M Y') ?? '-'}}
                 </flux:text>
             </div>
             <div>
@@ -270,7 +271,7 @@ new class extends Component
                         {{ Carbon::parse($contratArchive->end_date)->translatedFormat('d M Y') }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">
-                        {{ $contratArchive->added_by }}"
+                        {{ $contratArchive->added_by }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div class="flex items-center gap-2">

@@ -4,38 +4,52 @@ use App\Enums\DocumentAccessEnum;
 use App\Enums\DocumentTypeEnum;
 use App\Livewire\Forms\EmployeeDocumentForm;
 use App\Models\Document;
+use App\Models\Employee;
 use Flux\Flux;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
-new class extends Component {
+new #[Title('Tous les documents')] class extends Component {
     use WithFileUploads;
-    public $employee;
+
+    public string $uuid;
+    public $employees;
     public EmployeeDocumentForm $form;
-
-    public function mount($employee)
-    {
-        $this->employee = $employee;
-    }
-
-    #[Computed]
-    public function documents()
-    {
-        return $this->employee->documents;
-    }
     public $showAddDocForm = false;
+    public $company;
+    public $documentToDelete = null;
+
+    public function mount()
+    {
+        $this->company = auth()->user()->company()->with('employees')
+            ->firstOrFail();
+    }
+
     public function toggleFormAddDocument()
     {
         $this->showAddDocForm = !$this->showAddDocForm;
     }
 
+    #[Computed]
+    public function documents()
+    {
+        return Document::whereHas('employee', function ($q) {
+            $q->where('company_id', $this->company->id);
+        })->with('employee')
+            ->get();
+    }
+
     public function save()
     {
-        $this->form->employee_id = $this->employee->id;
+        $this->form->employee_id = (int)  $this->company->employees()
+            ->whereUuid($this->uuid)->value('id');
+
+
         $this->form->isCreating = true;
 
         $this->form->create();
@@ -44,12 +58,11 @@ new class extends Component {
         $this->form->reset();
     }
 
+  
 
     public function edit($documentId)
     {
-        $documentToUpdate  = Document::whereId($documentId)
-            ->whereEmployeeId($this->employee->id)
-            ->firstOrFail();
+        $documentToUpdate  = $this->documents->where('id',$documentId)->firstOrFail();
 
         $this->form->setDocument($documentToUpdate);
         Flux::modal('edit-document-modal')->show();
@@ -65,12 +78,9 @@ new class extends Component {
 
 
 
-    public $documentToDelete = null;
     public function confirmBeforeDelete($idDocumentWeWantToDelete)
     {
-        $this->documentToDelete = Document::whereId($idDocumentWeWantToDelete)
-            ->whereEmployeeId($this->employee->id)
-            ->firstOrFail();
+        $this->documentToDelete = $this->documents->where('id',$idDocumentWeWantToDelete)->firstOrFail();
         Flux::modal('delete-document-modal')->show();
     }
     public function delete()
@@ -78,7 +88,7 @@ new class extends Component {
         if ($this->documentToDelete):
             Gate::authorize('delete', [Document::class, $this->documentToDelete]);
 
-            Storage::disk('public')->exists($this->documentToDelete->path) ? Storage::disk('public')->delete($this->documentToDelete->path) : '';
+            Storage::disk('public')->exists($this->documentToDelete->path) ?: Storage::disk('public')->delete($this->documentToDelete->path);
 
 
             $this->documentToDelete->delete();
@@ -88,23 +98,22 @@ new class extends Component {
             $this->documentToDelete = null;
         endif;
     }
-
     public function downloadDoc($id)
     {
-        $docToDownload = Document::whereId($id)->whereEmployeeId($this->employee->id)
-            ->firstOrFail();
+        $docToDownload = $this->documents->where('id',$id)->firstOrFail();
         Gate::authorize('view', [Document::class, $docToDownload]);
 
-        $name = Str::snake(Str::limit($this->employee->name, 10, '') . ' ' . $docToDownload->type?->value . ' ' . $docToDownload->name . ' ' . now()->format('_d_m_Y_H_i_s'));
+        $name = Str::snake($docToDownload->employee->shortName . ' ' . $docToDownload->type?->value . ' ' . $docToDownload->name . ' ' . now()->format('_d_m_Y_H_i_s'));
         return Storage::disk('public')->download($docToDownload->path, $name);
     }
 };
 ?>
+
 <div>
     <div class="flex items-center justify-between">
         <div>
-            <flux:heading level="1" class="font-bold">Ajouter un document a votre collaborateur</flux:heading>
-            <flux:text class="text-gray-300">Il sera visble en fonction de votre niveau d'accès</flux:text>
+            <flux:heading level="1" class="font-bold">Ajouter un document à votre collaborateur</flux:heading>
+            <flux:text class="text-gray-300">Il sera visible en fonction de votre niveau d'accès</flux:text>
         </div>
 
         <flux:button wire:click="toggleFormAddDocument" variant="primary">
@@ -118,6 +127,29 @@ new class extends Component {
 
             {{-- Employee ID (hidden) --}}
             <div class="grid sm:grid-cols-3 gap-4">
+
+
+
+
+
+
+
+
+
+
+
+
+                {{-- Type de document --}}
+                <flux:select wire:model="uuid" label="A quel collaborateur appartient ce document ?">
+                    <option value="">Choisir un collaborateur</option>
+                    @foreach ($this->company->employees as $emp)
+                    <option value="{{ $emp->uuid }}">{{ $emp->shortName }}</option>
+                    @endforeach
+
+                </flux:select>
+
+
+
                 {{-- Nom du document --}}
                 <flux:input wire:model="form.name" label="Nom du document" placeholder="Ex : Contrat de travail" />
 
@@ -169,27 +201,6 @@ new class extends Component {
 
 
     <x-container>
-        {{-- Delta Card for Documents --}}
-        <x-delta-card :cards="[
-            [
-                'label' => 'Total Documents',
-                'current' => $this->documents()->count(),
-                'delta' => '',
-                'color' => 'blue',
-            ],
-            [
-                'label' => 'Documents Personnels',
-                'current' => $this->documents()->where('access', 'personal')->count(),
-                'delta' => '',
-                'color' => 'emerald'
-            ],
-            [
-                'label' => 'Documents RH',
-                'current' => $this->documents()->where('access', 'rh')->count(),
-                'delta' => '',
-                'color' => 'amber'
-            ]
-        ]" />
 
         <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
             <thead class="bg-gray-50 dark:bg-neutral-700">
@@ -267,7 +278,7 @@ new class extends Component {
                 <tr>
                     <td colspan="7" class="text-center py-8">
                         <x-empty-state message=" 
-                    {{ __('Aucun documents trouvés pour ').$this->employee->name }}" />
+                    {{ __('Aucun documents trouvés pour ') }}" />
                     </td>
                 </tr>
                 @endforelse
@@ -285,8 +296,22 @@ new class extends Component {
             <form wire:submit="update" class="container mx-auto p-4 max-w-4xl space-y-4">
 
 
+
                 {{-- Employee ID (hidden) --}}
                 <div class="grid sm:grid-cols-3 gap-4">
+
+
+                    {{-- Type de document --}}
+                    <flux:select wire:model="form.employee_id" label="A quel collaborateur appartient ce document ?">
+                        <option value="">Choisir un collaborateur</option>
+                        @foreach ($this->company->employees as $emp)
+                        <option value="{{ $emp->id }}">{{ $emp->shortName }}</option>
+                        @endforeach
+
+                    </flux:select>
+
+
+
                     {{-- Nom du document --}}
                     <flux:input wire:model="form.name" label="Nom du document" placeholder="Ex : Contrat de travail" />
 

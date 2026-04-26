@@ -9,7 +9,6 @@ use App\Models\Employee;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use Livewire\Attributes\Validate;
 use Livewire\Form;
 
 class EmployeeDocumentForm extends Form
@@ -19,7 +18,7 @@ class EmployeeDocumentForm extends Form
     public function rules(): array
     {
         return [
-            'employee_id' => ['nullable', 'exists:employees,id'],
+            'employee_id' => ['required', 'exists:employees,id'],
             'type' => ['required', Rule::in(DocumentTypeEnum::values())],
             'name' => ['required', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:100'],

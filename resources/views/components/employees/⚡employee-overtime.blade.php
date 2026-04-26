@@ -103,7 +103,7 @@ new class extends Component
 
                     <flux:input wire:model="form.week" label="{{ __('Numéro de la semaine.') }}" placeholder="numéro de la semaine entre 1 & 5" type="number" />
 
-                    <flux:select wire:model="form.day_type" label="{{ __('Quel type d'heures supps') }}">
+                    <flux:select wire:model="form.day_type" label="{{ __('Quel type d\'heures supps') }}">
                         <flux:select.option value="">{{ __('Choisir une option') }}</flux:select.option>
                         @foreach (HsuppEnum::options() as $option)
                         <flux:select.option value="{{ $option['value'] }}">{{ $option['label']  }}
@@ -271,7 +271,7 @@ new class extends Component
 
                     <flux:input wire:model="form.week" label="{{ __('Numéro de la semaine.') }}" placeholder="numéro de la semaine entre 1 & 5" type="number" />
 
-                    <flux:select wire:model="form.day_type" label="{{ __('Quel type d'heures supps') }}">
+                    <flux:select wire:model="form.day_type" label="{{ __('Quel type d\'heures supps') }}">
                         <flux:select.option value="">{{ __('Choisir une option') }}</flux:select.option>
                         @foreach (HsuppEnum::options() as $option)
                         <flux:select.option value="{{ $option['value'] }}">{{ $option['label']  }}

@@ -54,7 +54,7 @@ class Remuneration extends Model
         ];
     }
 
-    protected static function booted()
+        protected static function booted()
     {
 
         static::creating(function ($remuneration) {

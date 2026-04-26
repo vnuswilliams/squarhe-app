@@ -18,8 +18,8 @@ new class extends Component
     public function mount($employee)
     {
         $this->employee = $employee;
-        $this->avgSalary  = $this->employee->data['average_salary'];
-        $this->smic  = $this->employee->data['smic'];
+        $this->avgSalary  = $this->employee->data['average_salary'] ?? 0;
+        $this->smic  = $this->employee->data['smic'] ?? 0;
     }
     #[Computed]
     public function remunerations()
@@ -33,7 +33,7 @@ new class extends Component
 
         $this->form->create();
         $this->showRemunerationForm = false;
-        Flux::toast(variant: 'success', text: __('L\'élément de rémun. a été ajouté avec  succès.'));
+        Flux::toast(variant: 'success', text: __("L'élément de rémun. a été ajouté avec  succès."));
         $this->form->reset();
     }
 
@@ -51,7 +51,7 @@ new class extends Component
         $this->form->update();
         $this->form->reset();
         Flux::modal('edit-remuneration-modal')->close();
-        Flux::toast(variant: 'success', text: 'L\'élément de remun. a été mis à jour avec succès.');
+        Flux::toast(variant: 'success', text: "L'élément de remun. a été mis à jour avec succès.");
     }
 
     public $remunerationToDelete = null;
@@ -90,7 +90,7 @@ new class extends Component
             'data' => $data,
         ]);
 
-        Flux::toast(variant: 'success', text: 'Vous avez mis a jour le smic et le salaire moyen.');
+        Flux::toast(variant: 'success', text: "Vous avez mis a jour le smic et le salaire moyen.");
         $this->showAvgForm = false;
     }
 
@@ -228,7 +228,42 @@ new class extends Component
         </form>
     </x-container>
     @endif
+
+    {{-- Delta Card for Remuneration --}}
+
+    <x-delta-card :cards="[
+            [
+                'label' => 'Total éléments de rémunération',
+                'current' => $this->remunerations->sum('amount').' F cfa',
+                'delta' => '',
+                'color' => 'blue'
+            ],
+            [
+                'label' => 'Eléments côtisable',
+                'current' =>  $this->remunerations->where('impact', ImpactEnum::TAXCOT)->sum('amount') +
+                $this->remunerations->where('impact', ImpactEnum::COTISABLE)->sum('amount').' F cfa',
+                'delta' => '',
+                'color' => 'emerald'
+            ],
+            [
+                'label' => 'Eléments taxable',
+                'current' =>  $this->remunerations->where('impact', ImpactEnum::TAXCOT)->sum('amount') +
+                $this->remunerations->where('impact', ImpactEnum::TAXABLE)->sum('amount').' F cfa',
+                'delta' => '',
+                'color' => 'rose'
+            ],
+            [
+                'label' => 'Eléments neutres',
+                'current' =>  $this->remunerations->where('impact', ImpactEnum::NEUTRE)->sum('amount') .' F cfa',
+                'delta' => '',
+                'color' => 'rose'
+            ]
+        ]" />
+
+
+
     <x-container>
+
         <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
             <thead class="bg-gray-50 dark:bg-neutral-700">
                 <tr>

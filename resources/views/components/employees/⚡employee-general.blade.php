@@ -1,27 +1,139 @@
 <?php
 
 use App\Jobs\calculateImpotForEmployee;
+use App\Models\Employee;
+use App\Enums\CivilityEnum;
+use App\Enums\NationalityEnum;
+use App\Enums\StatusEnum;
+use App\Enums\ContractTypeEnum;
 use Flux\Flux;
 use Livewire\Component;
 
 new class extends Component
 {
-    
-    
+    public Employee $employee;
     public bool $syndicat = false;
-   public function updatedSyndicat()
+
+    public function mount(Employee $employee)
     {
+        $this->employee = $employee;
+        $this->syndicat = $this->employee->data['syndicat'] ?? false;
+    }
+
+    public function updatedSyndicat()
+    {
+        // Update the employee data
+        $data = $this->employee->data ?? [];
+        $data['syndicat'] = $this->syndicat;
+        $this->employee->data = $data;
+        $this->employee->save();
 
         calculateImpotForEmployee::dispatch($this->employee, $this->syndicat);
-        Flux::toast(variante: "success", teaxt: 'Veuillez patienter pour la prise en compte du syndicat..');
+        Flux::toast(variant: "success", text: 'Veuillez patienter pour la prise en compte du syndicat..');
     }
 };
 ?>
 
-<div>
-      <x-container class="mb-4">
-        <flux:switch label="Syndicat" description=" {{ __('L\'employé fait-il partie d\'un syndicat ?') }}" wire:model.live="syndicat" />
+<div class="space-y-8">
 
+    <x-container>
+        <flux:switch label="Syndicat" description="{{ __('L\'employé fait-il partie d\'un syndicat ?') }}" wire:model.live="syndicat" />
     </x-container>
-    {{-- The best way to take care of the future is to take care of the present moment. - Thich Nhat Hanh --}}
+
+    <x-container>
+        <div class="flex items-center justify-between mb-6">
+            <flux:heading size="lg">{{ __('Informations Générales') }}</flux:heading>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Personnel -->
+            <div class="space-y-4">
+                <flux:heading level="3" size="sm" class="uppercase tracking-wider text-zinc-400">{{ __('Détails Personnels') }}</flux:heading>
+
+                <div class="space-y-1">
+                    <flux:text variant="subtle" size="sm">{{ __('Civilité') }}</flux:text>
+                    <flux:text class="font-medium">{{ $employee->civility ? CivilityEnum::tryFrom($employee->civility)?->label() : 'N/A' }}</flux:text>
+                </div>
+
+                <div class="space-y-1">
+                    <flux:text variant="subtle" size="sm">{{ __('Nom Complet') }}</flux:text>
+                    <flux:text class="font-medium">{{ $employee->name }}</flux:text>
+                </div>
+
+                <div class="space-y-1">
+                    <flux:text variant="subtle" size="sm">{{ __('Date de Naissance') }}</flux:text>
+                    <flux:text class="font-medium">{{ $employee->bday ? \Carbon\Carbon::parse($employee->bday)->format('d/m/Y') : 'N/A' }}</flux:text>
+                </div>
+
+                <div class="space-y-1">
+                    <flux:text variant="subtle" size="sm">{{ __('Nationalité') }}</flux:text>
+                    <flux:text class="font-medium">{{ $employee->nationality ? NationalityEnum::tryFrom($employee->nationality)?->label() : 'N/A' }}</flux:text>
+                </div>
+
+                <div class="space-y-1">
+                    <flux:text variant="subtle" size="sm">{{ __('Nombre d\'enfants') }}</flux:text>
+                    <flux:text class="font-medium">{{ $employee->child ?? 0 }}</flux:text>
+                </div>
+            </div>
+
+            <!-- Contact & Identifiants -->
+            <div class="space-y-4">
+                <flux:heading level="3" size="sm" class="uppercase tracking-wider text-zinc-400">{{ __('Contact & Identifiants') }}</flux:heading>
+
+                <div class="space-y-1">
+                    <flux:text variant="subtle" size="sm">{{ __('Email') }}</flux:text>
+                    <flux:text class="font-medium">{{ $employee->email ?? 'N/A' }}</flux:text>
+                </div>
+
+                <div class="space-y-1">
+                    <flux:text variant="subtle" size="sm">{{ __('Téléphone') }}</flux:text>
+                    <flux:text class="font-medium">{{ $employee->phone ?? 'N/A' }}</flux:text>
+                </div>
+
+                <div class="space-y-1">
+                    <flux:text variant="subtle" size="sm">{{ __('NIU') }}</flux:text>
+                    <flux:text class="font-medium">{{ $employee->niu ?? 'N/A' }}</flux:text>
+                </div>
+
+                <div class="space-y-1">
+                    <flux:text variant="subtle" size="sm">{{ __('Numéro CNPS') }}</flux:text>
+                    <flux:text class="font-medium">{{ $employee->cnps ?? 'N/A' }}</flux:text>
+                </div>
+            </div>
+
+            <!-- Professionnel -->
+            <div class="space-y-4">
+                <flux:heading level="3" size="sm" class="uppercase tracking-wider text-zinc-400">{{ __('Détails Professionnels') }}</flux:heading>
+
+                <div class="space-y-1">
+                    <flux:text variant="subtle" size="sm">{{ __('Département') }}</flux:text>
+                    <flux:text class="font-medium">{{ $employee->department ?? 'N/A' }}</flux:text>
+                </div>
+
+                <div class="space-y-1">
+                    <flux:text variant="subtle" size="sm">{{ __('Poste') }}</flux:text>
+                    <flux:text class="font-medium">{{ $employee->job_title ?? 'N/A' }}</flux:text>
+                </div>
+
+                <div class="space-y-1">
+                    <flux:text variant="subtle" size="sm">{{ __('Type de Contrat') }}</flux:text>
+                    <flux:badge size="sm" color="zinc">
+                        {{ ContractTypeEnum::tryFrom($employee->contract_type)?->label() ?? 'N/A' }}
+                    </flux:badge>
+                </div>
+
+                <div class="space-y-1">
+                    <flux:text variant="subtle" size="sm">{{ __('Statut') }}</flux:text>
+                    <flux:badge size="sm" color="{{ StatusEnum::tryFrom($employee->status)?->color() ?? 'zinc' }}">
+                        {{ StatusEnum::tryFrom($employee->status)?->label() ?? 'N/A' }}
+                    </flux:badge>
+                </div>
+
+                <div class="space-y-1">
+                    <flux:text variant="subtle" size="sm">{{ __('Date d\'embauche') }}</flux:text>
+                    <flux:text class="font-medium">{{ $employee->start_date ? $employee->start_date->format('d/m/Y') : 'N/A' }}</flux:text>
+                </div>
+            </div>
+        </div>
+    </x-container>
 </div>

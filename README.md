@@ -1,4 +1,2 @@
 # squarheapp
 
-dans @resources/views/pages/employees/⚡employee.blade.php, utilise le composant <x-delta-card /> pour afficher certaines données dans employees.blade comme le nbres d'employees total, le nbres dons le contrat ce termine le mois en cours, et ceux dont le contrat est termine j'aimerais que tu ranges les infos dans les differentes tabs pour donner une certainess hiérachies visuels, 1 une vue d'ensemble il doit voit tout les employees tu le met dans un tableau avec un lien vers chaque employee pour voir son profil 
-2- dans le profil des  employeess @resources/views/pages/employees/⚡employee-profil.blade.php dans le composant @resources/views/components/employees/⚡employee-general.blade.php verifie tout les composant et modeles lies au employee et montrer les infos generales sur cet employee

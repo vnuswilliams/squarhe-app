@@ -4,24 +4,31 @@
         @include('partials.head')
     </head>
     <body class="min-h-screen bg-white dark:bg-zinc-800">
-        <flux:sidebar sticky collapsible="mobile" class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+        <flux:sidebar sticky collapsible class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.header>
                 <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
-                <flux:sidebar.collapse class="lg:hidden" />
+                <flux:sidebar.collapse class="in-data-flux-sidebar-on-desktop:not-in-data-flux-sidebar-collapsed-desktop:-mr-2" />
             </flux:sidebar.header>
 
             <flux:sidebar.nav>
-                <flux:sidebar.group :heading="__('Platform')" class="grid">
+              {{--   <flux:sidebar.group :heading="__('Platform')" class="grid"> --}}
                     <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
                         {{ __('Dashboard') }}
                     </flux:sidebar.item>
                      <flux:sidebar.item icon="users" :href="route('employees')" :current="request()->routeIs('employees.*')" wire:navigate>
                         {{ __('Employees') }}
                     </flux:sidebar.item>
+                     <flux:sidebar.item icon="banknotes" :href="route('pay')" :current="request()->routeIs('pay.*')" wire:navigate>
+                        {{ __('Paie') }}
+                    </flux:sidebar.item>
                      <flux:sidebar.item icon="bell" :href="route('notif')" :current="request()->routeIs('notif.*')" wire:navigate>
                         {{ __('Notifications') }}
                     </flux:sidebar.item>
-                </flux:sidebar.group>
+                     <flux:sidebar.item icon="folder" :href="route('documents')" :current="request()->routeIs('documents.*')" wire:navigate>
+                        {{ __('Documents') }}
+                    </flux:sidebar.item>
+                    
+               {{--  </flux:sidebar.group> --}}
             </flux:sidebar.nav>
 
             <flux:spacer />
