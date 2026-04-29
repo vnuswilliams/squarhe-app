@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
-use App\Enums\ContractTypeEnum;
-use App\Enums\StatusEnum;
 use App\Observers\CompanyObserver;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -17,42 +17,16 @@ class Company extends Model
 {
     use SoftDeletes;
 
-    protected function casts()
+    protected function casts(): array
     {
         return [
             'data' => 'array',
         ];
     }
-    public function payrollBook()
-    {
-        return $this->hasOne(PayrollBook::class);
-    }
-    public function declarations()
-    {
-        return $this->hasOne(Declaration::class);
-    }
 
-    
-    public function activeEmployees()
-    {
-        return $this->employees()
-            ->where('status', '!=', StatusEnum::TERMINATED->value);
-    }
-    public function scopeIsNotInternship($query)
-    {
-        return $query->where('contract_type', '!=', ContractTypeEnum::INTERNSHIP->value);
-    }
-
-    
-    public function scopeEmployeesWithoutPayslip()
-    {
-        return $this->activeEmployees()->isNotInternship()->where(function ($q) {
-            $q->doesntHave('payslip')->orWhereHas('payslip', function ($sub) {
-                $sub->where('status', StatusEnum::PENDING->value);
-            });
-        });
-        
-    }
+    // ─────────────────────────────────────────────
+    //  Relations de base
+    // ─────────────────────────────────────────────
 
     public function users()
     {
@@ -64,15 +38,62 @@ class Company extends Model
         return $this->hasMany(Employee::class);
     }
 
-    protected static function booted()
+    public function payrollBook()
     {
-        static::creating(function ($company) {
-            if (empty($company->data)):
-                $company->data = config('squarhe.defaults');
-            endif;
-            if (empty($company->company_code)) {
-                $company->company_code = (string) Str::uuid();
-            }
+        return $this->hasOne(PayrollBook::class);
+    }
+
+    public function declarations()
+    {
+        return $this->hasOne(Declaration::class);
+    }
+
+    // ─────────────────────────────────────────────
+    //  Raccourcis de requêtes (retournent un Builder
+    //  chainable sur les scopes d'Employee)
+    // ─────────────────────────────────────────────
+
+    /**
+     * Point d'entrée : employés actifs (non résiliés).
+     * Tous les raccourcis ci-dessous partent de cette base.
+     *
+     * @return HasMany|Builder<Employee>
+     */
+    public function activeEmployees(): HasMany|Builder
+    {
+        return $this->employees()->active();
+    }
+
+    /**
+     * Employés actifs, hors stagiaires — idéal pour la paie.
+     *
+     * @return HasMany|Builder<Employee>
+     */
+    public function payrollEmployees():HasMany| Builder
+    {
+        return $this->activeEmployees()->notInternship();
+    }
+
+    /**
+     * Employés actifs qui n'ont pas encore de payslip
+     * OU dont le payslip est toujours en statut PENDING.
+     *
+     * @return HasMany|Builder<Employee>
+     */
+    public function employeesNeedingPayslip(): HasMany|Builder
+    {
+        return $this->payrollEmployees()->needsPayslip();
+    }
+
+    // ─────────────────────────────────────────────
+    //  Booted
+    // ─────────────────────────────────────────────
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $company): void {
+            $company->data         ??= config('squarhe.defaults');
+            $company->company_code ??= (string) Str::uuid();
         });
     }
 }

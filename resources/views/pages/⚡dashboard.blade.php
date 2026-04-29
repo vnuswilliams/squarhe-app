@@ -19,11 +19,11 @@ public function mount() {
     public function invitations()
     {
          return Invitation::with(['sender', 'company'])
+           ->whereNull('accepted_at')
         ->where('recipient_id', auth()->id())
         ->where('expires_at', '>', now())
         ->latest()
         ->get();
-      //  ->whereNull('accepted_at')
     }
 
     public function render()

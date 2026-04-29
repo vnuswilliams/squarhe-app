@@ -14,23 +14,22 @@ new class extends Component {
     {
         $this->company = $company;
         $this->loadEmployees();
-        
+        dd($this->employees);
     }
 
     public function loadEmployees()
     {
         
         $this->employees = $this->company
-            ->employeesWithoutPayslip()
+            ->employeesNeedingPayslip()
            
             ->get();
-
         if ($this->employees->isNotEmpty()) {
             $this->selectEmployee($this->employees->first()->id);
         }
     }
 
-    public function selectEmployee($employeeId)
+    public function selectEmployee(int $employeeId)
     {
         $this->selectedEmployeeId = $employeeId;
         $this->employee = $this->employees->find($employeeId);
@@ -60,7 +59,7 @@ new class extends Component {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
         </svg>
         <p class="text-lg font-medium text-zinc-900 dark:text-white">Aucun bulletin de paie disponible</p>
-        <p class="text-sm">Veuillez générer les bulletins dans la section <a href="{{ route('validate.payslips') }}" class="text-blue-500 underline">Valider les bulletins</a>.</p>
+        <p class="text-sm">Veuillez générer les bulletins dans la section <a href="" class="text-blue-500 underline">Valider les bulletins</a>.</p>
     </div>
     @else
     <div class="flex flex-wrap items-center justify-between gap-4 mb-5">
