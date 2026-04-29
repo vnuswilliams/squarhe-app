@@ -40,7 +40,7 @@ class CompanyPolicy
     public function update(User $user, Company $company): bool
     {
 
-        return $user->hasPermissionTo(PermissionEnum::UPDATE_COMPANY->adminPermission()) || $user->hasRole(CompanyRoleEnum::OWNER->value);
+        return $user->hasPermissionTo(PermissionEnum::UPDATE_COMPANY->ownerPermission()) || $user->hasRole(CompanyRoleEnum::OWNER->value);
     }
 
     /**
@@ -48,7 +48,7 @@ class CompanyPolicy
      */
     public function delete(User $user, Company $company): bool
     {
-        return $user->hasPermissionTo(PermissionEnum::DELETE_COMPANY->adminPermission()) || $user->hasRole(CompanyRoleEnum::OWNER->value);
+        return $user->hasRole(CompanyRoleEnum::OWNER->value);
     }
 
     /**

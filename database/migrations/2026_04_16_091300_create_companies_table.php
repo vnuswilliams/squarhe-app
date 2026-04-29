@@ -18,10 +18,10 @@ return new class extends Migration
             $table->string('phone')->unique();
             $table->string('adresse');
             $table->string('city');
-            $table->string('nui')->unique()->nullable();
+            $table->string('niu')->unique()->nullable();
             $table->string('cnps')->unique()->nullable();
             $table->string('rccm')->unique()->nullable();
-            $table->uuid('join_code')->unique();
+            $table->uuid('company_code')->unique();
             $table->json('data');
             $table->softDeletes(); // This will add the deleted_at column for soft deletes
             $table->timestamps();

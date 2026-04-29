@@ -47,35 +47,40 @@ namespace App\Models{
  * @property string $phone
  * @property string $adresse
  * @property string $city
- * @property string|null $nui
+ * @property string|null $niu
  * @property string|null $cnps
  * @property string|null $rccm
- * @property string $join_code
+ * @property string $company_code
  * @property array<array-key, mixed> $data
- * @property string|null $deleted_at
+ * @property \Carbon\CarbonImmutable|null $deleted_at
  * @property \Carbon\CarbonImmutable|null $created_at
  * @property \Carbon\CarbonImmutable|null $updated_at
+ * @property-read \App\Models\Declaration|null $declarations
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Employee> $employees
  * @property-read int|null $employees_count
+ * @property-read \App\Models\PayrollBook|null $payrollBook
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\User> $users
  * @property-read int|null $users_count
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Company onlyTrashed()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company query()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereAdresse($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereCity($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereCnps($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereCompanyCode($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereCreatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereData($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereDeletedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereEmail($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereJoinCode($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereName($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereNui($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereNiu($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company wherePhone($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereRccm($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Company withTrashed(bool $withTrashed = true)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Company withoutTrashed()
  */
 	class Company extends \Eloquent {}
 }
@@ -118,6 +123,30 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ContractArchive whereUpdatedAt($value)
  */
 	class ContractArchive extends \Eloquent {}
+}
+
+namespace App\Models{
+/**
+ * @property int $id
+ * @property int $company_id
+ * @property string $ref
+ * @property \App\Enums\StatusEnum|null $status
+ * @property array<array-key, mixed>|null $data
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
+ * @property-read \App\Models\Company|null $company
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Declaration newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Declaration newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Declaration query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Declaration whereCompanyId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Declaration whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Declaration whereData($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Declaration whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Declaration whereRef($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Declaration whereStatus($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Declaration whereUpdatedAt($value)
+ */
+	class Declaration extends \Eloquent {}
 }
 
 namespace App\Models{
@@ -288,6 +317,38 @@ namespace App\Models{
 namespace App\Models{
 /**
  * @property int $id
+ * @property int $sender_id
+ * @property int $recipient_id
+ * @property int $company_id
+ * @property string $company_code
+ * @property string $role
+ * @property \Carbon\CarbonImmutable $expires_at
+ * @property \Carbon\CarbonImmutable|null $accepted_at
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
+ * @property-read \App\Models\Company|null $company
+ * @property-read \App\Models\User $recipient
+ * @property-read \App\Models\User $sender
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Invitation newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Invitation newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Invitation query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Invitation whereAcceptedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Invitation whereCompanyCode($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Invitation whereCompanyId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Invitation whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Invitation whereExpiresAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Invitation whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Invitation whereRecipientId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Invitation whereRole($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Invitation whereSenderId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Invitation whereUpdatedAt($value)
+ */
+	class Invitation extends \Eloquent {}
+}
+
+namespace App\Models{
+/**
+ * @property int $id
  * @property string $ref
  * @property int $employee_id
  * @property \App\Enums\RemunerationEnum $name
@@ -393,6 +454,32 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Overtime whereWeek($value)
  */
 	class Overtime extends \Eloquent {}
+}
+
+namespace App\Models{
+/**
+ * @property int $id
+ * @property string $ref
+ * @property string $uuid
+ * @property int $company_id
+ * @property \App\Enums\StatusEnum $status
+ * @property array<array-key, mixed> $data
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
+ * @property-read \App\Models\Company|null $company
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PayrollBook newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PayrollBook newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PayrollBook query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PayrollBook whereCompanyId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PayrollBook whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PayrollBook whereData($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PayrollBook whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PayrollBook whereRef($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PayrollBook whereStatus($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PayrollBook whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PayrollBook whereUuid($value)
+ */
+	class PayrollBook extends \Eloquent {}
 }
 
 namespace App\Models{

@@ -31,7 +31,7 @@
                         </td>
                         <td class="align-top " style="width: 50%; vertical-align: top; text-align: right;">
                             <div class="space-y-1">
-                                <p><span class="font-semibold">NIU :</span> {{ $company->nui }}</p>
+                                <p><span class="font-semibold">NIU :</span> {{ $company->niu }}</p>
                                 <p><span class="font-semibold">N° CNPS :</span> {{ $company->cnps }}
                                 </p>
                                 <p><span class="font-semibold">RCCM :</span> {{ $company->rccm }}

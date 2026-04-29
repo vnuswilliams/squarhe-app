@@ -26,7 +26,7 @@ beforeEach(function () {
         'phone' => '123456789',
         'adresse' => 'Test Address',
         'city' => 'Test City',
-        'nui' => '123',
+        'niu' => '123',
         'cnps' => '456',
         'rccm' => '789',
     ]);

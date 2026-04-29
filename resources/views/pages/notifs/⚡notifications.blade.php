@@ -104,41 +104,32 @@ new #[Title('Notifications')] class extends Component
 };
 ?>
 
-<section class="w-full px-4 py-6 sm:px-6">
-    <div class="mx-auto flex max-w-5xl flex-col gap-4">
-        <div class="flex flex-col gap-4 rounded-3xl border border-slate-200/80 bg-white/90 p-5 shadow-sm ring-1 ring-slate-900/5 dark:border-slate-800/80 dark:bg-slate-950/70 dark:ring-slate-300/5">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div class="space-y-2">
-                    <div class="flex flex-wrap items-center gap-3">
-                        <flux:heading size="xl">{{ __('Notifications') }}</flux:heading>
-                        @if ($this->unreadNotificationsCount > 0)
-                        <span class="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-                            {{ __(':count non lu(s)', ['count' => $this->unreadNotificationsCount]) }}
-                        </span>
-                        @else
-                        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                            {{ __('Aucune notification non lue') }}
-                        </span>
-                        @endif
-                    </div>
-
-                    <flux:text class="max-w-2xl text-sm text-slate-600 dark:text-slate-400">
-                        {{ __('Retrouvez ici les dernières activités de votre compte et marquez-les comme lues sans perdre le fil.') }}
-                    </flux:text>
-                </div>
-
-                <div class="grid gap-2 sm:flex sm:items-center">
-                    <flux:button variant="ghost" wire:click="markAllAsRead" class="w-full sm:w-auto">
-                        {{ __('Tout marquer comme lu') }}
-                    </flux:button>
-                </div>
-            </div>
+<div>
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <flux:heading level="1" class="font-bold">Notifications
+                 @if ($this->unreadNotificationsCount > 0)
+                 <flux:badge color="green">
+                     
+                     {{ __(':count non lu(s)', ['count' => $this->unreadNotificationsCount]) }}
+                    </flux:badge>
+                    @endif
+            </flux:heading>
+            <flux:text class="text-gray-300">
+                        {{ __('notif.subtitle') }}
+                </flux:text>
         </div>
 
-        @php
+        <flux:button wire:click="markAllAsRead" variant="primary">
+                               {{ __('notif.markasread') }}
+
+        </flux:button>
+    </div>
+    <div class="mx-auto flex max-w-5xl flex-col gap-4">
+             @php
         $tabs = [__('Notifications')];
         if ($this->isOwner) {
-        $tabs[] = __('Logs d\'activité');
+        $tabs[] = __('notif.log');
         }
         @endphp
 
@@ -192,21 +183,21 @@ new #[Title('Notifications')] class extends Component
                         <div class="flex flex-col gap-2 sm:items-end sm:justify-between">
                             @if (! $notification->read_at)
                             <span class="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300">
-                                {{ __('Non lu') }}
+                                {{ __('notif.noread') }}
                             </span>
                             @endif
 
                             <flux:button wire:click.prevent="markAsRead('{{ $notification->id }}')">
-                                {{ __('Marquer comme lu') }}
+                                {{ __('notif.markasread') }}
                             </flux:button>
                         </div>
                     </div>
                 </article>
                 @empty
                 <div class="rounded-3xl border border-dashed border-slate-300/80 bg-slate-50/80 p-6 text-center dark:border-slate-700 dark:bg-slate-950/60">
-                    <flux:heading size="lg">{{ __('Aucune notification trouvée') }}</flux:heading>
+                    <flux:heading size="lg">{{ __('notif.nonotif') }}</flux:heading>
                     <flux:text class="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                        {{ __('Vous êtes à jour. Revenez plus tard pour voir les nouvelles notifications.') }}
+                        {{ __('notif.update') }}
                     </flux:text>
                 </div>
                 @endforelse
@@ -215,7 +206,7 @@ new #[Title('Notifications')] class extends Component
             @if ($this->hasMoreNotifications())
             <div class="flex justify-center">
                 <flux:button variant="ghost" wire:click="loadMore">
-                    {{ __('Voir plus de notifications') }}
+                    {{ __('notif.seemore') }}
                 </flux:button>
             </div>
             @endif
@@ -264,9 +255,9 @@ new #[Title('Notifications')] class extends Component
                 </article>
                 @empty
                 <div class="rounded-3xl border border-dashed border-slate-300/80 bg-slate-50/80 p-6 text-center dark:border-slate-700 dark:bg-slate-950/60">
-                    <flux:heading size="lg">{{ __('Aucun log d\'activité trouvé') }}</flux:heading>
+                    <flux:heading size="lg">{{ __('notif.nolog') }}</flux:heading>
                     <flux:text class="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                        {{ __('Les logs d\'activités apparaîtront ici.') }}
+                        {{ __('notif.appearlog') }}
                     </flux:text>
                 </div>
                 @endforelse
@@ -275,7 +266,7 @@ new #[Title('Notifications')] class extends Component
             @if ($this->hasMoreActivities())
             <div class="flex justify-center">
                 <flux:button variant="ghost" wire:click="loadMoreActivity">
-                    {{ __('Voir plus de logs') }}
+                    {{ __('notif.seemorelog') }}
                 </flux:button>
             </div>
             @endif
@@ -283,4 +274,4 @@ new #[Title('Notifications')] class extends Component
             @endif
         </x-tabs>
     </div>
-</section>
+</div>

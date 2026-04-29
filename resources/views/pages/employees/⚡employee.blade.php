@@ -10,13 +10,13 @@ use Livewire\Component;
 new  #[Title('Tous les employés')] class extends Component
 {
 
-    public $activeEmployeesCount = 0;
-    public $onLeaveEmployeesCount = 0;
-    public $contractsEndingThisMonthCount = 0;
+    public int $activeEmployeesCount = 0;
+    public int $onLeaveEmployeesCount = 0;
+    public int $contractsEndingThisMonthCount = 0;
 
-    public $expiredContracts = [];
-    public $expiringContracts = [];
-    public $trialEndingContracts = [];
+    public array $expiredContracts = [];
+    public array $expiringContracts = [];
+    public array $trialEndingContracts = [];
     public function mount()
     {
         $this->loadData();
@@ -24,7 +24,7 @@ new  #[Title('Tous les employés')] class extends Component
 
     public function loadData()
     {
-        if (!$this->company && !$this->company->employees) {
+        if (!$this->company && !$this->company?->employees) {
             return;
         }
 
@@ -67,7 +67,7 @@ new  #[Title('Tous les employés')] class extends Component
 };
 ?>
 
-<section class="w-full space-y-6">
+<div>
 
     <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -263,4 +263,4 @@ new  #[Title('Tous les employés')] class extends Component
     @else
     <x-no-company />
     @endif
-</section>
+</div>

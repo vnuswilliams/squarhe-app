@@ -2,48 +2,142 @@
 
 use App\Enums\LawEnum;
 use App\Enums\PaymentEnum;
-use App\Livewire\Forms\SettingsCompanyForm;
+use App\Models\Company;
 use Flux\Flux;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+new #[Title('Modifier les paramètres de la société')] class extends Component {
+    // Form properties
+    public $rav = true;
+    public $tdl = true;
+    public $irpp = true;
+    public $labourHours = 173.33;
+    public $paymentMethod = '';
+    public $applicable_law = '';
 
-new #[Title('Modifier les paramètres de la société')]  class extends Component
-{
+    public $leaves = [];
+    public $seniorityBonus = [];
+    public $familyAllowances = [];
+    public $accident = [];
+    public $oldAgePension = [];
+    public $cfc = [];
+    public $cac = [];
+    public $fne = [];
+    public $fixedHolidays = [];
 
-//TODO REvoir le systeme de modifications des données des entreprise 
-    public $company;
-    public SettingsCompanyForm $form;
-    public array $fixedHolidays = [];
-    public array $defaultFixedHolidays = [];
-    public $labourHoursOptions;
+    // Options from config
+    public $labourHoursOptions = [];
 
-    public function mount()
+    // Store original full data to preserve rates/shares not in form
+    protected $originalSettings = [];
+
+    public function mount(): void
     {
-        $this->company = auth()->user()->company;
-
-        if (!$this->company) :
+        if (!$this->company) {
+            Flux::toast(variant: 'success', text: __('toast.createCompany'));
             $this->redirect(route('settings.company.add'), navigate: true);
-        endif;
+        }
+        // Deafults based on provided JSON structure
+        $defaults = config('squarhe.defaults');
 
-        $this->form->setCompany($this->company);
-        $this->defaultFixedHolidays = config('squarhe.fixedHolidays', []);
-        $companyFixedHolidays = collect($this->company->data['fixedHolidays'] ?? [])
-            ->map(fn ($date) => date('Y-m-d', strtotime($date)))
-            ->toArray();
+        $saved = $this->company->data ?? [];
 
-        $this->fixedHolidays = array_values(array_unique(array_merge(
-            array_map(fn($date) => date('Y-m-d', strtotime($date)), $this->defaultFixedHolidays),
-            $companyFixedHolidays
-        )));
+        $settings = array_replace_recursive($defaults, $saved);
+        $this->originalSettings = $settings;
 
+        // Map to properties
+        $this->rav = $settings['rav'] ?? true;
+        $this->tdl = $settings['tdl'] ?? true;
+        $this->irpp = $settings['irpp'] ?? true;
+        $this->labourHours = $settings['labourHours'] ?? 173.33;
+        $this->paymentMethod = $settings['paymentMethod'] ?? '';
+        $this->applicable_law = $settings['applicable_law'] ?? '';
+
+        $this->leaves = $settings['leaves'] ?? [];
+        $this->seniorityBonus = $settings['seniorityBonus'] ?? [];
+        $this->familyAllowances = $settings['familyAllowances'] ?? [];
+        $this->accident = $settings['accident'] ?? [];
+        $this->oldAgePension = $settings['oldAgePension'] ?? [];
+        $this->cfc = $settings['cfc'] ?? [];
+        $this->cac = $settings['cac'] ?? [];
+        $this->fne = $settings['fne'] ?? [];
+
+        $holidays = $settings['fixedHolidays'] ?? config('squarhe.fixedHolidays', []);
+        $currentYear = date('Y');
+        $this->fixedHolidays = array_map(function ($date) use ($currentYear) {
+            return strlen($date) === 5 ? $currentYear . '-' . $date : $date;
+        }, $holidays);
+
+        // Load options
         $this->labourHoursOptions = config('squarhe.settingsCompany.labourHours', []);
     }
-
+    #[Computed]
+    public function company()
+    {
+        return auth()->user()->company;
+    }
     public function save()
     {
-        $this->form->save();
+        $this->authorize('update', $this->company);
 
-        Flux::toast(variant: 'success', text: 'Vous avez mis à jour les paramètres de la compagnie');
+        $validated = $this->validate([
+            'rav' => 'boolean',
+            'tdl' => 'boolean',
+            'irpp' => 'boolean',
+            'labourHours' => 'numeric',
+            'paymentMethod' => 'nullable|string',
+            'leaves.monthlyLeave' => 'numeric',
+            'leaves.seniorLeave' => 'numeric',
+            'leaves.childLeave' => 'numeric',
+            'seniorityBonus.enabled' => 'boolean',
+            'familyAllowances.enabled' => 'boolean',
+            'accident.enabled' => 'boolean',
+            'oldAgePension.enabled' => 'boolean',
+            'cfc.enabled' => 'boolean',
+            'cac.enabled' => 'boolean',
+            'fne.enabled' => 'boolean',
+            'applicable_law' => 'nullable|string',
+            'fixedHolidays' => 'array',
+            'fixedHolidays.*' => 'required|date',
+        ]);
+
+        // Merge form updates into original settings to preserve rates
+        $newData = $this->company->data ?? [];
+
+        // Simple scalar values
+        $newData['rav'] = $this->rav;
+        $newData['tdl'] = $this->tdl;
+        $newData['irpp'] = $this->irpp;
+        $newData['labourHours'] = $this->labourHours;
+        $newData['paymentMethod'] = $this->paymentMethod;
+        $newData['applicable_law'] = $this->applicable_law;
+        $newData['leaves'] = $this->leaves;
+
+        $newData['fixedHolidays'] = array_map(function ($date) {
+            return date('m-d', strtotime($date));
+        }, $this->fixedHolidays);
+
+        // Nested objects: update 'enabled', preserve others
+        foreach (['seniorityBonus', 'familyAllowances', 'accident', 'oldAgePension', 'cfc', 'cac', 'fne'] as $key) {
+            if (!isset($newData[$key])) {
+                $newData[$key] = [];
+            }
+            $newData[$key]['enabled'] = $this->$key['enabled'] ?? false;
+
+            // Re-merge protected fields from original loaded data if they were lost
+            if (isset($this->originalSettings[$key])) {
+                foreach ($this->originalSettings[$key] as $subKey => $val) {
+                    if ($subKey !== 'enabled') {
+                        $newData[$key][$subKey] = $val;
+                    }
+                }
+            }
+        }
+
+        $this->company->data = $newData;
+        $this->company->save();
+        Flux::toast(variant: 'success', text: __('toast.settingupdatecompanysuccess'));
     }
 
     public function addHoliday()
@@ -58,12 +152,6 @@ new #[Title('Modifier les paramètres de la société')]  class extends Componen
 
     public function removeHoliday($index)
     {
-        $holidayToRemove = date('m-d', strtotime($this->fixedHolidays[$index]));
-        if (in_array($holidayToRemove, $this->defaultFixedHolidays)) {
-            Flux::toast(variant: 'danger', text: 'Vous ne pouvez pas supprimer un jour férié par défaut.');
-            return;
-        }
-
         unset($this->fixedHolidays[$index]);
         $this->fixedHolidays = array_values($this->fixedHolidays);
         $this->saveHolidays();
@@ -73,228 +161,300 @@ new #[Title('Modifier les paramètres de la société')]  class extends Componen
     {
         $this->validate([
             'fixedHolidays' => 'array',
-            'fixedHolidays.*' => 'required|date'
+            'fixedHolidays.*' => 'required|date',
         ]);
 
         $settings = $this->company->data ?? [];
-        
-        $holidaysToSave = collect($this->fixedHolidays)
-            ->map(fn ($date) => date('m-d', strtotime($date)))
-            ->filter(fn ($date) => !in_array($date, $this->defaultFixedHolidays))
-            ->unique()
-            ->values()
-            ->toArray();
+        $settings['fixedHolidays'] = array_map(fn($date) => date('m-d', strtotime($date)), $this->fixedHolidays);
 
-        $settings['fixedHolidays'] = $holidaysToSave;
         $this->company->data = $settings;
-        $this->company->save(); // Use save() on the model instance, not on $this->company->data
-        Flux::toast('Vous avez mis à jour les jours fériés');
+        $this->company->save();
+        Flux::toast(variant: 'success', text: 'toast.holidaysave');
     }
 };
-?>
 
+?>
 
 <section class="w-full">
     @include('partials.settings-heading')
 
     <x-settings.layout :heading="__('settings.settings.company.title')" :subheading="__('Changer les paramètres de votre compagnie')">
-        <div>
-            <form wire:submit.prevent="save" class="space-y-6">
-                {{-- Tax & Charges Configuration --}}
-                <div>
-                     <flux:heading>Configuration Fiscale & Sociale</flux:heading>
-                     <p class="text-sm text-gray-500 mb-4">Activez ou désactivez les éléments fiscaux applicables à votre société.</p>
-                     
-                     <div class="space-y-4">
-                        <flux:switch :label="__('RAV (Redevance Audio Visuel)')" wire:model.live="form.rav" />
-                        <flux:switch :label="__('TDL (Taxe de Développement Local)')" wire:model.live="form.tdl" />
-                        <flux:switch :label="__('IRPP (Impôt sur le Revenu)')" wire:model.live="form.irpp" />
-                     </div>
-                </div>
+            <form wire:submit.prevent="save" class="space-y-10">
 
-                <flux:separator />
-
-                {{-- Holidays --}}
-                <div>
-                    <div>
-                        <flux:heading>Jours Fériés</flux:heading>
-                        <p class="text-sm text-gray-500 mb-4">Gérez les jours fériés de votre entreprise.</p>
-                    </div>
-                    <div class="space-y-4 mt-2">
-                        @foreach($fixedHolidays as $index => $holiday)
-                            <div class="flex items-center gap-2">
-                                <flux:input type="date" wire:model.blur="fixedHolidays.{{ $index }}" />
-                                <flux:button variant="danger" icon="trash" wire:click="removeHoliday({{ $index }})" />
-                            </div>
-                        @endforeach
-                        <flux:button size="sm" icon="plus" wire:click="addHoliday">Ajouter un jour férié</flux:button>
-                    </div>
-                </div>
-
-                <flux:separator />
-
-                {{-- Leaves --}}
-                <div>
-                    <div>
-                        <flux:heading>Congés</flux:heading>
-                    </div>
-                    <div class="space-y-4 mt-2">
-                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                            <flux:input :label="__('Congé mensuel')" wire:model="form.leaves.monthlyLeave" type="number" step="0.1" />
-                            <flux:input :label="__('Congé ancienneté')" wire:model="form.leaves.seniorLeave" type="number" step="0.1" />
-                            <flux:input :label="__('Congé enfant')" wire:model="form.leaves.childLeave" type="number" step="0.1" />
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Labour Hours --}}
-                <div>
-                    <div>
-                        <flux:heading>Heures de travail</flux:heading>
-                    </div>
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                         <flux:select label="Heures mensuelles" wire:model="form.labourHours">
-                            <flux:select.option value="">Choisir...</flux:select.option>
-                            @foreach ($labourHoursOptions as $key => $value)
-                                <flux:select.option value="{{ $value }}">{{ ucfirst($key) }} ({{ $value }})</flux:select.option>
-                            @endforeach
-                        </flux:select>
-                    </div>
-                </div>
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-
-                {{-- Seniority Bonus --}}
-                <div>
-                    <div>
-                        <flux:heading>Prime d'ancienneté</flux:heading>
-                    </div>
-                    <div class="space-y-4 mt-2">
-                        <flux:switch :label="__('Activer')" wire:model.live="form.seniorityBonus.enabled" />
-                        @if($form->seniorityBonus['enabled'] ?? false)
-                            <flux:input :label="__('Taux')" wire:model="form.seniorityBonus.rate" type="number" step="0.01" />
-                        @endif
-                    </div>
-                </div>
-
-                {{-- Old Age Pension --}}
-                <div>
-                    <div>
-                        <flux:heading>Pension vieillesse</flux:heading>
-                    </div>
-                    <div class="space-y-4 mt-2">
-                        <flux:switch :label="__('Activer')" wire:model.live="form.oldAgePension.enabled" />
-                        @if($form->oldAgePension['enabled'] ?? false)
-                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <flux:input :label="__('Part employeur')" wire:model="form.oldAgePension.employerShare" type="number" step="0.001" />
-                                <flux:input :label="__('Part employé')" wire:model="form.oldAgePension.employeeShare" type="number" step="0.001" />
-                            </div>
-                        @endif
-                    </div>
-                </div>
-
-                {{-- Family Allowances --}}
-                <div>
-                    <div>
-                        <flux:heading>Allocations familiales</flux:heading>
-                    </div>
-                    <div class="space-y-4 mt-2">
-                        <flux:switch :label="__('Activer')" wire:model.live="form.familyAllowances.enabled" />
-                        @if($form->familyAllowances['enabled'] ?? false)
-                            <flux:input :label="__('Taux')" wire:model="form.familyAllowances.rate" type="number" step="0.01" />
-                        @endif
-                    </div>
-                </div>
-
-                {{-- Accident --}}
-                <div>
-                    <div>
-                        <flux:heading>Accident de travail</flux:heading>
-                    </div>
-                    <div class="space-y-4 mt-2">
-                        <flux:switch :label="__('Activer')" wire:model.live="form.accident.enabled" />
-                        @if($form->accident['enabled'] ?? false)
-                            <flux:input :label="__('Taux')" wire:model="form.accident.rate" type="number" step="0.0001" />
-                        @endif
-                    </div>
-                </div>
-
-                {{-- CFC --}}
-                <div>
-                    <div>
-                        <flux:heading>CFC</flux:heading>
-                    </div>
-                    <div class="space-y-4 mt-2">
-                        <flux:switch :label="__('Activer')" wire:model.live="form.cfc.enabled" />
-                        @if($form->data['cfc']['enabled'] ?? false)
-                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <flux:input :label="__('Part employeur')" wire:model="form.data.cfc.employerShare" type="number" step="0.001" />
-                                <flux:input :label="__('Part employé')" wire:model="form.data.cfc.employeeShare" type="number" step="0.001" />
-                            </div>
-                        @endif
-                    </div>
-                </div>
-
-                {{-- CAC --}}
-                <div>
-                    <div>
-                        <flux:heading>CAC</flux:heading>
-                    </div>
-                    <div class="space-y-4 mt-2">
-                        <flux:switch :label="__('Activer')" wire:model.live="form.data.cac.enabled" />
-                        @if($form->data['cac']['enabled'] ?? false)
-                            <flux:input :label="__('Part employé')" wire:model="form.data.cac.employeeShare" type="number" step="0.01" />
-                        @endif
-                    </div>
-                </div>
-
-                {{-- FNE --}}
-                <div>
-                    <div>
-                        <flux:heading>FNE</flux:heading>
-                    </div>
-                    <div class="space-y-4 mt-2">
-                        <flux:switch :label="__('Activer')" wire:model.live="form.data.fne.enabled" />
-                        @if($form->data['fne']['enabled'] ?? false)
-                            <flux:input :label="__('Part employeur')" wire:model="form.data.fne.employerShare" type="number" step="0.01" />
-                        @endif
-                    </div>
-                </div>
-                </div>
-
-                <flux:separator />
-
-                <div>
-                    <div>
-                        <flux:heading>Paiement</flux:heading>
-                    </div>
-                    <div class="space-y-4 mt-2">
-                       <flux:select label="Paiement des salaires" description="Moyen de paiement par défaut" wire:model="form.data.paymentMethod">
-                           <flux:select.option value="">Choisir une option</flux:select.option>
-                           @foreach (PaymentEnum::options() as $item)
-                            <flux:select.option value="{{ $item['label'] }}">{{ $item['label'] }}</flux:select.option>
-                           @endforeach
-                        </flux:select>
-                    </div>
-                    <div>
-                        <flux:heading>Droit applicable</flux:heading>
-                    </div>
-                    <div class="space-y-4 mt-2">
-                       <flux:select label="Paiement des salaires" description="Droit applicable" wire:model="form.data.applicable_law">
-                           <flux:select.option value="">Choisir une option</flux:select.option>
-                           @foreach (LawEnum::options() as $item)
-                            <flux:select.option value="{{ $item['label'] }}">{{ $item['label'] }}</flux:select.option>
-                           @endforeach
-                        </flux:select>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-4 pt-4">
-                    <flux:button variant="primary" type="submit">
-                        {{(__('Enregistrer'))}}
-                    </flux:button>
-                </div>
-            </form>
+    {{-- ═══════════════════════════════════════════════════════
+         SECTION 1 — Configuration Fiscale & Sociale
+    ═══════════════════════════════════════════════════════ --}}
+    <section>
+        <div class="mb-6">
+            <flux:heading size="lg">{{ __('setting.fiscal.title') }}</flux:heading>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('setting.fiscal.description') }}</p>
         </div>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50">
+                <flux:switch
+                    :label="__('setting.fiscal.rav.label')"
+                    :description="__('setting.fiscal.rav.description')"
+                    wire:model.live="rav"
+                />
+            </div>
+
+            <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50">
+                <flux:switch
+                    :label="__('setting.fiscal.tdl.label')"
+                    :description="__('setting.fiscal.tdl.description')"
+                    wire:model.live="tdl"
+                />
+            </div>
+
+            <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50">
+                <flux:switch
+                    :label="__('setting.fiscal.irpp.label')"
+                    :description="__('setting.fiscal.irpp.description')"
+                    wire:model.live="irpp"
+                />
+            </div>
+        </div>
+    </section>
+
+    <flux:separator />
+
+    {{-- ═══════════════════════════════════════════════════════
+         SECTION 2 — Jours Fériés
+    ═══════════════════════════════════════════════════════ --}}
+    <section>
+        <div class="mb-6">
+            <flux:heading size="lg">{{ __('setting.holidays.title') }}</flux:heading>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('setting.holidays.description') }}</p>
+        </div>
+
+        <div class="space-y-3">
+            @forelse ($fixedHolidays as $index => $holiday)
+                <div class="flex items-center gap-3">
+                    <flux:input
+                        type="date"
+                        wire:model.blur="fixedHolidays.{{ $index }}"
+                        class="max-w-xs"
+                    />
+                    <flux:button
+                        variant="danger"
+                        icon="trash"
+                        wire:click="removeHoliday({{ $index }})"
+                        :aria-label="__('setting.holidays.remove')"
+                    />
+                </div>
+            @empty
+                <p class="text-sm italic text-zinc-400 dark:text-zinc-500">{{ __('setting.holidays.empty') }}</p>
+            @endforelse
+        </div>
+
+        <div class="mt-4">
+            <flux:button size="sm" icon="plus" wire:click="addHoliday">
+                {{ __('setting.holidays.add') }}
+            </flux:button>
+        </div>
+    </section>
+
+    <flux:separator />
+
+    {{-- ═══════════════════════════════════════════════════════
+         SECTION 3 — Congés & Heures de travail
+    ═══════════════════════════════════════════════════════ --}}
+    <section>
+        <div class="mb-6">
+            <flux:heading size="lg">{{ __('setting.leave.title') }}</flux:heading>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('setting.leave.description') }}</p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <flux:input
+                :label="__('setting.leave.monthly')"
+                :description="__('setting.leave.monthly_hint')"
+                wire:model="leaves.monthlyLeave"
+                type="number"
+                min="0"
+            />
+            <flux:input
+                :label="__('setting.leave.seniority')"
+                :description="__('setting.leave.seniority_hint')"
+                wire:model="leaves.seniorLeave"
+                type="number"
+                min="0"
+            />
+            <flux:input
+                :label="__('setting.leave.child')"
+                :description="__('setting.leave.child_hint')"
+                wire:model="leaves.childLeave"
+                type="number"
+                min="0"
+            />
+            <flux:select
+                :label="__('setting.labour.hours_label')"
+                :description="__('setting.labour.hours_description')"
+                wire:model="labourHours"
+            >
+                <flux:select.option value="">{{ __('setting.common.choose') }}</flux:select.option>
+                @foreach ($labourHoursOptions as $key => $value)
+                    <flux:select.option value="{{ $value }}">
+                        {{ ucfirst($key) }} ({{ $value }})
+                    </flux:select.option>
+                @endforeach
+            </flux:select>
+        </div>
+    </section>
+
+    <flux:separator />
+
+    {{-- ═══════════════════════════════════════════════════════
+         SECTION 4 — Cotisations & Primes
+    ═══════════════════════════════════════════════════════ --}}
+    <section>
+        <div class="mb-6">
+            <flux:heading size="lg">{{ __('setting.contributions.title') }}</flux:heading>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('setting.contributions.description') }}</p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+
+            {{-- Prime d'ancienneté --}}
+            <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50">
+                <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                    {{ __('setting.contributions.seniority_bonus.category') }}
+                </p>
+                <flux:switch
+                    :label="__('setting.contributions.seniority_bonus.label')"
+                    :description="__('setting.contributions.seniority_bonus.description')"
+                    wire:model.live="seniorityBonus.enabled"
+                />
+            </div>
+
+            {{-- Pension vieillesse --}}
+            <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50">
+                <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                    {{ __('setting.contributions.old_age_pension.category') }}
+                </p>
+                <flux:switch
+                    :label="__('setting.contributions.old_age_pension.label')"
+                    :description="__('setting.contributions.old_age_pension.description')"
+                    wire:model.live="oldAgePension.enabled"
+                />
+            </div>
+
+            {{-- Allocations familiales --}}
+            <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50">
+                <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                    {{ __('setting.contributions.family_allowances.category') }}
+                </p>
+                <flux:switch
+                    :label="__('setting.contributions.family_allowances.label')"
+                    :description="__('setting.contributions.family_allowances.description')"
+                    wire:model.live="familyAllowances.enabled"
+                />
+            </div>
+
+            {{-- Accident de travail --}}
+            <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50">
+                <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                    {{ __('setting.contributions.accident.category') }}
+                </p>
+                <flux:switch
+                    :label="__('setting.contributions.accident.label')"
+                    :description="__('setting.contributions.accident.description')"
+                    wire:model.live="accident.enabled"
+                />
+            </div>
+
+            {{-- CFC --}}
+            <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50">
+                <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                    {{ __('setting.contributions.cfc.category') }}
+                </p>
+                <flux:switch
+                    :label="__('setting.contributions.cfc.label')"
+                    :description="__('setting.contributions.cfc.description')"
+                    wire:model.live="cfc.enabled"
+                />
+            </div>
+
+            {{-- CAC --}}
+            <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50">
+                <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                    {{ __('setting.contributions.cac.category') }}
+                </p>
+                <flux:switch
+                    :label="__('setting.contributions.cac.label')"
+                    :description="__('setting.contributions.cac.description')"
+                    wire:model.live="cac.enabled"
+                />
+            </div>
+
+            {{-- FNE --}}
+            <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50">
+                <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                    {{ __('setting.contributions.fne.category') }}
+                </p>
+                <flux:switch
+                    :label="__('setting.contributions.fne.label')"
+                    :description="__('setting.contributions.fne.description')"
+                    wire:model.live="fne.enabled"
+                />
+            </div>
+
+        </div>
+    </section>
+
+    <flux:separator />
+
+    {{-- ═══════════════════════════════════════════════════════
+         SECTION 5 — Paiement & Droit applicable
+    ═══════════════════════════════════════════════════════ --}}
+    <section>
+        <div class="mb-6">
+            <flux:heading size="lg">{{ __('setting.payment.title') }}</flux:heading>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('setting.payment.description') }}</p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <flux:select
+                :label="__('setting.payment.method.label')"
+                :description="__('setting.payment.method.description')"
+                wire:model="paymentMethod"
+            >
+                <flux:select.option value="">{{ __('setting.common.choose') }}</flux:select.option>
+                @foreach (PaymentEnum::options() as $item)
+                    <flux:select.option value="{{ $item['label'] }}">
+                        {{ $item['label'] }}
+                    </flux:select.option>
+                @endforeach
+            </flux:select>
+
+            <flux:select
+                :label="__('setting.payment.law.label')"
+                :description="__('setting.payment.law.description')"
+                wire:model="applicable_law"
+            >
+                <flux:select.option value="">{{ __('setting.common.choose') }}</flux:select.option>
+                @foreach (LawEnum::options() as $item)
+                    <flux:select.option value="{{ $item['label'] }}">
+                        {{ $item['label'] }}
+                    </flux:select.option>
+                @endforeach
+            </flux:select>
+        </div>
+    </section>
+
+    {{-- ═══════════════════════════════════════════════════════
+         Actions
+    ═══════════════════════════════════════════════════════ --}}
+    <div class="flex items-center gap-4 border-t border-zinc-200 pt-6 dark:border-zinc-700">
+        <flux:button variant="primary" type="submit">
+            {{ __('setting.actions.save') }}
+        </flux:button>
+        <flux:button variant="ghost" type="button" wire:click="$refresh">
+            {{ __('setting.actions.cancel') }}
+        </flux:button>
+    </div>
+
+</form>
     </x-settings.layout>
-    {{-- It is not the man who has too little, but the man who craves more, that is poor. - Seneca --}}
 </section>

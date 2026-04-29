@@ -23,8 +23,8 @@ class AddCompanyForm extends Form
 
     #[Validate('required|string|max:30')]
     public $adresse = '';
-    #[Validate('nullable|string|max:30|unique:companies,nui')]
-    public $nui = '';
+    #[Validate('nullable|string|max:30|unique:companies,niu')]
+    public $niu = '';
 
     #[Validate('nullable|string|max:30|unique:companies,cnps')]
     public $rccm = '';
@@ -39,5 +39,4 @@ class AddCompanyForm extends Form
 
         $this->reset();
     }
-    //
 }

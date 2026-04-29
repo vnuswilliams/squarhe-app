@@ -31,7 +31,7 @@
                         </td>
                         <td class="align-top text-right" style="width: 50%; vertical-align: top; text-align: right;">
                             <div class="space-y-1">
-                                <p><span class="font-semibold">NIU :</span> {{ $employee->payslip['company_data']['nui'] ?? '' }}</p>
+                                <p><span class="font-semibold">NIU :</span> {{ $employee->payslip['company_data']['niu'] ?? '' }}</p>
                                 <p><span class="font-semibold">N° CNPS :</span> {{ $employee->payslip['company_data']['cnps'] ?? '' }}</p>
                             </div>
                         </td>

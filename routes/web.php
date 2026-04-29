@@ -1,23 +1,26 @@
 <?php
 
+use App\Http\Controllers\AcceptInvitationController;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::view('dashboard', 'dashboard')->name('dashboard');
+    Route::livewire('dashboard', 'pages::dashboard')->name('dashboard');
 
     Route::livewire('/notifications', 'pages::notifs.notifications')->name('notif');
     Route::livewire('/employees', 'pages::employees.employee')->name('employees');
     Route::livewire('/documents', 'pages::documents.document')->name('documents');
     Route::livewire('/pay', 'pages::payroll.pay')->name('pay');
-    //Route::livewire('/pay/check/payslips', 'pages::payroll.check-payslip')->name('pay.check.payslips');
+    Route::livewire('/pay/check/payslips', 'pages::payroll.check-payslip')->name('pay.check.payslips');
     Route::livewire('/employees/add', 'pages::employees.add-employee')->name('employees.add');
     Route::livewire('/employees/import', 'pages::employees.employee-import')->name('employees.import');
     Route::livewire('employee/profil/{uuid:uuid}', 'pages::employees.employee-profil')->name('employees.show');
-});
 
+    // web.php
+    Route::get('/invitation/accept/{company_code}/{invitation}', AcceptInvitationController::class)->name('invitation.accept');
+});
 
 Route::get('/language/{locale}', function ($locale) {
     if (in_array($locale, ['en', 'fr'])) {

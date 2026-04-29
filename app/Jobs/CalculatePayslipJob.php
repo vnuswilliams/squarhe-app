@@ -66,7 +66,7 @@ class CalculatePayslipJob implements ShouldQueue
                 'name' => $this->employee->company->name,
                 'city' => $this->employee->company->city,
                 'address' => $this->employee->company->adresse,
-                'nui' => $this->employee->company->nui,
+                'niu' => $this->employee->company->niu,
                 'cnps' => $this->employee->company->cnps,
                 'labour_hours' => $this->employee->company->data['labourHours'],
                 'paymentMethod' => $this->employee->company->data['paymentMethod'],

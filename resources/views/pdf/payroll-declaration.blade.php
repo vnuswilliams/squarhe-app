@@ -35,7 +35,7 @@
         <h2 class="uppercase" style="margin: 0; font-size: 14px;">République du Cameroun</h2>
         <h3 class="uppercase" style="margin: 5px 0; font-size: 12px;">Document d'information sur le personnel employé</h3>
         <div class="font-bold text-lg" style="margin-top: 10px; font-size: 14px;">{{ $company->name }}</div>
-        <div>NIU : {{ $company->nui }} | N° CNPS : {{ $company->cnps }}</div>
+        <div>NIU : {{ $company->niu }} | N° CNPS : {{ $company->cnps }}</div>
         <div>BP : {{ $company->adresse }} | N° TEL : {{ $company->phone }}</div>
         <div>Mois de paie : {{ now()->format('F Y') }}</div>
         <div style="margin-top: 10px; font-weight: bold; text-decoration: underline;">DÉCLARATION {{ strtoupper($toggleDeclaration) }}</div>

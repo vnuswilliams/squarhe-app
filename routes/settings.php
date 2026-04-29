@@ -11,16 +11,11 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('settings/appearance', 'pages::settings.appearance')->name('appearance.edit');
-    Route::livewire('settings/company', 'pages::settings.add-company')->name('settings.company.add');
-Route::livewire('settings/company/setting', 'pages::settings.settings-company')->name('settings.company.setting');
+    Route::livewire('settings/company/add', 'pages::settings.add-company')->name('settings.company.add');
+    Route::livewire('settings/company/update', 'pages::settings.update-company')->name('settings.company.update');
+    Route::livewire('settings/company/manage/admin', 'pages::settings.admin-company')->name('settings.company.admin');    
+    Route::livewire('settings/company/setting', 'pages::settings.settings-company')->name('settings.company.setting');
     Route::livewire('settings/security', 'pages::settings.security')
-        ->middleware(
-            when(
-                Features::canManageTwoFactorAuthentication()
-                    && Features::optionEnabled(Features::twoFactorAuthentication(), 'confirmPassword'),
-                ['password.confirm'],
-                [],
-            ),
-        )
+        ->middleware(when(Features::canManageTwoFactorAuthentication() && Features::optionEnabled(Features::twoFactorAuthentication(), 'confirmPassword'), ['password.confirm'], []))
         ->name('security.edit');
 });
