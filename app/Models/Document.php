@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\DocumentAccessEnum;
 use App\Enums\DocumentTypeEnum;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -11,9 +12,8 @@ use Illuminate\Support\Str;
 
 class Document extends Model
 {
-
+use HasUuids;
     protected $fillable = [
-        'uuid',
         'employee_id',
         'type',
         'name',
@@ -33,17 +33,10 @@ class Document extends Model
     protected static function booted()
     {
         static::creating(function ($document) {
-            if (empty($document->uuid)) {
-                $document->uuid = (string) Str::uuid();
-            }
-              if (empty($document->added_by)):
-                $document->added_by = auth()->user()->name;
-            endif;
+                $document->added_by ??= auth()->user()->name;
         });
         static::updating(function ($document) {
-              if ($document->added_by):
-                $document->added_by = auth()->user()->name;
-            endif;
+            $document->added_by ??= auth()->user()->name;
         });
     }
 }

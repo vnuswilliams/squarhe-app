@@ -44,7 +44,7 @@ class EmployeeDocumentForm extends Form
 
         Gate::authorize('create', Document::class);
         $validateData = $this->validate();
-        $path = $validateData['file']->store($this->employee_id . '/documents', 'public');
+        $path = $validateData['file']->store(auth()->user()->company_id.'/'.$this->employee_id . '/documents', 'public');
         $employee = Employee::find($this->employee_id);
         $employee->documents()->create([
             'type' => $validateData['type'],

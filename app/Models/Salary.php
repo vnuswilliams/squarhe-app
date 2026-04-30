@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Salary extends Model
 {
-     protected $fillable = [
+    protected $fillable = [
         'ref',
         'employee_id',
         'base_salary',
@@ -18,10 +18,10 @@ class Salary extends Model
         'smic',
         'retenues',
         'contributions',
-        'nap'
+        'nap',
     ];
 
-     protected $casts = [
+    protected $casts = [
         'base_salary' => 'integer',
         'gross_salary' => 'integer',
         'intermediate_taxable_gross_salary' => 'integer',
@@ -31,7 +31,7 @@ class Salary extends Model
         'smic' => 'integer',
         'retenues' => 'integer',
         'contributions' => 'integer',
-        'nap' => 'integer'
+        'nap' => 'integer',
     ];
 
     public function employee()
@@ -39,7 +39,7 @@ class Salary extends Model
         return $this->belongsTo(Employee::class);
     }
 
-     protected static function booted()
+    protected static function booted()
     {
         static::creating(function ($salary) {
 
@@ -50,9 +50,12 @@ class Salary extends Model
                 ->where('status', PayrollClosureStatus::LOCKED)->first() ? $ref = now()->addMonth()->format('m-Y')  :  $ref = now()->format('m-Y');
             */
 
-            if (empty($salary->ref)) {
-                $salary->ref = $ref;
-            }
+            $salary->ref ??= $ref;
+            $salary->nap ??= $salary->gross_salary - ($salary->retenues + $salary->contributions);
+        });
+        static::updating(function ($salary) {
+            $salary->nap ??= $salary->gross_salary - ($salary->retenues + $salary->contributions);
+
         });
     }
 }

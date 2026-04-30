@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('salaries', function (Blueprint $table) {
             $table->id();
             $table->string('ref');
-            $table->foreignId('employee_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('employee_id')->constrained()->cascadeOnDelete();
             $table->string('base_salary');
             $table->string('gross_salary')->default(0);
             $table->string('intermediate_taxable_gross_salary')->default(0);

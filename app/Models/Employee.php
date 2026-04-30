@@ -11,13 +11,13 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 #[ObservedBy(EmployeeObserver::class)]
 #[ScopedBy(EmployeeGlobalScope::class)]
 #[Fillable([
-    'uuid',
     'company_id',
     'name',
     'status',
@@ -31,7 +31,7 @@ use Illuminate\Support\Str;
 ])]
 class Employee extends Model
 {
-    use EmployeeAccessors;
+    use EmployeeAccessors, HasUuids;
 
     protected function casts(): array
     {
@@ -199,19 +199,13 @@ class Employee extends Model
     }
 
     // ─────────────────────────────────────────────
-    //  Routing & booted
+    //  Booted
     // ─────────────────────────────────────────────
-
-    public function getRouteKeyName(): string
-    {
-        return 'uuid';
-    }
 
     protected static function booted(): void
     {
         static::creating(function (self $employee): void {
-            $employee->uuid   ??= (string) Str::uuid();
-            $employee->status ??= StatusEnum::APPROVED;
+            $employee->status ??= StatusEnum::APPROVED->value;
         });
     }
 }

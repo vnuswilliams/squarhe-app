@@ -8,7 +8,6 @@ use App\Enums\LeaveTypeEnum;
 use App\Enums\PayslipItemsEnum;
 use App\Enums\RetenuesEnum;
 use App\Enums\StatusEnum;
-use App\Jobs\CalculateSalariesJob;
 use App\Models\Employee;
 use App\Services\CalculateHsupp;
 use App\Services\CalculateLeave;
@@ -36,13 +35,12 @@ class CalculatePayslipJob implements ShouldQueue
         if ($this->employee->contract_type != ContractTypeEnum::INTERNSHIP) {
             CalculateSalariesJob::dispatchSync($this->employee);
 
-
             $queryLeaves = $this->employee->leaves
                 ->where('status', StatusEnum::APPROVED->value)
                 ->sum('days');
-                $leaveBalance =  $this->employee->leaves
-                 ->whereIn('type', [LeaveTypeEnum::ANNUAL, LeaveTypeEnum::UNPAID])
-                 ->value('leave_balance');
+            $leaveBalance = $this->employee->leaves
+                ->whereIn('type', [LeaveTypeEnum::ANNUAL, LeaveTypeEnum::UNPAID])
+                ->value('leave_balance');
             // Snapshot data
             $employeeData = [
                 'name' => $this->employee->name,
@@ -106,7 +104,7 @@ class CalculatePayslipJob implements ShouldQueue
             $elements[] = [
                 'code' => PayslipItemsEnum::SALAIRE_BASE->code(),
                 'label' => PayslipItemsEnum::SALAIRE_BASE->label(),
-                'amount' => number_format($this->employee->base_salary, 0, "", ""),
+                'amount' => number_format($this->employee->base_salary, 0, '', ''),
             ];
 
             // calculate payslip items
@@ -124,15 +122,12 @@ class CalculatePayslipJob implements ShouldQueue
                 return intval($a['code']) <=> intval($b['code']);
             });
 
-
             // put the salaries in the payslipItemsEnum
             $salaries = $this->employee->salary;
 
+            $deduc = $salaries->contributions + $salaries->retenues;//($salaries->retenues ?? 0) + ($this->employee->employeeContributions->total ?? 0);
 
-            $deduc = ($salaries->retenues ?? 0) + ($this->employee->employeeContributions->total ?? 0);
-
-
-            $nap = $salaries->nap;
+            $nap = $salaries->nap - $deduc;
 
             $employerSalaries = [
                 [PayslipItemsEnum::SALAIRE_BASE, $salaries->base_salary],
@@ -208,19 +203,16 @@ class CalculatePayslipJob implements ShouldQueue
                 });
             }
 
-
             $injustifyLeaves = $this->employee->leaves
                 ->whereIn('type', [LeaveTypeEnum::SUSPENSION, LeaveTypeEnum::INJUSTIFY_LEAVE])
                 ->sum('days');
             $injustifyLeavesRetenues = (int) number_format($salaries->base_salary - (($salaries->base_salary / 30) * $injustifyLeaves), 0, '', '');
-
 
             $retenues[] = [
                 'code' => PayslipItemsEnum::RETENUE_ABSENCES->code(),
                 'label' => PayslipItemsEnum::RETENUE_ABSENCES->label(),
                 'amount' => $injustifyLeavesRetenues,
             ];
-
 
             $employeeRetenues = $this->employee->remunerations()
                 ->whereIn('name', RetenuesEnum::cases())

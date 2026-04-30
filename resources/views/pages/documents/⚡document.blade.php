@@ -137,7 +137,7 @@ new #[Title('Tous les documents')] class extends Component {
                         <flux:select wire:model="uuid" label="A quel collaborateur appartient ce document ?">
                             <option value="">Choisir un collaborateur</option>
                             @foreach ($this->company->employees as $emp)
-                                <option value="{{ $emp->uuid }}">{{ $emp->shortName }}</option>
+                                <option value="{{ $emp->id }}">{{ $emp->shortName }}</option>
                             @endforeach
 
                         </flux:select>

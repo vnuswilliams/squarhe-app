@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\StatusEnum;
 use App\Observers\CompanyObserver;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
@@ -83,6 +84,18 @@ class Company extends Model
     public function employeesNeedingPayslip(): HasMany|Builder
     {
         return $this->payrollEmployees()->needsPayslip();
+    }
+
+    
+    /**
+     * Filtre les employees actifs, ayant un paysip avec un staatut particulier
+     *@param StatusEnum|string $name
+     * @return HasMany|Builder<Employee>
+     */
+    public function employeesWithPayslipStatus(StatusEnum|string $value): HasMany|Builder
+    {
+        return $this->payrollEmployees()
+        ->withPayslipStatus($value);
     }
 
     // ─────────────────────────────────────────────

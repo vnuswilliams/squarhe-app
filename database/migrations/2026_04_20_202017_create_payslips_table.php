@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('payslips', function (Blueprint $table) {
             $table->id();
             $table->string('ref');
-            $table->foreignId('employee_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('employee_id')->constrained()->cascadeOnDelete();
             $table->json('employee_data')->nullable();
             $table->json('company_data')->nullable();
             $table->string('status')->nullable();

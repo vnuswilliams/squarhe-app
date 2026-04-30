@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('employer_contributions', function (Blueprint $table) {
             $table->id();
              $table->string('ref');
-            $table->foreignId('employee_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('employee_id')->constrained()->cascadeOnDelete();
             $table->string('family_allowance')->default(0);
             $table->string('old_age_pension')->default(0);
             $table->string('accident')->default(0);

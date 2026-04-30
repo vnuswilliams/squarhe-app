@@ -28,7 +28,7 @@ new #[Title('Ajouter un employé')] class extends Component
 
         Flux::toast(variant: 'success', text: " L' employé(e) a été crée(e) avec succès");
 
-        $this->redirect(route('employees.show', ['uuid' => $employee->uuid]), navigate: true);
+        $this->redirect(route('employees.show', ['id' => $employee->id]), navigate: true);
     }
 };
 ?>

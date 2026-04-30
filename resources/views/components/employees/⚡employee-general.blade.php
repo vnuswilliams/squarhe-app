@@ -28,7 +28,7 @@ new class extends Component
         $this->employee->data = $data;
         $this->employee->save();
 
-        calculateImpotForEmployee::dispatch($this->employee, $this->syndicat);
+        calculateImpotForEmployee::dispatch($this->employee);
         Flux::toast(variant: "success", text: 'Veuillez patienter pour la prise en compte du syndicat..');
     }
 };
@@ -124,8 +124,8 @@ new class extends Component
 
                 <div class="space-y-1">
                     <flux:text variant="subtle" size="sm">{{ __('Statut') }}</flux:text>
-                    <flux:badge size="sm" color="{{ StatusEnum::tryFrom($employee->status)?->color() ?? 'zinc' }}">
-                        {{ StatusEnum::tryFrom($employee->status)?->label() ?? 'N/A' }}
+                    <flux:badge size="sm" color="{{ $employee->status?->color() ?? 'zinc' }}">
+                        {{ $employee->status?->label() ?? 'N/A' }}
                     </flux:badge>
                 </div>
 

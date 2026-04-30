@@ -78,7 +78,7 @@ new class extends Component {
         if ($this->documentToDelete):
             Gate::authorize('delete', [Document::class, $this->documentToDelete]);
 
-            Storage::disk('public')->exists($this->documentToDelete->path) ? Storage::disk('public')->delete($this->documentToDelete->path) : '';
+            Storage::disk('public')->exists($this->documentToDelete->path) ?: Storage::disk('public')->delete($this->documentToDelete->path);
 
 
             $this->documentToDelete->delete();
@@ -95,7 +95,7 @@ new class extends Component {
             ->firstOrFail();
         Gate::authorize('view', [Document::class, $docToDownload]);
 
-        $name = Str::snake(Str::limit($this->employee->name, 10, '') . ' ' . $docToDownload->type?->value . ' ' . $docToDownload->name . ' ' . now()->format('_d_m_Y_H_i_s'));
+        $name =  Str::snake($this->employee->shortName . ' ' . $docToDownload->type?->value . ' ' . $docToDownload->name . ' ' . now()->format('_d_m_Y_H_i_s'));
         return Storage::disk('public')->download($docToDownload->path, $name);
     }
 };
@@ -111,6 +111,18 @@ new class extends Component {
             Ajouter un document
         </flux:button>
     </div>
+    @if($this->documents->isNotEmpty())
+    {{-- Delta Card for Documents --}}
+        <x-delta-card :cards="[
+            [
+                'label' => 'Total Documents',
+                'current' => $this->documents()->count(),
+                'delta' => '',
+                'color' => 'blue',
+            ]
+        ]" />
+
+        @endif
     @if ($showAddDocForm)
     <x-container wire:transition>
         <form wire:submit="save" class="space-y-6" id="add-document-form" enctype="multipart/form-data">
@@ -169,28 +181,7 @@ new class extends Component {
 
 
     <x-container>
-        {{-- Delta Card for Documents --}}
-        <x-delta-card :cards="[
-            [
-                'label' => 'Total Documents',
-                'current' => $this->documents()->count(),
-                'delta' => '',
-                'color' => 'blue',
-            ],
-            [
-                'label' => 'Documents Personnels',
-                'current' => $this->documents()->where('access', 'personal')->count(),
-                'delta' => '',
-                'color' => 'emerald'
-            ],
-            [
-                'label' => 'Documents RH',
-                'current' => $this->documents()->where('access', 'rh')->count(),
-                'delta' => '',
-                'color' => 'amber'
-            ]
-        ]" />
-
+       
         <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
             <thead class="bg-gray-50 dark:bg-neutral-700">
                 <tr>

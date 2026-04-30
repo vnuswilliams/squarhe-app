@@ -13,19 +13,24 @@ use Livewire\Component;
 new class extends Component
 {
     public $employee;
+
     public EmployeeRemunerationForm $form;
+
     public $showRemunerationForm = false;
+
     public function mount($employee)
     {
         $this->employee = $employee;
-        $this->avgSalary  = $this->employee->data['average_salary'] ?? 0;
-        $this->smic  = $this->employee->data['smic'] ?? 0;
+        $this->avgSalary = $this->employee->data['average_salary'] ?? 0;
+        $this->smic = $this->employee->data['smic'] ?? 0;
     }
+
     #[Computed]
     public function remunerations()
     {
         return $this->employee->remunerations ?? [];
     }
+
     public function save()
     {
         $this->form->employee_id = $this->employee->id;
@@ -39,7 +44,7 @@ new class extends Component
 
     public function edit($remunId)
     {
-        $remunToUpdate  = Remuneration::whereId($remunId)
+        $remunToUpdate = Remuneration::whereId($remunId)
             ->whereEmployeeId($this->employee->id)
             ->firstOrFail();
         $this->form->setRemun($remunToUpdate);
@@ -55,6 +60,7 @@ new class extends Component
     }
 
     public $remunerationToDelete = null;
+
     public function confirmBeforeDelete($idRemunWeWantToDelete)
     {
         $this->remunerationToDelete = Remuneration::whereId($idRemunWeWantToDelete)
@@ -62,26 +68,29 @@ new class extends Component
             ->firstOrFail();
         Flux::modal('delete-remuneration-modal')->show();
     }
+
     public function delete()
     {
-        if ($this->remunerationToDelete):
+        if ($this->remunerationToDelete) {
             Gate::authorize('delete', [Remuneration::class, $this->remunerationToDelete]);
             $this->remunerationToDelete->delete();
             Flux::toast(variant: 'success', text: 'Cet élément de remun. a été supprimé avec succès.');
             Flux::modal('delete-remuneration-modal')->close();
             $this->remunerationToDelete = null;
-        endif;
+        }
     }
 
     public $avgSalary;
+
     public $smic;
+
     public function addAvgSalary()
     {
         $data = $this->employee->data;
 
         $this->validate([
             'avgSalary' => 'nullable|numeric|min:1',
-            'smic' => 'nullable|numeric|min:1'
+            'smic' => 'nullable|numeric|min:1',
         ]);
         $data['smic'] = $this->avgSalary;
         $data['average_salary'] = $this->smic;
@@ -90,20 +99,22 @@ new class extends Component
             'data' => $data,
         ]);
 
-        Flux::toast(variant: 'success', text: "Vous avez mis a jour le smic et le salaire moyen.");
+        Flux::toast(variant: 'success', text: 'Vous avez mis a jour le smic et le salaire moyen.');
         $this->showAvgForm = false;
     }
 
     public $showAvgForm = false;
+
     public function toggleRemunerationForm(): void
     {
         $this->showAvgForm = false;
-        $this->showRemunerationForm = !$this->showRemunerationForm;
+        $this->showRemunerationForm = ! $this->showRemunerationForm;
     }
+
     public function toggleAvgSalary()
     {
         $this->showRemunerationForm = false;
-        $this->showAvgForm = !$this->showAvgForm;
+        $this->showAvgForm = ! $this->showAvgForm;
     }
 };
 ?>
@@ -230,6 +241,7 @@ new class extends Component
     @endif
 
     {{-- Delta Card for Remuneration --}}
+                @if($this->remunerations->isNotEmpty())
 
     <x-delta-card :cards="[
             [
@@ -262,7 +274,8 @@ new class extends Component
 
 
 
-    <x-container>
+    @endif
+        <x-container>
 
         <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
             <thead class="bg-gray-50 dark:bg-neutral-700">

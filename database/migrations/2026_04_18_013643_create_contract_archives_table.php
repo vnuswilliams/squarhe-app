@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('contract_archives', function (Blueprint $table) {
             $table->id();
-              $table->foreignId('employee_id')->constrained()->cascadeOnDelete();
+              $table->foreignUuid('employee_id')->constrained()->cascadeOnDelete();
             $table->string('motif')->nullable();
             $table->string('department');
             $table->string('job_title');

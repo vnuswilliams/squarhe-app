@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('remunerations', function (Blueprint $table) {
             $table->id();
             $table->string('ref');
-            $table->foreignId('employee_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('employee_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->string('type');
             $table->string('amount')->default(0);

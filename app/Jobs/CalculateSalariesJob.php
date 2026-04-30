@@ -15,12 +15,11 @@ use App\Services\CalculateIrans;
 use App\Services\CalculateLeave;
 use App\Services\CalculatePanc;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
 
 class CalculateSalariesJob implements ShouldQueue
 {
-    use Dispatchable, Queueable;
+    use Queueable;
 
 
     /**
@@ -107,9 +106,7 @@ class CalculateSalariesJob implements ShouldQueue
             ->whereIn('type', [LeaveTypeEnum::SUSPENSION, LeaveTypeEnum::INJUSTIFY_LEAVE])
             ->sum('days');
         $retenues += ($base_salary / $employee->company->data['labourHours']) * $daysLeft;
-
-        // net a payer salaire brut - (retenues + elements de contributions salarialles)
-        $nap = $grossSalary - ($retenues + $employee->employeeContributions?->total);
+       
         // ajout dans la table salaries (mise à jour des enregistrements liés)
         $employee->salary()->updateOrCreate(
             [
@@ -125,7 +122,6 @@ class CalculateSalariesJob implements ShouldQueue
                 'average_salary' => $avgSalary,
                 'smic' => $smic,
                 'retenues' => $retenues,
-                'nap' => $nap
             ]
         );
     }

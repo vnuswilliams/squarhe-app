@@ -16,7 +16,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('/pay/check/payslips', 'pages::payroll.check-payslip')->name('pay.check.payslips');
     Route::livewire('/employees/add', 'pages::employees.add-employee')->name('employees.add');
     Route::livewire('/employees/import', 'pages::employees.employee-import')->name('employees.import');
-    Route::livewire('employee/profil/{uuid:uuid}', 'pages::employees.employee-profil')->name('employees.show');
+    Route::livewire('employee/profil/{id}', 'pages::employees.employee-profil')->name('employees.show');
 
     // web.php
     Route::get('/invitation/accept/{company_code}/{invitation}', AcceptInvitationController::class)->name('invitation.accept');

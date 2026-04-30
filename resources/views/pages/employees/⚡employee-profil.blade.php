@@ -18,9 +18,9 @@ new class extends Component
     public $uuid;
     public $id, $motif;
     public EmployeeForm $form;
-    public function mount($uuid)
+    public function mount($id)
     {
-        $this->uuid = $uuid;
+        $this->uuid = $id;
     }
 
     public function render()
@@ -66,7 +66,7 @@ new class extends Component
     #[Computed]
     public function employee()
     {
-        return Employee::where('uuid', $this->uuid)
+        return Employee::where('id', $this->uuid)
             ->with(['employeeContributions', 'employerContributions', 'overtimes', 'payslip', 'contractArchives', 'remunerations', 'leaves'])
             ->firstOrFail();
     } //

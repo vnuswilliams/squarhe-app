@@ -14,9 +14,9 @@ new  #[Title('Tous les employés')] class extends Component
     public int $onLeaveEmployeesCount = 0;
     public int $contractsEndingThisMonthCount = 0;
 
-    public array $expiredContracts = [];
-    public array $expiringContracts = [];
-    public array $trialEndingContracts = [];
+    public  $expiredContracts = [];
+    public  $expiringContracts = [];
+    public  $trialEndingContracts = [];
     public function mount()
     {
         $this->loadData();
@@ -122,7 +122,7 @@ new  #[Title('Tous les employés')] class extends Component
                     @foreach ($expiredContracts as $employee)
                     <div class="flex items-center justify-between p-2 rounded-lg bg-white/10">
                         <span class="font-medium">{{ $employee->name }}</span>
-                        <flux:button href="{{ route('employees.show', ['uuid' => $employee->uuid]) }}" wire:navigate
+                        <flux:button href="{{ route('employees.show', ['id' => $employee->id]) }}" wire:navigate
                             variant="primary" size="sm" icon="eye">
                         </flux:button>
                     </div>
@@ -142,7 +142,7 @@ new  #[Title('Tous les employés')] class extends Component
                     @foreach ($expiringContracts as $employee)
                     <div class="flex items-center justify-between p-2 rounded-lg bg-white/10">
                         <span class="font-medium">{{ $employee->name }}</span>
-                        <flux:button href="{{ route('employees.show',  ['uuid' => $employee->uuid]) }}" wire:navigate
+                        <flux:button href="{{ route('employees.show',  ['id' => $employee->id]) }}" wire:navigate
                             variant="primary" size="sm" icon="eye">
                         </flux:button>
                     </div>
@@ -162,7 +162,7 @@ new  #[Title('Tous les employés')] class extends Component
                     @foreach ($trialEndingContracts as $employee)
                     <div class="flex items-center justify-between p-2 rounded-lg bg-white/10">
                         <span class="font-medium">{{ $employee->name }}</span>
-                        <flux:button href="{{ route('employees.show',  ['uuid' => $employee->uuid]) }}" wire:navigate
+                        <flux:button href="{{ route('employees.show',  ['id' => $employee->id]) }}" wire:navigate
                             variant="primary" size="sm" icon="eye">
                         </flux:button>
                     </div>
@@ -231,13 +231,13 @@ new  #[Title('Tous les employés')] class extends Component
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">
 
-                            <flux:badge size="sm" color="{{ $employee->status === App\Enums\StatusEnum::TERMINATED->value ? 'red' : 'green' }}">
-                                {{ App\Enums\StatusEnum::from($employee->status)->label() }}
+                            <flux:badge size="sm" color="{{ $employee->status?->color()}}">
+                                {{ $employee->status?->label() }}
                             </flux:badge>
 
                         </td>
                         <td align="right">
-                            <flux:button href="{{ route('employees.show', ['uuid' => $employee->uuid]) }}" wire:navigate variant="ghost" size="sm" icon="eye" />
+                            <flux:button href="{{ route('employees.show', ['id' => $employee->id]) }}" wire:navigate variant="ghost" size="sm" icon="eye" />
 
                         </td>
                     </tr>
