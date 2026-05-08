@@ -6,7 +6,8 @@
     "keywords": [
         "laravel",
         "framework"
-    ],
+    ]
+  ,
     "license": "MIT",
     "require": {
         "php": "^8.3",
@@ -22,7 +23,8 @@
         "spatie/laravel-activitylog": "^5.0",
         "spatie/laravel-cookie-consent": "^3.4",
         "spatie/laravel-passkeys": "^1.7",
-        "spatie/laravel-permission": "^7.3"
+        "spatie/laravel-permission": "^7.3",
+        "vnuswilliams/squarhe-subscription": "^1.0"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^4.2",

@@ -10,7 +10,6 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
-use LucasDotVin\Soulbscription\Models\Subscription;
 
 new #[Title('Souscription')] class extends Component
 {

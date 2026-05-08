@@ -27,6 +27,7 @@
                      <flux:sidebar.item icon="folder" :href="route('documents')" :current="request()->routeIs('documents.*')" wire:navigate>
                         {{ __('Documents') }}
                     </flux:sidebar.item>
+                   
                     
                {{--  </flux:sidebar.group> --}}
             </flux:sidebar.nav>
@@ -38,8 +39,8 @@
                     {{ __('Repository') }}
                 </flux:sidebar.item>
 
-                <flux:sidebar.item icon="book-open-text" href="https://laravel.com/docs/starter-kits#livewire" target="_blank">
-                    {{ __('Documentation') }}
+                <flux:sidebar.item icon="credit-card" href="{{route('settings.company.soubscription')}}" wire:navigate :current="request()->routeIs('settings.company.soubscription')">
+                    {{ __('Subscription') }}
                 </flux:sidebar.item>
             </flux:sidebar.nav>
 

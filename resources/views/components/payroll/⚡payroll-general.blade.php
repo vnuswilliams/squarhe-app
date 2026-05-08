@@ -6,14 +6,12 @@ use Livewire\Component;
 new class extends Component {
     public $company;
 
-    public function mount($company): void
-    {
-        $this->company = $company;
-    }
+   
 
     public function with(): array
     {
-        $employees = $this->company->employees()->with([
+        $employees = $this->company->payrollEmployees()
+        ->with([
             'salary',
             'employeeContributions',
             'employerContributions',

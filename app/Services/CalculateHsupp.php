@@ -15,15 +15,11 @@ use App\Models\Employee;
  */
 class CalculateHsupp
 {
-    /**
-     * Create a new job instance.
-     */
-    public function __construct(public Employee $employee, public bool $inDatabase = false) {}
 
-    public function handle()
+    public function handle(Employee $employee, bool $inDatabase = false)
     {
 
-        $ifovertimes = $this->employee->overtimes;
+        $ifovertimes = $employee->overtimes;
 
         if ($ifovertimes->isNotEmpty()) {
             $hsupps = 0;
@@ -33,9 +29,9 @@ class CalculateHsupp
                 $hsupps += $overtime->alloc;
             }
 
-            if ($this->inDatabase) {
+            if ($inDatabase) {
                 if ($hsupps != 0) {
-                    $this->employee->remunerations()->updateOrCreate(
+                    $employee->remunerations()->updateOrCreate(
                         ['name' => RemunerationEnum::HEURE_SUPP->value],
                         [
                             'name' => RemunerationEnum::HEURE_SUPP->value,
@@ -55,7 +51,7 @@ class CalculateHsupp
         return 0;
     }
 
-    public function hourRate($employee)
+    public function hourRate(Employee $employee)
     {
         $smic = $employee->data['smic'] ?? 0;
         $addon = $employee->remunerations()

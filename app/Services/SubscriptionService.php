@@ -6,8 +6,8 @@ use App\Enums\FeatureEnum;
 use App\Enums\PlanEnum;
 use App\Models\Company;
 use Illuminate\Support\Carbon;
-use LucasDotVin\Soulbscription\Models\Plan;
-use LucasDotVin\Soulbscription\Models\Subscription;
+use Squarhe\Subscription\Models\Plan;
+use Squarhe\Subscription\Models\Subscription;
 
 class SubscriptionService
 {

@@ -7,21 +7,20 @@ use App\Enums\AdvnatEnum;
 
 class CalculateAdvnats
 {
-    public function __construct(public Employee $employee, public bool $inDatabase = false) {}
-    public function handle()
+    public function handle(Employee $employee,bool $inDatabase = false)
     {
-        $this->employee->advnats()->delete();
-        $advnats = $this->employee->remunerations()
+        $employee->advnats()->delete();
+        $advnats = $employee->remunerations()
             ->whereIn('name', AdvnatEnum::cases())
             ->get();
-        $intermediateGrossTaxableSalary = $this->employee->salary?->intermediate_taxable_gross_salary;
+        $intermediateGrossTaxableSalary = $employee->salary?->intermediate_taxable_gross_salary;
         $totalAdvnatsAmount = 0;
 
 
-        if ($advnats && $this->inDatabase) {
+        if ($advnats && $inDatabase) {
             foreach ($advnats as $advnat) {
                 $limit_fisc = $intermediateGrossTaxableSalary * $advnat->name->taux();
-                $this->employee->advnats()->create([
+                $employee->advnats()->create([
                     'name' => $advnat->name,
                     'amount' => $advnat->amount,
                     'limit_fisc' => $limit_fisc,

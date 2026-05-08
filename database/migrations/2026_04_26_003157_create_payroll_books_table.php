@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('payroll_books', function (Blueprint $table) {
             $table->id();
             $table->string('ref');
-            $table->uuid('uuid')->unique();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->string('status');
             $table->json('data');

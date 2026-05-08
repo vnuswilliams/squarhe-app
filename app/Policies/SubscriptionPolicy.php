@@ -145,7 +145,7 @@ class SubscriptionPolicy
      */
     public function cancelSubscription(User $user): bool
     {
-        return $user->hasRole(CompanyRoleEn4ADDum::OWNER->value) || $user->hasRole(CompanyRoleEnum::ADMIN->value);;
+        return $user->hasRole(CompanyRoleEnum::OWNER->value) || $user->hasRole(CompanyRoleEnum::ADMIN->value);;
     }
 
     // ─────────────────────────────────────────────────────────────────────────

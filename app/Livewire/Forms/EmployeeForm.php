@@ -6,6 +6,7 @@ use App\Enums\CivilityEnum;
 use App\Enums\ContractTypeEnum;
 use App\Enums\NationalityEnum;
 use App\Models\Employee;
+use App\Policies\SubscriptionPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
@@ -37,6 +38,10 @@ class EmployeeForm extends Form
     public $category;
     public $average_salary;
     public $smic;
+
+    public $leaves_majority;
+    public $leaves_seniority;
+    public $leaves_child ;
     public function rules(): array
     {
         return [
@@ -47,6 +52,9 @@ class EmployeeForm extends Form
             'birth_date' => ['nullable', 'date'],
             'nationality' => [$this->isCreating ? 'required' : 'nullable', Rule::in(NationalityEnum::values())],
             'child' => [$this->isCreating ? 'required' : 'nullable', 'integer', 'min:0'],
+            'leaves_majority' => [$this->isCreating ? 'required' : 'nullable', 'numeric', 'min:1'],
+            'leaves_child' => [$this->isCreating ? 'required' : 'nullable', 'numeric', 'min:1'],
+            'leaves_seniority' => [$this->isCreating ? 'required' : 'nullable', 'numeric', 'min:1'],
             'niu' => ['nullable', 'string', 'max:20', 'unique:employees,niu'],
             'cnps_number' => ['nullable', 'string', 'max:255', 'unique:employees,cnps'],
 
@@ -65,7 +73,7 @@ class EmployeeForm extends Form
     {
         $this->employee = $employee;
 
-
+        //"leaves_majority":1.5,"leaves_seniority":2,"leaves_child":2
 
         $this->civility = $this->employee->data['civility'];
         $this->name = $this->employee->name;
@@ -76,6 +84,9 @@ class EmployeeForm extends Form
         $this->child = $this->employee->data['child'];
         $this->niu = $this->employee->data['niu'];
         $this->cnps_number = $this->employee->data['cnps_number'];
+        $this->leaves_majority = $this->employee->data['leaves_majority'] ?? $this->employee->company->data['monthlyLeave'] ;
+        $this->leaves_seniority = $this->employee->data['leaves_seniority'] ?? $this->employee->company->data['seniorLeave'] ;
+        $this->leaves_child = $this->employee->data['leaves_child'] ?? $this->employee->company->data['childLeave'] ;
     }
 
     public function setContract($employee)
@@ -97,6 +108,9 @@ class EmployeeForm extends Form
     {
 
         Gate::authorize('create', Employee::class);
+        Gate::authorize('addEmployee');
+
+
         $validatedData = $this->validate();
         
 
@@ -134,8 +148,7 @@ class EmployeeForm extends Form
     public function update()
     {
         Gate::authorize('update', [Employee::class, $this->employee]);
-        $validatedData = $this->validate();
-        
+        $validatedData = $this->validate();     
 
 
 
@@ -151,7 +164,10 @@ class EmployeeForm extends Form
             'email',
             'category',
             'average_salary',
-            'smic'
+            'smic',
+            'leaves_majority',
+            'leaves_seniority',
+            'leaves_child',
         ];
 
         //extraction
@@ -168,6 +184,7 @@ class EmployeeForm extends Form
         $employeeData['data'] = $data;
 
         $employeeData  = array_filter($employeeData, fn($value) => !is_null($value));
+       //dd($employeeData);
         $this->employee->update($employeeData);
         //$this->reset();
     }
