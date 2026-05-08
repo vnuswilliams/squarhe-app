@@ -8,21 +8,20 @@ use App\Enums\IranEnum;
 class CalculateIrans
 {
 
-    public function __construct(public Employee $employee, public bool $inDatabase = false) {}
-    public function handle()
+    public function handle(Employee $employee,bool $inDatabase = false)
     {
-        $this->employee->irans()?->delete();
-        $irans = $this->employee->remunerations()
+        $employee->irans()?->delete();
+        $irans = $employee->remunerations()
             ->whereIn('name', IranEnum::cases())
             ->get();
-        $intermediateGrossTaxableSalary = $this->employee->salary?->intermediate_taxable_gross_salary;
+        $intermediateGrossTaxableSalary = $employee->salary?->intermediate_taxable_gross_salary;
         $totalIransAmount = 0;
 
 
-        if ($irans && $this->inDatabase) {
+        if ($irans && $inDatabase) {
             foreach ($irans as $iran) {
                 $limit_fisc = $intermediateGrossTaxableSalary * $iran->name->taux();
-                $this->employee->irans()->create([
+                $employee->irans()->create([
                     'name' => $iran->name,
                     'amount' => $iran->amount,
                     'limit_fisc' => $limit_fisc,

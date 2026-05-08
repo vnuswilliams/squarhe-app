@@ -42,7 +42,7 @@ new class extends Component
         $this->form->employee_id = $this->employee->id;
         $this->form->status = StatusEnum::APPROVED->value;
 
-        $this->form->days = (new CalculateDays)->calculateDays($this->form->start_date, $this->form->end_date);
+        $this->form->days = app(CalculateDays::class)->calculateDays($this->form->start_date, $this->form->end_date);
         $this->form->create();
 
         $this->form->reset();
@@ -62,7 +62,7 @@ new class extends Component
 
     public function update()
     {
-        $this->form->days = (new CalculateDays)->calculateDays($this->form->start_date, $this->form->end_date);
+        $this->form->days = app(CalculateDays::class)->calculateDays($this->form->start_date, $this->form->end_date);
         $this->form->update();
         $this->form->reset();
         Flux::modal('edit-leave-modal')->close();
@@ -104,7 +104,7 @@ new class extends Component
 };
 ?>
 
-<div>
+<div x-data="{ activeForm : null }">
     <div class="flex items-center justify-between">
         <div>
             <flux:heading level="1" class="font-bold">{{ __('Gérer les congés et absences') }}</flux:heading>
@@ -112,9 +112,10 @@ new class extends Component
         </div>
 
         <div class="flex items-center gap-2">
-            <flux:button wire:click="toggleFormAddLeave" variant="primary">
+            <flux:button @click="activeForm = 'a' " variant="primary">
                 {{ __('Ajouter une absence') }}
             </flux:button>
+              
 
 
             <flux:dropdown>
@@ -129,8 +130,7 @@ new class extends Component
         </div>
     </div>
 
-    @if($showAddLeaveForm)
-    <x-container wire:transition>
+    <x-container x-show="activeForm === 'a' "  x-transition>
         <form wire:submit="save">
             <div class="py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <flux:select label="{{ __('Type d\'absence') }}" wire:model.live="form.type">
@@ -155,7 +155,7 @@ new class extends Component
 
             <div class="flex items-center justify-end gap-2 mt-4">
 
-                <flux:button wire:click="toggleFormAddLeave">
+                <flux:button @click="activeForm = null " >
                     {{ __('Cancel') }}
                 </flux:button>
                 <flux:button type="submit" variant="primary">
@@ -164,7 +164,8 @@ new class extends Component
             </div>
         </form>
     </x-container>
-    @endif
+
+
     
     <x-delta-card :cards="[
             [

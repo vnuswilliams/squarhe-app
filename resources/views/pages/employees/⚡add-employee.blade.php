@@ -4,6 +4,7 @@ use App\Enums\CivilityEnum;
 use App\Enums\ContractTypeEnum;
 use App\Enums\NationalityEnum;
 use App\Livewire\Forms\EmployeeForm;
+use App\Services\SubscriptionService;
 use Flux\Flux;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -16,18 +17,18 @@ new #[Title('Ajouter un employé')] class extends Component
     #[Computed]
     public function company()
     {
-        return  auth()->user()->company()->first();
+        return auth()->user()->company()->first();
     }
 
     public function save()
     {
-        $this->form->average_salary  = (empty($this->form->average_salary) || $this->form->average_salary === null || $this->form->average_salary  === 0) ? $this->form->base_salary : $this->form->average_salary;
-        $this->form->smic  = (empty($this->form->smic) || $this->form->smic === null || $this->form->smic  === 0) ? $this->form->base_salary : $this->form->smic;
+        $this->form->average_salary = (empty($this->form->average_salary) || $this->form->average_salary === null || $this->form->average_salary === 0) ? $this->form->base_salary : $this->form->average_salary;
+        $this->form->smic = (empty($this->form->smic) || $this->form->smic === null || $this->form->smic === 0) ? $this->form->base_salary : $this->form->smic;
 
         $employee = $this->form->create();
 
         Flux::toast(variant: 'success', text: " L' employé(e) a été crée(e) avec succès");
-
+        app(SubscriptionService::class)->consumeEmployeeSlot($this->company);
         $this->redirect(route('employees.show', ['id' => $employee->id]), navigate: true);
     }
 };

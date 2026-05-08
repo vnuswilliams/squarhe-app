@@ -32,7 +32,7 @@ class CalculatePayslipJob implements ShouldQueue
 
         // $this->employee is already set from constructor
         // calculate salary here
-        if ($this->employee->contract_type != ContractTypeEnum::INTERNSHIP) {
+        if ($this->employee->contract_type != ContractTypeEnum::INTERNSHIP && $this->employee->status != StatusEnum::TERMINATED->value) {
             CalculateSalariesJob::dispatchSync($this->employee);
 
             $queryLeaves = $this->employee->leaves
@@ -74,8 +74,8 @@ class CalculatePayslipJob implements ShouldQueue
             $elements = [];
 
             // Calculate Hsupp and put it in the payslip items
-            $hsupp = (new CalculateHsupp($this->employee))->handle();
-            if ($hsupp != 0) {
+            $hsupp = app(CalculateHsupp::class)->handle($this->employee);
+                        if ($hsupp != 0) {
                 $elements[] = [
                     'code' => PayslipItemsEnum::HEURE_SUPP->code(),
                     'label' => PayslipItemsEnum::HEURE_SUPP->label(),
@@ -83,7 +83,7 @@ class CalculatePayslipJob implements ShouldQueue
                 ];
             }
 
-            $leave = (new CalculateLeave($this->employee))->handle();
+            $leave = app(CalculateLeave::class)->handle($this->employee);
             if ($leave != 0) {
                 $elements[] = [
                     'code' => PayslipItemsEnum::ALLOCATION_CONGE->code(),
@@ -92,7 +92,7 @@ class CalculatePayslipJob implements ShouldQueue
                 ];
             }
 
-            $panc = (new CalculatePanc($this->employee))->handle();
+            $panc = app(CalculatePanc::class)->handle($this->employee);
             if ($panc != 0) {
                 $elements[] = [
                     'code' => PayslipItemsEnum::PRIME_ANCIENNETE->code(),
@@ -152,7 +152,7 @@ class CalculatePayslipJob implements ShouldQueue
 
             // Calculate impots and put in the payslip items
             // calculate impot here
-            calculateImpotForEmployee::dispatchSync($this->employee);
+            calculateImpotJob::dispatchSync($this->employee);
 
             $employeeCharge = $this->employee->employeeContributions()->first();
             $employeeContribution = [];

@@ -21,7 +21,6 @@ class AdvNat extends Model
         'name' => RemunerationEnum::class,
         'excedent' => 'integer',
         'limit_fisc' => 'integer',
-        'excedent' => 'integer',
     ];
 
     public function employee()

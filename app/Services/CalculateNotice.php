@@ -13,16 +13,12 @@ use App\Models\Employee;
 
 class CalculateNotice
 {
-    /**
-     * Caculate the amount of the notice
-     * @param \App\Models\Employee $employee the employee we want to calculate the notice
-     */
-    public function __construct(public Employee $employee, public bool $inDatabase = false) {}
-    public function handle()
+    
+    public function handle(Employee $employee,bool $inDatabase = false)
     {
 
-        $age = $this->employee->start_date->age;
-        $cat = preg_match('/^(?:[1-9]|1[0-2])/', $this->employee->data['category'], $match);
+        $age = $employee->start_date->age;
+        $cat = preg_match('/^(?:[1-9]|1[0-2])/', $employee->data['category'], $match);
         $cat = $match[0];
         $noticeDay = 0;
         if ($age < 1):
@@ -65,24 +61,24 @@ class CalculateNotice
             }
         endif;
 
-        $grossSalary = $this->employee->salary->first()->gross_salary ?? 0;
+        $grossSalary = $employee->salary?->gross_salary ?? 0;
 
         $noticeAmount = $grossSalary * $noticeDay;
 
-        if ($this->inDatabase) {
-            $this->employee->remunerations()->updateOrCreate(
+        if ($inDatabase) {
+            $employee->remunerations()->updateOrCreate(
                 [
                     'name' => RemunerationEnum::INDEMNITE_PREAVIS->value,
-                    'company_id' => $this->employee->company->id
+                    'company_id' => $employee->company->id
                 ],
                 [
-                    'company_id' => $this->employee->company->id,
+                    'company_id' => $employee->company->id,
                     'name' => RemunerationEnum::INDEMNITE_PREAVIS->value,
                     'type' => RemunerationTypeEnum::ALLOCATION->value,
                     'amount' => number_format($noticeAmount, 0, '', ''),
                     'periodicity' => PeriodicityEnum::MONTHLY->value,
                     'impact' => ImpactEnum::TAXCOT->value,
-                    'notes' => 'Indemintés de préavis de ' . $this->employee->name . '(durée :.' . $noticeDay  . ')'
+                    'notes' => 'Indemintés de préavis de ' . $employee->name . '(durée :.' . $noticeDay  . ')'
 
                 ]
 

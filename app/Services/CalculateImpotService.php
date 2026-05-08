@@ -1,30 +1,16 @@
 <?php
 
-namespace App\Jobs;
+namespace App\Services;
 
 use App\Models\Employee;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Queue\Queueable;
 
-class calculateImpotForEmployee implements ShouldQueue
+class CalculateImpotService
 {
-    use Queueable;
 
-    /**
-     * Create a new job instance.
-     */
-    public function __construct(public Employee $employee)
+public function handle(Employee $employee): void
     {
-        //
-    }
-
-    /**
-     * Execute the job.
-     */
-    public function handle(): void
-    {
-        $company = $this->employee->company;
-        $salary = $this->employee->salary;
+        $company = $employee->company;
+        $salary = $employee->salary;
 
         // salaire cot plafonne
         $plafondCotisableSalary = min($salary->contributory_salary, 750000);
@@ -35,7 +21,7 @@ class calculateImpotForEmployee implements ShouldQueue
         $cfc = $company->data['cfc']['enabled'] ? floor($salary->taxable_gross_salary / 1000) * 1000 * 0.01 : 0;
 
         // calcil syndicat
-        $syndicat = $this->employee->data['syndicat'] ? ($salary->base_salary * 0.01) : 0;
+        $syndicat = $employee->data['syndicat'] ? ($salary->base_salary * 0.01) : 0;
         $tdl = 0;
         $rav = 0;
         $cac = 0;
@@ -141,12 +127,12 @@ class calculateImpotForEmployee implements ShouldQueue
             $cac = $irpp * 0.1;
         }
 
-        $contri = $this->employee->employeeContributions()->updateOrCreate(
+        $contri = $employee->employeeContributions()->updateOrCreate(
             [
-                'employee_id' => $this->employee->id,
+                'employee_id' => $employee->id,
             ],
             [
-                'employee_id' => $this->employee->id,
+                'employee_id' => $employee->id,
                 'old_age_pension' => (int) number_format($oldAgePension, 0, '', ''),
                 'irpp' => (int) number_format($irpp, 0, '', ''),
                 'cac' => (int) number_format($cac, 0, '', '') ?? 0,
@@ -169,12 +155,12 @@ class calculateImpotForEmployee implements ShouldQueue
         $fne = $company->data['fne']['enabled'] ? $company->data['fne']['employerShare'] * $salary->taxable_gross_salary : 0;
         // cfc
         $cfc = $company->data['cfc']['enabled'] ? $company->data['cfc']['employerShare'] * $salary->taxable_gross_salary : 0;
-        $this->employee->employerContributions()->updateOrCreate(
+        $employee->employerContributions()->updateOrCreate(
             [
-                'employee_id' => $this->employee->id,
+                'employee_id' => $employee->id,
             ],
             [
-                'employee_id' => $this->employee->id,
+                'employee_id' => $employee->id,
                 'family_allowance' => (int) number_format($familyAllowance, 0, '', '') ?? 0,
                 'old_age_pension' => (int) number_format($oldAgePension, 0, '', '') ?? 0,
                 'accident' => (int) number_format($accident, 0, '', '') ?? 0,

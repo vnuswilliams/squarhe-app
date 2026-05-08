@@ -7,15 +7,18 @@ use App\Enums\ContractTypeEnum;
 use App\Enums\StatusEnum;
 use App\Models\Scopes\EmployeeGlobalScope;
 use App\Observers\EmployeeObserver;
+use App\Policies\EmployeePolicy;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 #[ObservedBy(EmployeeObserver::class)]
+#[UsePolicy(EmployeePolicy::class)]
 #[ScopedBy(EmployeeGlobalScope::class)]
 #[Fillable([
     'company_id',

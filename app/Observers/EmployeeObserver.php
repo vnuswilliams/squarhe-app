@@ -8,6 +8,7 @@ use App\Enums\NationalityEnum;
 use App\Models\Employee;
 use App\Notifications\ActivityNotification;
 use App\Services\DeterminateLeaveEmployeeQuotaService;
+use App\Services\SubscriptionService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Activitylog\Facades\Activity;
@@ -147,6 +148,9 @@ class EmployeeObserver
                 $company->name
             );
         }
+        if($employee->contract_type != ContractTypeEnum::INTERNSHIP->value):
+        app(SubscriptionService::class)->releaseEmployeeSlot($employee->company);
+        endif;
     }
 
     /**

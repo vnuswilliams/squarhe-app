@@ -105,7 +105,7 @@ $colorMap = [
 $defaultColor = ['dot' => 'bg-slate-400', 'ring' => 'ring-slate-400/20'];
 @endphp
 
-<div class="grid {{ $colClass }} {{ $gapClass }} {{ $mb }} ">
+<div class="grid lg:grid-cols-4 {{ $colClass }} {{ $gapClass }} {{ $mb }} {{ $attributes->get('class') }}" {{ $attributes }}>
     @foreach ($cards as $card)
     @php
     $color = $colorMap[$card['color'] ?? ''] ?? $defaultColor;
