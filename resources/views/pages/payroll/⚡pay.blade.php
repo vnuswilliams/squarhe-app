@@ -118,9 +118,7 @@ new #[Title('Paie')]  class extends Component
 
 <x-tabs :tabs="['Vue d\'ensemble', 'Bulletin de paie', 'Livre de paie', 'Déclarations']">
         <x-slot:tab1>
-          
-        
-
+            <livewire:payroll.payroll-general :company="$this->company" />
         </x-slot:tab1>
         <x-slot:tab2>
             <livewire:payroll.payroll-payslips :company="$this->company" />
