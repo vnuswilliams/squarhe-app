@@ -17,30 +17,20 @@ new class extends Component {
     public $employee;
     public EmployeeDocumentForm $form;
 
-    public function mount($employee)
-    {
-        $this->employee = $employee;
-    }
-
     #[Computed]
     public function documents()
     {
         return $this->employee->documents;
     }
-    public $showAddDocForm = false;
-    public function toggleFormAddDocument()
-    {
-        $this->showAddDocForm = !$this->showAddDocForm;
-    }
-
+   
     public function save()
     {
         $this->form->employee_id = $this->employee->id;
         $this->form->isCreating = true;
 
         $this->form->create();
-        $this->showAddDocForm = false;
-        Flux::toast(variant: 'success', text: __('Le document a été ajouté avec  succès.'));
+       
+        Flux::toast(variant: 'success', text: __("toast.document.createDocumentSuccessfull"));
         $this->form->reset();
     }
 
@@ -59,7 +49,9 @@ new class extends Component {
     {
         $this->form->update();
         Flux::modal('edit-document-modal')->close();
-        Flux::toast(variant: 'success', text: 'Le document a été mis à jour avec succès.');
+        Flux::toast(variant: 'success', text: __('toast.document.updateDocumentSuccessfull') );
+       
+
         $this->form->reset();
     }
 
@@ -83,7 +75,8 @@ new class extends Component {
 
             $this->documentToDelete->delete();
 
-            Flux::toast(variant: 'success', text: 'Le document supprimé avec succès.');
+            Flux::toast(variant: 'success', text: __('toast.document.deleteDocumentSuccessfull'));
+           
             Flux::modal('delete-document-modal')->close();
             $this->documentToDelete = null;
         endif;
@@ -100,14 +93,14 @@ new class extends Component {
     }
 };
 ?>
-<div>
+<div x-data="{activeForm : null}" >
     <div class="flex items-center justify-between">
         <div>
             <flux:heading level="1" class="font-bold">Ajouter un document a votre collaborateur</flux:heading>
             <flux:text class="text-gray-300">Il sera visble en fonction de votre niveau d'accès</flux:text>
         </div>
 
-        <flux:button wire:click="toggleFormAddDocument" variant="primary">
+        <flux:button @click="activeForm = 'a' " variant="primary">
             Ajouter un document
         </flux:button>
     </div>
@@ -123,8 +116,7 @@ new class extends Component {
         ]" />
 
         @endif
-    @if ($showAddDocForm)
-    <x-container wire:transition>
+    <x-container x-show="activeForm === 'a' " x-transition>
         <form wire:submit="save" class="space-y-6" id="add-document-form" enctype="multipart/form-data">
 
 
@@ -165,8 +157,8 @@ new class extends Component {
 
             {{-- Bouton d’enregistrement --}}
             <div class="flex items-center justify-end  gap-2">
-                <flux:button wire:click="toggleFormAddDocument">
-                    Annuler
+                <flux:button @click="activeForm = null ">
+                    {{ __('Cancel') }}
 
                 </flux:button>
                 <flux:button variant="primary" type="submit" class="cursor-pointer w-full">
@@ -177,7 +169,6 @@ new class extends Component {
             </div>
         </form>
     </x-container>
-    @endif
 
 
     <x-container>

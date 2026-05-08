@@ -10,12 +10,11 @@ use App\Models\Employee;
 
 class CalculateTechnicalChomage
 {
-    public function __construct(public Employee $employee, public int $month = 1, public bool $inDatabase = false) {}
-    public function handle()
+    public function handle(Employee $employee, int $month = 1, bool $inDatabase = false) 
     {
-        $salaries = $this->employee->salary;
-        $baseSalary = $salaries->base_salary ?? $this->employee->base_salary;
-        $calculatePanc = (new CalculatePanc($this->employee))->handle();
+        $salaries = $employee->salary;
+        $baseSalary = $salaries->base_salary ?? $employee->base_salary;
+        $calculatePanc = app(CalculatePanc::class)->handle($employee);
 
         $panc = $calculatePanc;
 
@@ -32,20 +31,20 @@ class CalculateTechnicalChomage
         ];
 
         $indemniteRate = 0.0;
-        $months = max(1, (int) $this->month);
+        $months = max(1, (int) $month);
         for ($m = 1; $m <= $months; $m++) {
             $indemniteRate += $rates[$m] ?? 0.20;
         }
 
         $indemniteChomage = $baseOfCacul * $indemniteRate;
 
-        if ($this->inDatabase) {
-            $this->employee->remunerations()->updateOrCreate(
+        if ($inDatabase) {
+            $employee->remunerations()->updateOrCreate(
                 [
                     'name' => RemunerationEnum::INDEMNITE_CHOMAGE_TECHNIQUE->value,
                 ],
                 [
-                    'employee_id' => $this->employee->id,
+                    'employee_id' => $employee->id,
                     'name' => RemunerationEnum::INDEMNITE_CHOMAGE_TECHNIQUE->value,
                     'type' => RemunerationTypeEnum::ALLOCATION->value,
                     'amount' => number_format($indemniteChomage, 0, '', ''),

@@ -7,13 +7,14 @@ use App\Enums\DocumentTypeEnum;
 use App\Enums\StatusEnum;
 use App\Models\Employee;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-class ProcessPayslipDocumentJob
+class ProcessPayslipDocumentJob implements ShouldQueue
 {
-    use Dispatchable;
+    use Queueable;
 
     /**
      * Create a new job instance.

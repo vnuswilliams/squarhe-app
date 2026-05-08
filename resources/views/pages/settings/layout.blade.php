@@ -1,10 +1,14 @@
 <div class="flex items-start max-md:flex-col">
     <div class="me-10 w-full pb-4 md:w-55">
         <flux:navlist aria-label="{{ __('Settings') }}">
-            <flux:navlist.item :href="route('settings.company.add')" wire:navigate>{{ __('Add company') }}</flux:navlist.item>
+@if(!auth()->user()->company_id)
+        <flux:navlist.item :href="route('settings.company.add')" wire:navigate>{{ __('Add company') }}</flux:navlist.item>
+        @else
             <flux:navlist.item :href="route('settings.company.update')" wire:navigate>{{ __('Update company') }}</flux:navlist.item>
             <flux:navlist.item :href="route('settings.company.setting')" wire:navigate>{{ __('Settings company') }}</flux:navlist.item>
             <flux:navlist.item :href="route('settings.company.admin')" wire:navigate>{{ __('Manage admin') }}</flux:navlist.item>
+@endif
+
             <flux:navlist.item :href="route('profile.edit')" wire:navigate>{{ __('Profile') }}</flux:navlist.item>
             <flux:navlist.item :href="route('security.edit')" wire:navigate>{{ __('Security') }}</flux:navlist.item>
             <flux:navlist.item :href="route('appearance.edit')" wire:navigate>{{ __('Appearance') }}</flux:navlist.item>

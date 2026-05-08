@@ -106,3 +106,65 @@ $company->employees()->validated()->withoutPayslip()->with('salary')->get();
 
 // Ordonné
 $company->employees()->validated()->orderBy('name')->get();
+
+
+
+
+
+
+
+
+
+
+
+
+
+<?php
+
+// ── À ajouter dans routes/web.php ────────────────────────────────────────────
+//
+// use App\Http\Controllers\SubscriptionController;
+//
+// Route::middleware(['auth'])->group(function () {
+//     Route::get( '/companies/{company}/subscription',        [SubscriptionController::class, 'index'])  ->name('subscription.index');
+//     Route::post('/companies/{company}/subscription',        [SubscriptionController::class, 'store'])  ->name('subscription.store');
+//     Route::delete('/companies/{company}/subscription',      [SubscriptionController::class, 'cancel']) ->name('subscription.cancel');
+// });
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// Enregistrement de la policy dans AuthServiceProvider (ou AppServiceProvider) :
+//
+// use App\Models\Company;
+// use App\Policies\SubscriptionPolicy;
+//
+// protected $policies = [
+//     Company::class => SubscriptionPolicy::class,
+// ];
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// Exemple d'utilisation de la policy dans un contrôleur d'employés :
+//
+// // EmployeeController.php
+// public function store(Request $request, Company $company)
+// {
+//     $this->authorize('addEmployee', $company);   // ← bloque si quota atteint
+//     // … créer l'employé
+//     $this->subscriptions->consumeEmployeeSlot($company); // consomme 1 charge
+// }
+//
+// public function update(Request $request, Company $company, Employee $employee)
+// {
+//     $this->authorize('manageEmployee', $company);
+//     // …
+// }
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// Exemple Blade :
+//
+// @can('addEmployee', $company)
+//     <a href="{{ route('employees.create', $company) }}" class="btn btn-primary">
+//         Ajouter un employé
+//     </a>
+// @else
+//     <p class="text-red-500">Quota d'employés atteint — veuillez mettre à niveau votre plan.</p>
+// @endcan

@@ -2,6 +2,7 @@
 
 use App\Enums\CivilityEnum;
 use App\Enums\ContractTypeEnum;
+use App\Enums\FeatureEnum;
 use App\Enums\NationalityEnum;
 use App\Jobs\CalculatePayslipJob;
 use App\Livewire\Forms\EmployeeForm;
@@ -14,14 +15,9 @@ use Livewire\Component;
 
 new class extends Component
 {
-    public $activeTab = 0;
-    public $uuid;
     public $id, $motif;
     public EmployeeForm $form;
-    public function mount($id)
-    {
-        $this->uuid = $id;
-    }
+   
 
     public function render()
     {
@@ -66,7 +62,7 @@ new class extends Component
     #[Computed]
     public function employee()
     {
-        return Employee::where('id', $this->uuid)
+        return Employee::where('id', $this->id)
             ->with(['employeeContributions', 'employerContributions', 'overtimes', 'payslip', 'contractArchives', 'remunerations', 'leaves'])
             ->firstOrFail();
     } //
@@ -82,8 +78,7 @@ new class extends Component
         $this->form->update();
         Flux::modal('edit-employee')->close();
         $this->form->reset();
-        $name = Str::limit($this->employee->name, 10, '.');
-        Flux::toast(variant: 'success', text: "Les infos personnelles de $name ont été mises à jour.");
+        Flux::toast(variant: 'success', text: __('toast.profil.success', ['name' => $this->employee->shortName]));
     }
 };
 ?>
@@ -227,6 +222,22 @@ new class extends Component
 
                         <!-- CNPS -->
                         <flux:input id="cnps_number" wire:model="form.cnps_number" type="text" :label="__('CNPS Number')" />
+                    </div>
+
+                    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
+                        {{-- <x-icon name="user" class="w-5 h-5 text-primary-600" /> --}}
+                        {{ __('Congés Details') }}
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                               <!-- Name -->
+                        <flux:input id="name" wire:model="form.leaves_majority" type="number" step="any" :label="__('Nbres jours congés mensuel')" />
+
+                        <!-- Email -->
+                        <flux:input id="email" wire:model="form.leaves_seniority" type="number" step="any" :label="__('Nbres jours congés acquis/ancienneté')" />
+
+                        <!-- Phone -->
+                        <flux:input id="phone" wire:model="form.leaves_child" type="number" step="any" :label="__('Nbres jours congés acquis/enfants')" />
+
                     </div>
                 </div>
                 <div class="flex gap-2 justify-end">
