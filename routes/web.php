@@ -12,6 +12,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('/notifications', 'pages::notifs.notifications')->name('notif');
     Route::livewire('/employees', 'pages::employees.employee')->name('employees');
     Route::livewire('/documents', 'pages::documents.document')->name('documents');
+    Route::livewire('/metrics', 'pages::metrics.metrics')->name('metrics');
     Route::livewire('/pay', 'pages::payroll.pay')->name('pay');
     Route::livewire('/pay/check/payslips', 'pages::payroll.check-payslip')->name('pay.check.payslips');
     Route::livewire('/pay/payroll/close', 'pages::payroll.close-payroll')->name('pay.close.payroll');
