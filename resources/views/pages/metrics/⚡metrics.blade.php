@@ -1,19 +1,16 @@
 <?php
 
 use App\Models\Company;
-use App\Models\Employee;
 use App\Models\Leave;
 use App\Models\Overtime;
 use App\Models\Payslip;
-use App\Models\Remuneration;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('Métriques')] class extends Component {
-    public string $selectedRef;
+    public string $selectedRef = '';
 
     public function mount(): void
     {
@@ -29,8 +26,12 @@ new #[Title('Métriques')] class extends Component {
     #[Computed]
     public function availableRefs(): array
     {
+        if (! $this->company) {
+            return [];
+        }
+
         $refs = Payslip::query()
-            ->when($this->company, fn ($query) => $query->where('company_id', $this->company->id))
+            ->whereHas('employee', fn ($query) => $query->where('company_id', $this->company->id))
             ->whereNotNull('ref')
             ->pluck('ref')
             ->filter()
@@ -38,11 +39,8 @@ new #[Title('Métriques')] class extends Component {
             ->values()
             ->all();
 
-        usort($refs, function (string $a, string $b) {
-            $aDate = Carbon::createFromFormat('m-Y', $a);
-            $bDate = Carbon::createFromFormat('m-Y', $b);
-
-            return $bDate->timestamp <=> $aDate->timestamp;
+        usort($refs, function (string $a, string $b): int {
+            return Carbon::createFromFormat('m-Y', $b)->timestamp <=> Carbon::createFromFormat('m-Y', $a)->timestamp;
         });
 
         return $refs;
@@ -51,60 +49,77 @@ new #[Title('Métriques')] class extends Component {
     #[Computed]
     public function previousRef(): ?string
     {
-        $current = Carbon::createFromFormat('m-Y', $this->selectedRef);
+        if (! $this->selectedRef) {
+            return null;
+        }
 
-        return $current->subMonth()->format('m-Y');
+        return Carbon::createFromFormat('m-Y', $this->selectedRef)->subMonth()->format('m-Y');
     }
 
     #[Computed]
     public function metricsRows(): array
     {
-        $current = $this->collectMetrics($this->selectedRef);
-        $previous = $this->collectMetrics($this->previousRef);
+        $current = $this->metricsForRef($this->selectedRef);
+        $previous = $this->metricsForRef($this->previousRef);
 
         return [
-            $this->row(__('Employés actifs'), $current['active_employees'], $previous['active_employees']),
-            $this->row(__('Employés avec bulletin'), $current['employees_with_payslip'], $previous['employees_with_payslip']),
-            $this->row(__('Salaire brut (FCFA)'), $current['gross_salary'], $previous['gross_salary']),
-            $this->row(__('Salaire net (FCFA)'), $current['net_salary'], $previous['net_salary']),
-            $this->row(__('Heures supplémentaires'), $current['overtime_hours'], $previous['overtime_hours']),
-            $this->row(__('Congés (jours)'), $current['leave_days'], $previous['leave_days']),
+            $this->makeRow(__('Bulletins de paie générés'), $current['payslips_count'], $previous['payslips_count']),
+            $this->makeRow(__('Salaire brut total'), $current['gross_salary_total'], $previous['gross_salary_total']),
+            $this->makeRow(__('Net à payer total'), $current['net_to_pay_total'], $previous['net_to_pay_total']),
+            $this->makeRow(__('Heures supplémentaires totales'), $current['overtime_hours_total'], $previous['overtime_hours_total']),
+            $this->makeRow(__('Jours de congés totaux'), $current['leave_days_total'], $previous['leave_days_total']),
         ];
     }
 
-    protected function collectMetrics(?string $ref): array
+    protected function metricsForRef(?string $ref): array
     {
         if (! $this->company || ! $ref) {
             return $this->emptyMetrics();
         }
 
-        $snapshot = $this->snapshotMetricsForRef($ref);
+        $snapshot = $this->snapshotForRef($ref);
 
         if (! empty($snapshot)) {
             return array_merge($this->emptyMetrics(), $snapshot);
         }
 
+        $payslips = Payslip::query()
+            ->where('ref', $ref)
+            ->whereHas('employee', fn ($query) => $query->where('company_id', $this->company->id))
+            ->get();
+
+        $gross = 0.0;
+        $netToPay = 0.0;
+
+        foreach ($payslips as $payslip) {
+            $formattedSalaries = $payslip->formatted_salaries ?? [];
+
+            $gross += (float) data_get($formattedSalaries, 'gross_salary.amount', 0);
+            $netToPay += (float) data_get($formattedSalaries, 'nap.amount', 0);
+        }
+
         return [
-            'active_employees' => Employee::query()->where('company_id', $this->company->id)->active()->count(),
-            'employees_with_payslip' => Payslip::query()->where('company_id', $this->company->id)->where('ref', $ref)->count(),
-            'gross_salary' => (float) Remuneration::query()->where('company_id', $this->company->id)->where('ref', $ref)->sum('salaire_brut'),
-            'net_salary' => (float) Payslip::query()->where('company_id', $this->company->id)->where('ref', $ref)->sum('salary_to_be_paid'),
-            'overtime_hours' => (float) Overtime::query()->where('company_id', $this->company->id)->where('ref', $ref)->sum('hour_weekday')
-                + (float) Overtime::query()->where('company_id', $this->company->id)->where('ref', $ref)->sum('hour_holiday'),
-            'leave_days' => (float) Leave::query()->where('company_id', $this->company->id)->where('ref', $ref)->sum('duration'),
+            'payslips_count' => $payslips->count(),
+            'gross_salary_total' => $gross,
+            'net_to_pay_total' => $netToPay,
+            'overtime_hours_total' => (float) Overtime::query()
+                ->where('ref', $ref)
+                ->whereHas('employee', fn ($query) => $query->where('company_id', $this->company->id))
+                ->sum('hours'),
+            'leave_days_total' => (float) Leave::query()
+                ->where('ref', $ref)
+                ->whereHas('employee', fn ($query) => $query->where('company_id', $this->company->id))
+                ->sum('days'),
         ];
     }
 
-    protected function snapshotMetricsForRef(string $ref): array
+    protected function snapshotForRef(string $ref): array
     {
         if (! $this->company || ! method_exists($this->company, 'payrollClosures')) {
             return [];
         }
 
-        $closure = $this->company->payrollClosures()
-            ->where('ref', $ref)
-            ->latest('id')
-            ->first();
+        $closure = $this->company->payrollClosures()->where('ref', $ref)->latest('id')->first();
 
         if (! $closure || ! method_exists($closure, 'snapshots')) {
             return [];
@@ -117,19 +132,18 @@ new #[Title('Métriques')] class extends Component {
         }
 
         return [
-            'active_employees' => (int) Arr::get($snapshot->data, 'active_employees', 0),
-            'employees_with_payslip' => (int) Arr::get($snapshot->data, 'employees_with_payslip', 0),
-            'gross_salary' => (float) Arr::get($snapshot->data, 'gross_salary', 0),
-            'net_salary' => (float) Arr::get($snapshot->data, 'net_salary', 0),
-            'overtime_hours' => (float) Arr::get($snapshot->data, 'overtime_hours', 0),
-            'leave_days' => (float) Arr::get($snapshot->data, 'leave_days', 0),
+            'payslips_count' => (float) data_get($snapshot->data, 'payslips_count', 0),
+            'gross_salary_total' => (float) data_get($snapshot->data, 'gross_salary_total', 0),
+            'net_to_pay_total' => (float) data_get($snapshot->data, 'net_to_pay_total', 0),
+            'overtime_hours_total' => (float) data_get($snapshot->data, 'overtime_hours_total', 0),
+            'leave_days_total' => (float) data_get($snapshot->data, 'leave_days_total', 0),
         ];
     }
 
-    protected function row(string $label, float|int $current, float|int $previous): array
+    protected function makeRow(string $label, float|int $current, float|int $previous): array
     {
         $delta = $current - $previous;
-        $variation = $previous == 0 ? null : ($delta / $previous) * 100;
+        $variation = $previous === 0 ? null : ($delta / $previous) * 100;
 
         return compact('label', 'current', 'previous', 'delta', 'variation');
     }
@@ -137,26 +151,17 @@ new #[Title('Métriques')] class extends Component {
     protected function emptyMetrics(): array
     {
         return [
-            'active_employees' => 0,
-            'employees_with_payslip' => 0,
-            'gross_salary' => 0,
-            'net_salary' => 0,
-            'overtime_hours' => 0,
-            'leave_days' => 0,
+            'payslips_count' => 0,
+            'gross_salary_total' => 0,
+            'net_to_pay_total' => 0,
+            'overtime_hours_total' => 0,
+            'leave_days_total' => 0,
         ];
     }
 
     public function variationBadgeColor(float|int $delta): string
     {
-        if ($delta > 0) {
-            return 'green';
-        }
-
-        if ($delta < 0) {
-            return 'red';
-        }
-
-        return 'zinc';
+        return $delta > 0 ? 'green' : ($delta < 0 ? 'red' : 'zinc');
     }
 };
 ?>
@@ -166,7 +171,7 @@ new #[Title('Métriques')] class extends Component {
         <div>
             <flux:heading level="1" class="font-bold">{{ __('Métriques') }}</flux:heading>
             <flux:text class="mt-2 text-zinc-600 dark:text-zinc-300">
-                {{ __('Comparez les données actuelles et les snapshots de paie par mois (N vs N-1).') }}
+                {{ __('Comparaison des données de paie entre le mois N et le mois N-1.') }}
             </flux:text>
         </div>
 
@@ -183,9 +188,7 @@ new #[Title('Métriques')] class extends Component {
     </div>
 
     <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-        <flux:text>
-            {{ __('Comparaison du mois :current avec :previous.', ['current' => $selectedRef, 'previous' => $this->previousRef ?? __('N/A')]) }}
-        </flux:text>
+        <flux:text>{{ __('Comparaison : :current vs :previous.', ['current' => $selectedRef ?: 'N/A', 'previous' => $this->previousRef ?: 'N/A']) }}</flux:text>
     </div>
 
     <div class="overflow-x-auto rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
@@ -200,31 +203,15 @@ new #[Title('Métriques')] class extends Component {
                 </tr>
             </thead>
             <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
-                @forelse ($this->metricsRows as $row)
+                @foreach ($this->metricsRows as $row)
                     <tr>
                         <td class="px-4 py-3 text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ $row['label'] }}</td>
                         <td class="px-4 py-3 text-right text-sm text-zinc-700 dark:text-zinc-200">{{ number_format($row['current'], 2, ',', ' ') }}</td>
                         <td class="px-4 py-3 text-right text-sm text-zinc-700 dark:text-zinc-200">{{ number_format($row['previous'], 2, ',', ' ') }}</td>
-                        <td class="px-4 py-3 text-right text-sm">
-                            <flux:badge color="{{ $this->variationBadgeColor($row['delta']) }}">
-                                {{ number_format($row['delta'], 2, ',', ' ') }}
-                            </flux:badge>
-                        </td>
-                        <td class="px-4 py-3 text-right text-sm text-zinc-700 dark:text-zinc-200">
-                            @if (is_null($row['variation']))
-                                —
-                            @else
-                                {{ number_format($row['variation'], 2, ',', ' ') }} %
-                            @endif
-                        </td>
+                        <td class="px-4 py-3 text-right text-sm"><flux:badge color="{{ $this->variationBadgeColor($row['delta']) }}">{{ number_format($row['delta'], 2, ',', ' ') }}</flux:badge></td>
+                        <td class="px-4 py-3 text-right text-sm text-zinc-700 dark:text-zinc-200">{{ is_null($row['variation']) ? '—' : number_format($row['variation'], 2, ',', ' ') . ' %' }}</td>
                     </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" class="px-4 py-6 text-center text-sm text-zinc-500 dark:text-zinc-300">
-                            {{ __('Aucune donnée métrique disponible pour le moment.') }}
-                        </td>
-                    </tr>
-                @endforelse
+                @endforeach
             </tbody>
         </table>
     </div>
