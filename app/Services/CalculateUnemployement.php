@@ -14,24 +14,23 @@ use App\Services\CalculatePanc;
 class CalculateUnemployement
 {
 
-    public function __construct(public Employee $employee, public bool $inDatabase = false) {}
 
-    public function handle()
+    public function handle(Employee $employee,  bool $inDatabase = false)
     {
         // Use floatDiffInYears for a precise seniority calculation including months and days.
         // Use the contract's end_date if it exists, otherwise use the current date.
-        $startDate = $this->employee->start_date;
-        $endDate = $this->employee->end_date ?? now();
+        $startDate = $employee->start_date;
+        $endDate = $employee->end_date ?? now();
         $age = $startDate->floatDiffInYears($endDate);
 
 
         // Severance pay is not applicable for less than 1 year of seniority or for fixed-term contracts (CDD).
-        if ($age != 0.0 || $this->employee->contract_type === ContractTypeEnum::CDD->value) :
+        if ($age != 0.0 || $employee->contract_type === ContractTypeEnum::CDD->value) :
             return 0;
         endif;
-        $calculatePanc = (new CalculatePanc($this->employee))->handle();
+        $calculatePanc = app(CalculatePanc::class)->handle($employee);
 
-        $averageSalary = $this->employee->salary->average_salary +
+        $averageSalary = $employee->salary->average_salary +
             $calculatePanc;
 
         $amount = 0;
@@ -51,8 +50,8 @@ class CalculateUnemployement
             $age -= $taken;
         endforeach;
 
-        if ($this->inDatabase) {
-            $this->employee->remunerations()->updateOrCreate(
+        if ($inDatabase) {
+            $employee->remunerations()->updateOrCreate(
                 [
                     'name' => RemunerationEnum::INDEMNITE_LICENCIEMENT->value,
                 ],
@@ -62,7 +61,7 @@ class CalculateUnemployement
                     'amount' => number_format($amount, 0, '', ''),
                     'periodicity' => PeriodicityEnum::MONTHLY->value,
                     'impact' => ImpactEnum::NEUTRE->value,
-                    'notes' => 'Indemnités de licenciement de ' . $this->employee->name . ' (ancienneté : ' . round($age, 2) . ' ans)',
+                    'notes' => 'Indemnités de licenciement de ' . $employee->name . ' (ancienneté : ' . round($age, 2) . ' ans)',
                 ]
             );
         } else {

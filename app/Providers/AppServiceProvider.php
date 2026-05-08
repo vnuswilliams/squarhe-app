@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\User;
+use App\Policies\SubscriptionPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -23,7 +26,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+
         $this->configureDefaults();
+        $this->configureGate();
 
     }
 
@@ -47,5 +52,13 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    protected function configureGate()
+    {
+        Gate::define('addEmployee', function (User $user) {
+        return app(SubscriptionPolicy::class)->addEmployee($user, $user->company);
+        });
+
     }
 }

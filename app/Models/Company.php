@@ -11,12 +11,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use Squarhe\Subscription\Models\Concerns\HasSubscriptions;
 
 #[Fillable(['name', 'email', 'phone', 'adresse', 'city', 'niu', 'cnps', 'rccm', 'company_code', 'data'])]
 #[ObservedBy(CompanyObserver::class)]
 class Company extends Model
 {
     use SoftDeletes;
+    use HasSubscriptions;
 
     protected function casts(): array
     {
@@ -70,7 +72,7 @@ class Company extends Model
      *
      * @return HasMany|Builder<Employee>
      */
-    public function payrollEmployees():HasMany| Builder
+    public function payrollEmployees(): HasMany|Builder
     {
         return $this->activeEmployees()->notInternship();
     }
@@ -86,16 +88,15 @@ class Company extends Model
         return $this->payrollEmployees()->needsPayslip();
     }
 
-    
     /**
-     * Filtre les employees actifs, ayant un paysip avec un staatut particulier
-     *@param StatusEnum|string $name
+     * Filtre les employees actifs, ayant un payslip avec un statut particulier.
+     *
+     * @param  StatusEnum|string  $value
      * @return HasMany|Builder<Employee>
      */
     public function employeesWithPayslipStatus(StatusEnum|string $value): HasMany|Builder
     {
-        return $this->payrollEmployees()
-        ->withPayslipStatus($value);
+        return $this->payrollEmployees()->withPayslipStatus($value);
     }
 
     // ─────────────────────────────────────────────

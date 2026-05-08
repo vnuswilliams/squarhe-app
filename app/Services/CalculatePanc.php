@@ -12,24 +12,23 @@ class CalculatePanc
 {
 
 
-    public function __construct(public Employee $employee, public bool $inDatabase = false) {}
-    public function handle()
+    public function handle(Employee $employee,  bool $inDatabase = false)
     {
-        $age = $this->employee->start_date->age;
-        $seniorityBonus = $this->employee->company->data['seniorityBonus'];
+        $age = $employee->start_date->age;
+        $seniorityBonus = $employee->company->data['seniorityBonus'];
 
-        $smic = $this->employee->salary->smic ?? $this->employee->base_salary;
+        $smic = $employee->salary->smic ?? $employee->base_salary;
 
         if ($age > 1 && $seniorityBonus['enabled']):
 
             $panc = $smic * ($age * $seniorityBonus['rate']);
-            if ($this->inDatabase) {
-                $this->employee->remunerations()->updateOrCreate(
+            if ($inDatabase) {
+                $employee->remunerations()->updateOrCreate(
                     [
                         'name' => RemunerationEnum::PRIME_ANCIENNETE->value,
                     ],
                     [
-                        'employee_id' => $this->employee->id,
+                        'employee_id' => $employee->id,
                         'name' => RemunerationEnum::PRIME_ANCIENNETE->value,
                         'type' => RemunerationTypeEnum::PRIME->value,
                         'amount' => $panc,

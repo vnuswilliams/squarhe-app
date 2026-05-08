@@ -76,7 +76,7 @@ new class extends Component
 };
 ?>
 
-<div>
+<div  x-data="{ activeForm : null }">
 
     <div class="flex items-center justify-between">
         <div>
@@ -87,7 +87,7 @@ new class extends Component
             <p class="text-gray-400 text-sm">{{ __('Gérez les heures supplémenttaires de votre collaborateur') }}</p>
         </div>
         <div>
-            <flux:button wire:click="toggleFormOvertime" variant="primary">
+            <flux:button @click="activeForm = 'a' " variant="primary">
                 {{ __('Ajouter des heures supps') }}
             </flux:button>
 
@@ -95,8 +95,7 @@ new class extends Component
 
     </div>
 
-    @if ($showOvertimeForm)
-    <x-container wire:transition>
+    <x-container x-show="activeForm === 'a' "  x-transition>
         <form wire:submit.prevent="save">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end mb-4 p-2 ">
 
@@ -120,7 +119,7 @@ new class extends Component
                 </div>
 
             <div class="flex justify-end items-center gap-2">
-                <flux:button wire:click="toggleFormOvertime">
+                <flux:button @click="activeForm = null " >
                     {{ __('Cancel') }}
                 </flux:button>
                 <flux:button type="submit" variant="primary">{{ __('overtime.button.save') }}</flux:button>
@@ -136,7 +135,6 @@ new class extends Component
             </flux:callout.text>
         </flux:callout>
     </x-container>
-    @endif
 
     @if(!$this->overtimes->isEmpty())
     <x-delta-card :cards="[

@@ -16,11 +16,9 @@ new class extends Component
 
     public EmployeeRemunerationForm $form;
 
-    public $showRemunerationForm = false;
 
-    public function mount($employee)
+    public function mount()
     {
-        $this->employee = $employee;
         $this->avgSalary = $this->employee->data['average_salary'] ?? 0;
         $this->smic = $this->employee->data['smic'] ?? 0;
     }
@@ -37,7 +35,6 @@ new class extends Component
         $this->form->type = RemunerationEnum::from($this->form->name)->type();
 
         $this->form->create();
-        $this->showRemunerationForm = false;
         Flux::toast(variant: 'success', text: __("L'élément de rémun. a été ajouté avec  succès."));
         $this->form->reset();
     }
@@ -100,26 +97,13 @@ new class extends Component
         ]);
 
         Flux::toast(variant: 'success', text: 'Vous avez mis a jour le smic et le salaire moyen.');
-        $this->showAvgForm = false;
     }
 
-    public $showAvgForm = false;
-
-    public function toggleRemunerationForm(): void
-    {
-        $this->showAvgForm = false;
-        $this->showRemunerationForm = ! $this->showRemunerationForm;
-    }
-
-    public function toggleAvgSalary()
-    {
-        $this->showRemunerationForm = false;
-        $this->showAvgForm = ! $this->showAvgForm;
-    }
+  
 };
 ?>
 
-<div>
+<div x-data="{ activeForm : null }">
     <div class="flex justify-between items-center mb-4">
         <div>
             <flux:heading level="1" class="font-bold"> Éléments de rémunération </flux:heading>
@@ -128,13 +112,13 @@ new class extends Component
 
         <div class="flex items-center gap-2">
 
-            <flux:button wire:click="toggleRemunerationForm" variant="primary">
+            <flux:button @click="activeForm = 'a' " variant="primary">
                 Ajouter un élément
             </flux:button>
             <flux:dropdown>
                 <flux:button icon="bars-3" />
                 <flux:menu>
-                    <flux:menu.item wire:click="toggleAvgSalary">
+                    <flux:menu.item @click="activeForm = 'b' ">
                         {{ __('Add average salary') }}
                     </flux:menu.item>
                     <flux:menu.item wire:click="toggleImportRenum">
@@ -147,8 +131,7 @@ new class extends Component
 
     </div>
 
-    @if ($showRemunerationForm)
-    <x-container wire:transition>
+    <x-container x-show="activeForm === 'a' "  x-transition>
         <flux:heading level="1" size="lg" class="mb-5"> Ajouter des éléments de rémunération de votre employé </flux:heading>
         <form wire:submit.prevent="save">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -200,18 +183,16 @@ new class extends Component
             </div>
 
             <div class="flex justify-end items-center mt-5 gap-4">
-                <flux:button type="button" wire:click="toggleRemunerationForm">Annuler</flux:button>
+                <flux:button type="button" @click="activeForm = null ">Annuler</flux:button>
                 <flux:button type="submit" variant="primary">
                     Enregistrer
                 </flux:button>
             </div>
         </form>
     </x-container>
-    @endif
 
 
-    @if($showAvgForm)
-    <x-container wire:transition>
+    <x-container  x-show="activeForm === 'b' " x-transition>
         <flux:heading level="1" size="lg" class="mb-5"> Ajouter le salaire moyen et le smic de {{ $employee->name }} </flux:heading>
         <form wire:submit="addAvgSalary" class="">
             <flux:input wire:model="avgSalary" label="Salaire moyen" />
@@ -232,16 +213,14 @@ new class extends Component
 
 
             <div class="flex justify-end items-center gap-4">
-                <flux:button wire:click="toggleAvgSalary"> {{ __('Cancel') }} </flux:button>
+                <flux:button @click="activeForm = null "> {{ __('Cancel') }} </flux:button>
                 <flux:button type="submit" variant="primary">Ajouter</flux:button>
 
             </div>
         </form>
     </x-container>
-    @endif
 
-    {{-- Delta Card for Remuneration --}}
-                @if($this->remunerations->isNotEmpty())
+   @if($this->remunerations->isNotEmpty())
 
     <x-delta-card :cards="[
             [

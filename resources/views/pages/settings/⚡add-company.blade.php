@@ -1,6 +1,8 @@
 <?php
 
+use App\Enums\PlanEnum;
 use App\Livewire\Forms\CompanyForm;
+use App\Services\SubscriptionService;
 use Flux\Flux;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -27,6 +29,7 @@ new #[Title('Ajouter une entreprise')] class extends Component {
     {
         $companyCreated = $this->companyForm->create();
         if ($companyCreated):
+            app(SubscriptionService::class)->subscribeTo($companyCreated, PlanEnum::FREE);
             Flux::toast(variant: 'success', text: __('toast.companycreationsucces'));
             $this->redirect(route('settings.company.setting'), navigate: true);
             $this->reset();

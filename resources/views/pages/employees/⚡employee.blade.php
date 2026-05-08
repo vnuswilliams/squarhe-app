@@ -2,7 +2,9 @@
 
 use App\Enums\ContractTypeEnum;
 use App\Enums\StatusEnum;
+use App\Models\Employee;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -64,6 +66,12 @@ new  #[Title('Tous les employés')] class extends Component
     {
         return  auth()->user()->company()->with('employees')->first();
     }
+    public function delete(string $id)
+    {
+        $employee = Employee::whereId($id)->firstOrFail();
+        Gate::authorize('delete', [Employee::class, $employee]);
+        $employee->delete();
+    }
 };
 ?>
 
@@ -111,27 +119,15 @@ new  #[Title('Tous les employés')] class extends Component
         ],
     ]" />
 
-    <div class="flex flex-col w-full gap-4 md:flex-row">
-        @if ($expiredContracts->isNotEmpty())
-        <div class="flex-1">
-            <flux:callout variant="danger" icon="exclamation-triangle" title="Contrats Expirés">
-                <p class="mb-2 text-sm opacity-70">
-                    Ces contrats sont arrivés à terme. Veuillez régulariser la situation.
-                </p>
-                <div class="flex flex-col gap-2 mt-2">
-                    @foreach ($expiredContracts as $employee)
-                    <div class="flex items-center justify-between p-2 rounded-lg bg-white/10">
-                        <span class="font-medium">{{ $employee->name }}</span>
-                        <flux:button href="{{ route('employees.show', ['id' => $employee->id]) }}" wire:navigate
-                            variant="primary" size="sm" icon="eye">
-                        </flux:button>
-                    </div>
-                    @endforeach
-                </div>
-            </flux:callout>
-        </div>
-        @endif
 
+    <x-tabs :tabs="['Vue d\' ensemble', 'Tous les employés',  'Fin de contrat', 'Contrats expirés', 'En congés']">
+       
+
+        
+        <x-slot:tab2>
+        </x-slot:tab2>
+
+        <x-slot:tab3>
         @if ($expiringContracts->isNotEmpty())
         <div class="flex-1">
             <flux:callout variant="warning" icon="clock" title="Expire dans moins de 30 jours">
@@ -151,7 +147,6 @@ new  #[Title('Tous les employés')] class extends Component
             </flux:callout>
         </div>
         @endif
-
         @if ($trialEndingContracts->isNotEmpty())
         <div class="flex-1">
             <flux:callout variant="info" icon="information-circle" title="Fin de période d'essai">
@@ -171,10 +166,33 @@ new  #[Title('Tous les employés')] class extends Component
             </flux:callout>
         </div>
         @endif
-    </div>
+        </x-slot:tab3>
 
-    <x-tabs :tabs="['Tous les employés', 'Vue d\'ensemble', 'Livre de paie', 'Déclarations', 'Archives']">
-        <x-slot:tab1>
+        <x-slot:tab4>
+        @if ($expiredContracts->isNotEmpty())
+        <div class="flex-1">
+            <flux:callout variant="danger" icon="exclamation-triangle" title="Contrats Expirés">
+                <p class="mb-2 text-sm opacity-70">
+                    Ces contrats sont arrivés à terme. Veuillez régulariser la situation.
+                </p>
+                <div class="flex flex-col gap-2 mt-2">
+                    @foreach ($expiredContracts as $employee)
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-white/10">
+                        <span class="font-medium">{{ $employee->name }}</span>
+                        <flux:button href="{{ route('employees.show', ['id' => $employee->id]) }}" wire:navigate
+                            variant="primary" size="sm" icon="eye">
+                        </flux:button>
+                    </div>
+                    @endforeach
+                </div>
+            </flux:callout>
+        </div>
+        @endif
+        </x-slot:tab4>
+
+        <x-slot:tab5>
+        </x-slot:tab5>
+         <x-slot:tab1>
             <x-container>
             <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
                 <thead class="bg-gray-50 dark:bg-neutral-700">
@@ -199,7 +217,9 @@ new  #[Title('Tous les employés')] class extends Component
                             class="px-6 py-3 text-start cursor-pointer text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">
                             {{ __('Statut') }}
                         </th>
-                        <th align="right">{{ __('Actions') }}
+                        <th scope="col"
+                            class="px-6 py-3 text-start cursor-pointer text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">
+                                {{ __('Actions') }}
                             </th>
                     </tr>
                 </thead>
@@ -236,8 +256,9 @@ new  #[Title('Tous les employés')] class extends Component
                             </flux:badge>
 
                         </td>
-                        <td align="right">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">
                             <flux:button href="{{ route('employees.show', ['id' => $employee->id]) }}" wire:navigate variant="ghost" size="sm" icon="eye" />
+                            <flux:button wire:click="delete('{{ $employee->id }}')" wire:navigate variant="ghost" size="sm" icon="trash" />
 
                         </td>
                     </tr>
@@ -246,18 +267,6 @@ new  #[Title('Tous les employés')] class extends Component
             </table>
             </x-container>
         </x-slot:tab1>
-        <x-slot:tab2>
-        </x-slot:tab2>
-
-        <x-slot:tab3>
-
-        </x-slot:tab3>
-
-        <x-slot:tab4>
-        </x-slot:tab4>
-
-        <x-slot:tab5>
-        </x-slot:tab5>
     </x-tabs>
 
     @else
