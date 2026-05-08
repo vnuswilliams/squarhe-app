@@ -27,6 +27,9 @@
                      <flux:sidebar.item icon="folder" :href="route('documents')" :current="request()->routeIs('documents.*')" wire:navigate>
                         {{ __('Documents') }}
                     </flux:sidebar.item>
+                     <flux:sidebar.item icon="chart-bar" :href="route('metrics')" :current="request()->routeIs('metrics.*')" wire:navigate>
+                        {{ __('Métriques') }}
+                    </flux:sidebar.item>
                     
                {{--  </flux:sidebar.group> --}}
             </flux:sidebar.nav>
