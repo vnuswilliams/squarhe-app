@@ -6,6 +6,7 @@ use App\Enums\RemunerationEnum;
 use App\Livewire\Forms\EmployeeRemunerationForm;
 use App\Models\Remuneration;
 use Flux\Flux;
+use Rap2hpoutre\FastExcel\Facades\FastExcel;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -80,6 +81,42 @@ new class extends Component
     public $avgSalary;
 
     public $smic;
+
+    public $snapshotRef = '';
+    public $showRemunerationArchives = false;
+
+
+    #[Computed]
+    public function remunerationsSnapshot()
+    {
+        $query = $this->employee->remunerationsSnapshot()->latest();
+
+        if (filled($this->snapshotRef)) {
+            $query->where('ref', 'like', '%' . trim($this->snapshotRef) . '%');
+        }
+
+        return $query->get();
+    }
+
+
+    public function toggleRemunerationArchives(): void
+    {
+        $this->showRemunerationArchives = !$this->showRemunerationArchives;
+    }
+
+    public function exportRemunerationArchives()
+    {
+        $rows = $this->remunerationsSnapshot->map(fn ($snapshot) => [
+            __('Ref') => $snapshot->ref,
+            __('Nom') => $snapshot->name?->label(),
+            __('Type') => $snapshot->type?->label(),
+            __('Montant') => $snapshot->amount,
+            __('Périodicité') => $snapshot->periodicity?->label(),
+            __('Impact') => $snapshot->impact?->label(),
+        ]);
+
+        return new FastExcel($rows)->download('archives_remunerations_' . $this->employee->id . '_' . now()->format('m_Y') . '.xlsx');
+    }
 
     public function addAvgSalary()
     {
@@ -341,6 +378,55 @@ new class extends Component
             </tbody>
         </table>
 
+    </x-container>
+
+
+    <div class="mt-4 mb-2 flex items-center gap-2">
+        <flux:button @click="activeForm = activeForm === 'archives-remunerations' ? null : 'archives-remunerations'" variant="filled">
+            {{ __('Afficher les archives') }}
+        </flux:button>
+    </div>
+
+    <x-container x-show="activeForm === 'archives-remunerations'" x-transition>
+        <div class="mb-4 flex items-end justify-between gap-4">
+            <div>
+                <flux:heading level="2">Historique des rémunérations (snapshots)</flux:heading>
+                <flux:text>Filtrez par ref (format m-Y).</flux:text>
+            </div>
+            <div class="flex items-center gap-2">
+                <flux:input wire:model.live.debounce.300ms="snapshotRef" :label="__('Filtrer par ref')" :placeholder="__('ex: 05-2026')" />
+                <flux:button wire:click="exportRemunerationArchives" icon="arrow-up-tray">{{ __('Exporter') }}</flux:button>
+            </div>
+        </div>
+
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
+            <thead class="bg-gray-50 dark:bg-neutral-700">
+                <tr>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Ref</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Nom</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Type</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Montant</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Périodicité</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Impact</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
+                @forelse($this->remunerationsSnapshot as $snapshot)
+                <tr wire:key="remu-snapshot-{{ $snapshot->id }}">
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->ref }}</td>
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->name?->label() }}</td>
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->type?->label() }}</td>
+                    <td class="px-6 py-4 text-sm">{{ number_format($snapshot->amount, 0, ',', ' ') }} F cfa</td>
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->periodicity?->label() }}</td>
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->impact?->label() }}</td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="6" class="text-center py-8">Aucune rémunération snapshot trouvée.</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
     </x-container>
 
     <flux:modal name="edit-remuneration-modal" class="min-w-225">
