@@ -3,17 +3,27 @@
 use App\Enums\ImpactEnum;
 use App\Enums\PeriodicityEnum;
 use App\Enums\RemunerationEnum;
+use App\Jobs\ImportEmployeeRemunerationsJob;
 use App\Livewire\Forms\EmployeeRemunerationForm;
 use App\Models\Remuneration;
 use Flux\Flux;
 use Rap2hpoutre\FastExcel\Facades\FastExcel;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use Rap2hpoutre\FastExcel\FastExcel;
 
 new class extends Component
 {
+    use WithFileUploads;
+
     public $employee;
+    public $importFile;
+    public array $previewRows = [];
+    public array $importErrors = [];
+    public bool $readyToImport = false;
 
     public EmployeeRemunerationForm $form;
 
@@ -136,6 +146,56 @@ new class extends Component
         Flux::toast(variant: 'success', text: 'Vous avez mis a jour le smic et le salaire moyen.');
     }
 
+    public function previewImport(): void
+    {
+        $this->validate([
+            'importFile' => ['required', 'file', 'mimes:xlsx,csv', 'max:5120'],
+        ]);
+
+        $rows = (new FastExcel())->import($this->importFile->getRealPath());
+        $this->previewRows = [];
+        $this->importErrors = [];
+
+        foreach ($rows as $index => $row) {
+            $data = [
+                'name' => $row['name'] ?? null,
+                'amount' => $row['amount'] ?? null,
+                'periodicity' => $row['periodicity'] ?? null,
+                'impact' => $row['impact'] ?? null,
+                'notes' => $row['notes'] ?? null,
+            ];
+
+            $validator = Validator::make($data, [
+                'name' => ['required', \Illuminate\Validation\Rule::in(RemunerationEnum::values())],
+                'amount' => ['required', 'numeric', 'min:100'],
+                'periodicity' => ['required', \Illuminate\Validation\Rule::in(PeriodicityEnum::values())],
+                'impact' => ['required', \Illuminate\Validation\Rule::in(ImpactEnum::values())],
+                'notes' => ['nullable', 'string', 'max:100'],
+            ]);
+
+            if ($validator->fails()) {
+                $this->importErrors[] = ['line' => $index + 2, 'errors' => $validator->errors()->all()];
+            }
+
+            $this->previewRows[] = $data;
+        }
+
+        $this->readyToImport = count($this->importErrors) === 0 && count($this->previewRows) > 0;
+    }
+
+    public function confirmImport(): void
+    {
+        if (! $this->readyToImport) {
+            Flux::toast(variant: 'danger', text: __('Corrigez les erreurs avant import.'));
+            return;
+        }
+
+        $path = $this->importFile->store('imports');
+        ImportEmployeeRemunerationsJob::dispatch($path, $this->employee->id, auth()->id());
+        $this->reset('importFile', 'previewRows', 'importErrors', 'readyToImport');
+        Flux::toast(variant: 'success', text: __('Import lancé. Le traitement est en cours.'));
+    }
+
   
 };
 ?>
@@ -158,8 +218,8 @@ new class extends Component
                     <flux:menu.item @click="activeForm = 'b' ">
                         {{ __('Add average salary') }}
                     </flux:menu.item>
-                    <flux:menu.item wire:click="toggleImportRenum">
-                        Importer des éléments
+                    <flux:menu.item @click="activeForm = 'c'">
+                        {{ __('Importer des éléments') }}
                     </flux:menu.item>
                 </flux:menu>
             </flux:dropdown>
@@ -226,6 +286,54 @@ new class extends Component
                 </flux:button>
             </div>
         </form>
+            @if(!empty($previewRows))
+                <div class="mt-4">
+                    <flux:text>{{ __("Lignes prévisualisées") }}: {{ count($previewRows) }}</flux:text>
+                    @if(!empty($importErrors))
+                        <flux:callout icon="exclamation-triangle" variant="danger" class="mt-2">
+                            <flux:callout.heading>{{ __("Erreurs détectées") }}</flux:callout.heading>
+                            <flux:callout.text>
+                                @foreach($importErrors as $error)
+                                    <div>{{ __("Ligne") }} {{ $error["line"] }}: {{ implode(", ", $error["errors"]) }}</div>
+                                @endforeach
+                            </flux:callout.text>
+                        </flux:callout>
+                    @endif
+                    <div class="flex justify-end mt-3">
+                        <flux:button wire:click="confirmImport" variant="primary" :disabled="!$readyToImport">{{ __("Valider et importer") }}</flux:button>
+                    </div>
+                </div>
+            @endif
+
+    </x-container>
+
+    <x-container x-show="activeForm === 'c' " x-transition>
+        <flux:heading level="1" size="lg" class="mb-5">{{ __('Importer les éléments de rémunération') }}</flux:heading>
+        <form wire:submit="previewImport" class="space-y-4">
+            <flux:input type="file" wire:model="importFile" label="{{ __('Fichier Excel (xlsx/csv)') }}" />
+            <div class="flex justify-end items-center gap-4">
+                <flux:button type="button" @click="activeForm = null">{{ __('Cancel') }}</flux:button>
+                <flux:button type="submit" variant="primary">{{ __('Prévisualiser') }}</flux:button>
+            </div>
+        </form>
+        @if(!empty($previewRows))
+            <div class="mt-4">
+                <flux:text>{{ __('Lignes prévisualisées') }}: {{ count($previewRows) }}</flux:text>
+                @if(!empty($importErrors))
+                    <flux:callout icon="exclamation-triangle" variant="danger" class="mt-2">
+                        <flux:callout.heading>{{ __('Erreurs détectées') }}</flux:callout.heading>
+                        <flux:callout.text>
+                            @foreach($importErrors as $error)
+                                <div>{{ __('Ligne') }} {{ $error['line'] }}: {{ implode(', ', $error['errors']) }}</div>
+                            @endforeach
+                        </flux:callout.text>
+                    </flux:callout>
+                @endif
+                <div class="flex justify-end mt-3">
+                    <flux:button wire:click="confirmImport" variant="primary" :disabled="!$readyToImport">{{ __('Valider et importer') }}</flux:button>
+                </div>
+            </div>
+        @endif
     </x-container>
 
 
