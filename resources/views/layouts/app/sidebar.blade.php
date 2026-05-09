@@ -11,28 +11,59 @@
             </flux:sidebar.header>
 
             <flux:sidebar.nav>
-              {{--   <flux:sidebar.group :heading="__('Platform')" class="grid"> --}}
-                    <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
-                        {{ __('Dashboard') }}
-                    </flux:sidebar.item>
-                     <flux:sidebar.item icon="users" :href="route('employees')" :current="request()->routeIs('employees.*')" wire:navigate>
-                        {{ __('Employees') }}
-                    </flux:sidebar.item>
-                     <flux:sidebar.item icon="banknotes" :href="route('pay')" :current="request()->routeIs('pay.*')" wire:navigate>
-                        {{ __('Paie') }}
-                    </flux:sidebar.item>
-                     <flux:sidebar.item icon="bell" :href="route('notif')" :current="request()->routeIs('notif.*')" wire:navigate>
-                        {{ __('Notifications') }}
-                    </flux:sidebar.item>
-                     <flux:sidebar.item icon="folder" :href="route('documents')" :current="request()->routeIs('documents.*')" wire:navigate>
-                        {{ __('Documents') }}
-                    </flux:sidebar.item>
-                     <flux:sidebar.item icon="chart-bar" :href="route('metrics')" :current="request()->routeIs('metrics.*')" wire:navigate>
-                        {{ __('Métriques') }}
-                    </flux:sidebar.item>
-                    
-               {{--  </flux:sidebar.group> --}}
-            </flux:sidebar.nav>
+    <flux:sidebar.item 
+        icon="home" 
+        :href="route('dashboard')" 
+        :current="request()->routeIs(['dashboard', 'dashboard.*'])" 
+        wire:navigate
+    >
+        {{ __('Dashboard') }}
+    </flux:sidebar.item>
+
+    <flux:sidebar.item 
+        icon="users" 
+        :href="route('employees')" 
+        :current="request()->routeIs(['employees', 'employees.*'])" 
+        wire:navigate
+    >
+        {{ __('Employees') }}
+    </flux:sidebar.item>
+
+    <flux:sidebar.item 
+        icon="banknotes" 
+        :href="route('pay')" 
+        :current="request()->routeIs(['pay', 'pay.*'])" 
+        wire:navigate
+    >
+        {{ __('Paie') }}
+    </flux:sidebar.item>
+
+    <flux:sidebar.item 
+    icon="bell" 
+        :href="route('documents')" 
+        :current="request()->routeIs(['notif', 'notif.*'])" 
+        wire:navigate
+    >
+            {{ __('Notifications') }}
+    </flux:sidebar.item>
+    <flux:sidebar.item 
+        icon="folder" 
+        :href="route('documents')" 
+        :current="request()->routeIs(['documents', 'documents.*'])" 
+        wire:navigate
+    >
+        {{ __('Documents') }}
+    </flux:sidebar.item>
+
+    <flux:sidebar.item 
+        icon="chart-bar" 
+        :href="route('metrics')" 
+        :current="request()->routeIs(['metrics', 'metrics.*'])" 
+        wire:navigate
+    >
+        {{ __('Métriques') }}
+    </flux:sidebar.item>
+</flux:sidebar.nav>
 
             <flux:spacer />
 

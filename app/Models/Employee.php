@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\EmployeeAccessors;
+use App\Concerns\HasSnaps;
 use App\Enums\ContractTypeEnum;
 use App\Enums\StatusEnum;
 use App\Models\Scopes\EmployeeGlobalScope;
@@ -34,7 +35,7 @@ use Illuminate\Support\Str;
 ])]
 class Employee extends Model
 {
-    use EmployeeAccessors, HasUuids;
+    use EmployeeAccessors, HasUuids, HasSnaps;
 
     protected function casts(): array
     {

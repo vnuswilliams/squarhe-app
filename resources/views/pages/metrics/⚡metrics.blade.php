@@ -20,7 +20,7 @@ new #[Title('Métriques')] class extends Component {
     #[Computed]
     public function company(): ?Company
     {
-        return auth()->user()?->companies()->first();
+        return auth()->user()?->company()->first();
     }
 
     #[Computed]
@@ -142,10 +142,24 @@ new #[Title('Métriques')] class extends Component {
 
     protected function makeRow(string $label, float|int $current, float|int $previous): array
     {
+        $current = (float) $current;
+        $previous = (float) $previous;
+    
         $delta = $current - $previous;
-        $variation = $previous === 0 ? null : ($delta / $previous) * 100;
-
-        return compact('label', 'current', 'previous', 'delta', 'variation');
+    
+        $variation = null;
+    
+        if ($previous != 0.0) {
+            $variation = ($delta / $previous) * 100;
+        }
+    
+        return [
+            'label' => $label,
+            'current' => $current,
+            'previous' => $previous,
+            'delta' => $delta,
+            'variation' => $variation,
+        ];
     }
 
     protected function emptyMetrics(): array
