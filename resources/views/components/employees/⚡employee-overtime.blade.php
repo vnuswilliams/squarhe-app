@@ -1,17 +1,28 @@
 <?php
 
 use App\Enums\HsuppEnum;
+use App\Jobs\ImportEmployeeOvertimesJob;
 use App\Livewire\Forms\EmployeeOvertimeForm;
 use App\Models\Overtime;
 use App\Services\CalculateHsupp;
 use Flux\Flux;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use Rap2hpoutre\FastExcel\FastExcel;
 
 new class extends Component
 {
+    use WithFileUploads;
+
     public $employee;
+    public $importFile;
+    public array $previewRows = [];
+    public array $importErrors = [];
+    public bool $readyToImport = false;
     public EmployeeOvertimeForm $form;
     public function mount($employee)
     {
@@ -73,6 +84,69 @@ new class extends Component
     {
         $this->showOvertimeForm = !$this->showOvertimeForm;
     }
+
+    public function previewImport(): void
+    {
+        $this->validate([
+            'importFile' => ['required', 'file', 'mimes:xlsx,csv', 'max:5120'],
+        ]);
+
+
+        $rows = (new FastExcel())->import($this->importFile->getRealPath());
+        $this->previewRows = [];
+        $this->importErrors = [];
+
+        foreach ($rows as $index => $row) {
+            $data = [
+                'day_type' => $row['day_type'] ?? null,
+                'hours' => $row['hours'] ?? null,
+                'hours_rate' => $row['hours_rate'] ?? null,
+                'week' => $row['week'] ?? null,
+                'notes' => $row['notes'] ?? null,
+            ];
+
+            $validator = Validator::make($data, [
+                'day_type' => ['required', \Illuminate\Validation\Rule::in(HsuppEnum::values())],
+                'hours' => ['required', 'numeric', 'min:1'],
+                'hours_rate' => ['required', 'numeric', 'min:1'],
+                'week' => ['required', 'numeric', 'regex:/^[1-5]$/'],
+                'notes' => ['nullable', 'string', 'max:100'],
+            ]);
+
+            if ($validator->fails()) $this->importErrors[] = ['line' => $index + 2, 'errors' => $validator->errors()->all()];
+            $this->previewRows[] = $data;
+        }
+        $this->readyToImport = count($this->importErrors) === 0 && count($this->previewRows) > 0;
+    }
+
+    public function confirmImport(): void
+    {
+        if (! $this->readyToImport) { Flux::toast(variant: 'danger', text: __('Corrigez les erreurs avant import.')); return; }
+        $path = $this->importFile->store('imports');
+        ImportEmployeeOvertimesJob::dispatch($path, $this->employee->id, auth()->id());
+        $this->reset('importFile', 'previewRows', 'importErrors', 'readyToImport');
+        Flux::toast(variant: 'success', text: __('Import lancé. Le traitement est en cours.'));
+    }
+
+    public function downloadTemplate()
+    {
+        $path = 'templates/overtimes_import_template.xlsx';
+
+        if (!Storage::exists($path)) {
+            $rows = collect([[
+                'day_type' => HsuppEnum::HEURE_SUPP_120->value,
+                'hours' => 2,
+                'hours_rate' => 1500,
+                'week' => 1,
+                'notes' => 'Exemple',
+            ]]);
+
+            (new FastExcel($rows))->export(Storage::path($path));
+        }
+
+        return Storage::download($path);
+    }
+
 };
 ?>
 
@@ -89,6 +163,12 @@ new class extends Component
         <div>
             <flux:button @click="activeForm = 'a' " variant="primary">
                 {{ __('Ajouter des heures supps') }}
+            </flux:button>
+            <flux:button @click="activeForm = 'b'" variant="ghost">
+                {{ __('Prévisualiser') }}
+            </flux:button>
+            <flux:button wire:click="downloadTemplate" variant="ghost">
+                {{ __('Télécharger le template') }}
             </flux:button>
 
         </div>
@@ -125,6 +205,25 @@ new class extends Component
                 <flux:button type="submit" variant="primary">{{ __('overtime.button.save') }}</flux:button>
             </div>
         </form>
+            @if(!empty($previewRows))
+                <div class="mt-4">
+                    <flux:text>{{ __("Lignes prévisualisées") }}: {{ count($previewRows) }}</flux:text>
+                    @if(!empty($importErrors))
+                        <flux:callout icon="exclamation-triangle" variant="danger" class="mt-2">
+                            <flux:callout.heading>{{ __("Erreurs détectées") }}</flux:callout.heading>
+                            <flux:callout.text>
+                                @foreach($importErrors as $error)
+                                    <div>{{ __("Ligne") }} {{ $error["line"] }}: {{ implode(", ", $error["errors"]) }}</div>
+                                @endforeach
+                            </flux:callout.text>
+                        </flux:callout>
+                    @endif
+                    <div class="flex justify-end mt-3">
+                        <flux:button wire:click="confirmImport" variant="primary" :disabled="!$readyToImport">{{ __("Valider et importer") }}</flux:button>
+                    </div>
+                </div>
+            @endif
+
 
         <flux:callout icon="information-circle" class="mt-5">
             <flux:callout.heading> Information</flux:callout.heading>
@@ -134,6 +233,16 @@ new class extends Component
                 <flux:callout.link href="#">{{ __() }}</flux:callout.link>
             </flux:callout.text>
         </flux:callout>
+    </x-container>
+
+    <x-container x-show="activeForm === 'b'" x-transition>
+        <form wire:submit="previewImport" class="space-y-4">
+            <flux:input type="file" wire:model="importFile" label="{{ __('Fichier Excel (xlsx/csv)') }}" />
+            <div class="flex justify-end items-center gap-2">
+                <flux:button @click="activeForm = null">{{ __('Cancel') }}</flux:button>
+                <flux:button type="submit" variant="primary">{{ __('Importer') }}</flux:button>
+            </div>
+        </form>
     </x-container>
 
     @if(!$this->overtimes->isEmpty())

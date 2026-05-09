@@ -4,16 +4,22 @@ use App\Enums\LeaveTypeEnum;
 use App\Enums\StatusEnum;
 use App\Livewire\Forms\EmployeeLeaveForm;
 use App\Models\Leave;
+use App\Jobs\ImportEmployeeLeavesJob;
 use App\Services\CalculateDays;
 use App\Services\DeterminateLeaveEmployeeQuotaService;
 use Carbon\Carbon;
 use Flux\Flux;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use Rap2hpoutre\FastExcel\FastExcel;
 
 new class extends Component
 {
+    use WithFileUploads;
     public $employee;
     public $showImportLeave = false;
     public $showAddLeaveForm = false;
@@ -21,8 +27,10 @@ new class extends Component
 
 
     public $previewData = [];
-    public $importErrors = [];
     public $importFile;
+    public array $previewRows = [];
+    public array $importErrors = [];
+    public bool $readyToImport = false;
     public $validationStep = false;
     public EmployeeLeaveForm $form;
     public function mount($employee)
@@ -101,6 +109,74 @@ new class extends Component
         $this->showAddLeaveForm = false;
     }
 
+    public function previewImport(): void
+    {
+        $this->validate([
+            'importFile' => ['required', 'file', 'mimes:xlsx,csv', 'max:5120'],
+        ]);
+
+        $rows = (new FastExcel())->import($this->importFile->getRealPath());
+        $this->previewRows = [];
+        $this->importErrors = [];
+
+        foreach ($rows as $index => $row) {
+            $data = [
+                'type' => $row['type'] ?? null,
+                'start_date' => $row['start_date'] ?? null,
+                'end_date' => $row['end_date'] ?? null,
+                'notes' => $row['notes'] ?? null,
+                'last_leave' => $row['last_leave'] ?? null,
+            ];
+
+            $validator = Validator::make($data, [
+                'type' => ['required', \Illuminate\Validation\Rule::in(LeaveTypeEnum::values())],
+                'start_date' => ['required', 'date'],
+                'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+                'notes' => ['nullable', 'string', 'max:100'],
+                'last_leave' => ['nullable', 'date'],
+            ]);
+
+            if ($validator->fails()) {
+                $this->importErrors[] = ['line' => $index + 2, 'errors' => $validator->errors()->all()];
+            }
+
+            $this->previewRows[] = $data;
+        }
+
+        $this->readyToImport = count($this->importErrors) === 0 && count($this->previewRows) > 0;
+    }
+
+    public function confirmImport(): void
+    {
+        if (! $this->readyToImport) {
+            Flux::toast(variant: 'danger', text: __('Corrigez les erreurs avant import.'));
+            return;
+        }
+        $path = $this->importFile->store('imports');
+        ImportEmployeeLeavesJob::dispatch($path, $this->employee->id, auth()->id());
+        $this->reset('importFile', 'previewRows', 'importErrors', 'readyToImport');
+        Flux::toast(variant: 'success', text: __('Import lancé. Le traitement est en cours.'));
+    }
+
+    public function downloadTemplate()
+    {
+        $path = 'templates/leaves_import_template.xlsx';
+
+        if (!Storage::exists($path)) {
+            $rows = collect([[
+                'type' => LeaveTypeEnum::ANNUAL->value,
+                'start_date' => now()->toDateString(),
+                'end_date' => now()->toDateString(),
+                'notes' => 'Exemple',
+                'last_leave' => now()->subMonth()->toDateString(),
+            ]]);
+
+            (new FastExcel($rows))->export(Storage::path($path));
+        }
+
+        return Storage::download($path);
+    }
+
 };
 ?>
 
@@ -124,6 +200,9 @@ new class extends Component
 
                     <flux:menu.item wire:click="toggleImportLeave">
                         {{ __('Importer des absences et congés') }}
+                    </flux:menu.item>
+                    <flux:menu.item wire:click="downloadTemplate">
+                        {{ __('Télécharger le template') }}
                     </flux:menu.item>
                 </flux:menu>
             </flux:dropdown>
@@ -163,7 +242,38 @@ new class extends Component
                 </flux:button>
             </div>
         </form>
+            @if(!empty($previewRows))
+                <div class="mt-4">
+                    <flux:text>{{ __("Lignes prévisualisées") }}: {{ count($previewRows) }}</flux:text>
+                    @if(!empty($importErrors))
+                        <flux:callout icon="exclamation-triangle" variant="danger" class="mt-2">
+                            <flux:callout.heading>{{ __("Erreurs détectées") }}</flux:callout.heading>
+                            <flux:callout.text>
+                                @foreach($importErrors as $error)
+                                    <div>{{ __("Ligne") }} {{ $error["line"] }}: {{ implode(", ", $error["errors"]) }}</div>
+                                @endforeach
+                            </flux:callout.text>
+                        </flux:callout>
+                    @endif
+                    <div class="flex justify-end mt-3">
+                        <flux:button wire:click="confirmImport" variant="primary" :disabled="!$readyToImport">{{ __("Valider et importer") }}</flux:button>
+                    </div>
+                </div>
+            @endif
+
     </x-container>
+
+    @if($showImportLeave)
+    <x-container>
+        <form wire:submit="previewImport" class="space-y-4 mt-4">
+            <flux:input type="file" wire:model="importFile" label="{{ __('Fichier Excel (xlsx/csv)') }}" />
+            <div class="flex justify-end items-center gap-2">
+                <flux:button type="button" wire:click="toggleImportLeave">{{ __('Cancel') }}</flux:button>
+                <flux:button type="submit" variant="primary">{{ __('Prévisualiser') }}</flux:button>
+            </div>
+        </form>
+    </x-container>
+    @endif
 
 
     
