@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
+use Rap2hpoutre\FastExcel\Facades\FastExcel;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Rap2hpoutre\FastExcel\FastExcel;
@@ -23,7 +24,9 @@ new class extends Component
     public $employee;
     public $showImportLeave = false;
     public $showAddLeaveForm = false;
+    public $showLeaveArchives = false;
     public $editingLeaveId;
+    public $snapshotRef = '';
 
 
     public $previewData = [];
@@ -94,6 +97,33 @@ new class extends Component
             Flux::modal('delete-leave-modal')->close();
             $this->leaveToDelete = null;
         endif;
+    }
+
+
+    #[Computed]
+    public function leavesSnapshot()
+    {
+        $query = $this->employee->leavesSnapshot()->latest();
+
+        if (filled($this->snapshotRef)) {
+            $query->where('ref', 'like', '%' . trim($this->snapshotRef) . '%');
+        }
+
+        return $query->get();
+    }
+
+    public function exportLeavesArchives()
+    {
+        $rows = $this->leavesSnapshot->map(fn ($snapshot) => [
+            __('Ref') => $snapshot->ref,
+            __('Type') => $snapshot->type?->label(),
+            __('Date de début') => $snapshot->start_date,
+            __('Date de fin') => $snapshot->end_date,
+            __('Jours') => $snapshot->days,
+            __('Statut') => $snapshot->status?->label(),
+        ]);
+
+        return new FastExcel($rows)->download('archives_conges_' . $this->employee->id . '_' . now()->format('m_Y') . '.xlsx');
     }
 
     public function toggleFormAddLeave()
@@ -275,6 +305,18 @@ new class extends Component
     </x-container>
     @endif
 
+    @if($showImportLeave)
+    <x-container>
+        <form wire:submit="previewImport" class="space-y-4 mt-4">
+            <flux:input type="file" wire:model="importFile" label="{{ __('Fichier Excel (xlsx/csv)') }}" />
+            <div class="flex justify-end items-center gap-2">
+                <flux:button type="button" wire:click="toggleImportLeave">{{ __('Cancel') }}</flux:button>
+                <flux:button type="submit" variant="primary">{{ __('Prévisualiser') }}</flux:button>
+            </div>
+        </form>
+    </x-container>
+    @endif
+
 
     
     <x-delta-card :cards="[
@@ -305,6 +347,55 @@ new class extends Component
             ],
            
         ]" />
+
+    <div class="mt-4 mb-2 flex items-center gap-2">
+        <flux:button @click="activeForm = activeForm === 'archives-leaves' ? null : 'archives-leaves'" variant="filled">
+            {{ __('Afficher les archives') }}
+        </flux:button>
+    </div>
+
+    <x-container x-show="activeForm === 'archives-leaves'" x-transition>
+        <div class="mb-4 flex items-end justify-between gap-4">
+            <div>
+                <flux:heading level="2">{{ __('Historique des congés/absences (snapshots)') }}</flux:heading>
+                <flux:text>{{ __('Filtrez par ref (format m-Y).') }}</flux:text>
+            </div>
+            <div class="flex items-center gap-2">
+                <flux:input wire:model.live.debounce.300ms="snapshotRef" :label="__('Filtrer par ref')" :placeholder="__('ex: 05-2026')" />
+                <flux:button wire:click="exportLeavesArchives" icon="arrow-up-tray">{{ __('Exporter') }}</flux:button>
+            </div>
+        </div>
+
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
+            <thead class="bg-gray-50 dark:bg-neutral-700">
+                <tr>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">{{ __('Ref') }}</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">{{ __('Type') }}</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">{{ __('Date de début') }}</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">{{ __('Date de fin') }}</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">{{ __('Jours') }}</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">{{ __('Statut') }}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
+                @forelse($this->leavesSnapshot as $snapshot)
+                <tr wire:key="leave-snapshot-{{ $snapshot->id }}">
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->ref }}</td>
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->type?->label() }}</td>
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->start_date }}</td>
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->end_date }}</td>
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->days }}</td>
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->status?->label() }}</td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="6" class="text-center py-8">{{ __('Aucune archive de congés trouvée.') }}</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </x-container>
+
     <x-container>
         <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
             <thead class="bg-gray-50 dark:bg-neutral-700">

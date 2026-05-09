@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
+use Rap2hpoutre\FastExcel\Facades\FastExcel;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Rap2hpoutre\FastExcel\FastExcel;
@@ -80,6 +81,41 @@ new class extends Component
     }
 
     public $showOvertimeForm = false;
+    public $snapshotRef = '';
+    public $showOvertimeArchives = false;
+
+    #[Computed]
+    public function overtimesSnapshot()
+    {
+        $query = $this->employee->overtimesSnapshot()->latest();
+
+        if (filled($this->snapshotRef)) {
+            $query->where('ref', 'like', '%' . trim($this->snapshotRef) . '%');
+        }
+
+        return $query->get();
+    }
+
+
+    public function toggleOvertimeArchives(): void
+    {
+        $this->showOvertimeArchives = !$this->showOvertimeArchives;
+    }
+
+    public function exportOvertimeArchives()
+    {
+        $rows = $this->overtimesSnapshot->map(fn ($snapshot) => [
+            __('Ref') => $snapshot->ref,
+            __('Semaine') => $snapshot->week,
+            __('Type') => $snapshot->day_type?->label(),
+            __('Heures') => $snapshot->hours,
+            __('Taux horaire') => $snapshot->hours_rate,
+            __('Alloc estimés') => $snapshot->alloc,
+        ]);
+
+        return new FastExcel($rows)->download('archives_heures_supp_' . $this->employee->id . '_' . now()->format('m_Y') . '.xlsx');
+    }
+
     public function toggleFormOvertime(): void
     {
         $this->showOvertimeForm = !$this->showOvertimeForm;
@@ -366,6 +402,55 @@ new class extends Component
     </x-container>
 
 
+
+
+    <div class="mt-4 mb-2 flex items-center gap-2">
+        <flux:button @click="activeForm = activeForm === 'archives-overtimes' ? null : 'archives-overtimes'" variant="filled">
+            {{ __('Afficher les archives') }}
+        </flux:button>
+    </div>
+
+    <x-container x-show="activeForm === 'archives-overtimes'" x-transition>
+        <div class="mb-4 flex items-end justify-between gap-4">
+            <div>
+                <flux:heading level="2">Historique des heures supp. (snapshots)</flux:heading>
+                <flux:text>Filtrez par ref (format m-Y).</flux:text>
+            </div>
+            <div class="flex items-center gap-2">
+                <flux:input wire:model.live.debounce.300ms="snapshotRef" :label="__('Filtrer par ref')" :placeholder="__('ex: 05-2026')" />
+                <flux:button wire:click="exportOvertimeArchives" icon="arrow-up-tray">{{ __('Exporter') }}</flux:button>
+            </div>
+        </div>
+
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
+            <thead class="bg-gray-50 dark:bg-neutral-700">
+                <tr>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Ref</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Semaine</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Type</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Heures</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Taux</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Alloc</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
+                @forelse($this->overtimesSnapshot as $snapshot)
+                <tr wire:key="ot-snapshot-{{ $snapshot->id }}">
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->ref }}</td>
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->week }}</td>
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->day_type?->label() }}</td>
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->hours }}</td>
+                    <td class="px-6 py-4 text-sm">{{ number_format($snapshot->hours_rate, 0, ',', ' ') }} F cfa</td>
+                    <td class="px-6 py-4 text-sm">{{ number_format($snapshot->alloc, 0, ',', ' ') }} F cfa</td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="6" class="text-center py-8">Aucune heure supp. snapshot trouvée.</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </x-container>
 
     <flux:modal name="edit-overtime-modal" class="min-w-225">
         <div class="space-y-6 pt-5">
