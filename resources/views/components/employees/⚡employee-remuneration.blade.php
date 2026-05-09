@@ -9,6 +9,7 @@ use App\Models\Remuneration;
 use Flux\Flux;
 use Rap2hpoutre\FastExcel\Facades\FastExcel;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -196,6 +197,25 @@ new class extends Component
         Flux::toast(variant: 'success', text: __('Import lancé. Le traitement est en cours.'));
     }
 
+    public function downloadTemplate()
+    {
+        $path = 'templates/remunerations_import_template.xlsx';
+
+        if (!Storage::exists($path)) {
+            $rows = collect([[
+                'name' => RemunerationEnum::SUR_SALAIRE->value,
+                'amount' => 10000,
+                'periodicity' => PeriodicityEnum::MONTHLY->value,
+                'impact' => ImpactEnum::NEUTRE->value,
+                'notes' => 'Exemple',
+            ]]);
+
+            (new FastExcel($rows))->export(Storage::path($path));
+        }
+
+        return Storage::download($path);
+    }
+
   
 };
 ?>
@@ -220,6 +240,9 @@ new class extends Component
                     </flux:menu.item>
                     <flux:menu.item @click="activeForm = 'c'">
                         {{ __('Importer des éléments') }}
+                    </flux:menu.item>
+                    <flux:menu.item wire:click="downloadTemplate">
+                        {{ __('Télécharger le template') }}
                     </flux:menu.item>
                 </flux:menu>
             </flux:dropdown>

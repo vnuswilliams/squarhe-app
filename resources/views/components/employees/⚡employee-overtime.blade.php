@@ -7,6 +7,7 @@ use App\Models\Overtime;
 use App\Services\CalculateHsupp;
 use Flux\Flux;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
 use Rap2hpoutre\FastExcel\Facades\FastExcel;
@@ -163,6 +164,25 @@ new class extends Component
         Flux::toast(variant: 'success', text: __('Import lancé. Le traitement est en cours.'));
     }
 
+    public function downloadTemplate()
+    {
+        $path = 'templates/overtimes_import_template.xlsx';
+
+        if (!Storage::exists($path)) {
+            $rows = collect([[
+                'day_type' => HsuppEnum::HEURE_SUPP_120->value,
+                'hours' => 2,
+                'hours_rate' => 1500,
+                'week' => 1,
+                'notes' => 'Exemple',
+            ]]);
+
+            (new FastExcel($rows))->export(Storage::path($path));
+        }
+
+        return Storage::download($path);
+    }
+
 };
 ?>
 
@@ -182,6 +202,9 @@ new class extends Component
             </flux:button>
             <flux:button @click="activeForm = 'b'" variant="ghost">
                 {{ __('Prévisualiser') }}
+            </flux:button>
+            <flux:button wire:click="downloadTemplate" variant="ghost">
+                {{ __('Télécharger le template') }}
             </flux:button>
 
         </div>

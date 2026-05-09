@@ -10,6 +10,7 @@ use App\Services\DeterminateLeaveEmployeeQuotaService;
 use Carbon\Carbon;
 use Flux\Flux;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
 use Rap2hpoutre\FastExcel\Facades\FastExcel;
@@ -187,6 +188,25 @@ new class extends Component
         Flux::toast(variant: 'success', text: __('Import lancé. Le traitement est en cours.'));
     }
 
+    public function downloadTemplate()
+    {
+        $path = 'templates/leaves_import_template.xlsx';
+
+        if (!Storage::exists($path)) {
+            $rows = collect([[
+                'type' => LeaveTypeEnum::ANNUAL->value,
+                'start_date' => now()->toDateString(),
+                'end_date' => now()->toDateString(),
+                'notes' => 'Exemple',
+                'last_leave' => now()->subMonth()->toDateString(),
+            ]]);
+
+            (new FastExcel($rows))->export(Storage::path($path));
+        }
+
+        return Storage::download($path);
+    }
+
 };
 ?>
 
@@ -210,6 +230,9 @@ new class extends Component
 
                     <flux:menu.item wire:click="toggleImportLeave">
                         {{ __('Importer des absences et congés') }}
+                    </flux:menu.item>
+                    <flux:menu.item wire:click="downloadTemplate">
+                        {{ __('Télécharger le template') }}
                     </flux:menu.item>
                 </flux:menu>
             </flux:dropdown>
@@ -269,6 +292,18 @@ new class extends Component
             @endif
 
     </x-container>
+
+    @if($showImportLeave)
+    <x-container>
+        <form wire:submit="previewImport" class="space-y-4 mt-4">
+            <flux:input type="file" wire:model="importFile" label="{{ __('Fichier Excel (xlsx/csv)') }}" />
+            <div class="flex justify-end items-center gap-2">
+                <flux:button type="button" wire:click="toggleImportLeave">{{ __('Cancel') }}</flux:button>
+                <flux:button type="submit" variant="primary">{{ __('Prévisualiser') }}</flux:button>
+            </div>
+        </form>
+    </x-container>
+    @endif
 
     @if($showImportLeave)
     <x-container>
