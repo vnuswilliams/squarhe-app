@@ -4,6 +4,7 @@ use App\Enums\CivilityEnum;
 use App\Enums\ContractTypeEnum;
 use App\Enums\FeatureEnum;
 use App\Enums\NationalityEnum;
+use App\Jobs\calculateImpotJob;
 use App\Jobs\CalculatePayslipJob;
 use App\Livewire\Forms\EmployeeForm;
 use App\Models\Employee;
@@ -15,10 +16,13 @@ use Livewire\Component;
 
 new class extends Component
 {
-    public $id, $motif;
+    public $id;
     public EmployeeForm $form;
    
-
+    public function mount()
+    {
+        $this->syndicat = $this->employee->data['syndicat'] ?? false;
+    }
     public function render()
     {
         return        $this->view()->title('Profil de ' . $this->employee->shortName);
@@ -27,7 +31,6 @@ new class extends Component
 
     public function showPayslipModal()
     {
-
         $this->employee->payslip?->delete();
         CalculatePayslipJob::dispatch($this->employee);
         Flux::modal('payslip-modal')->show();
@@ -62,8 +65,8 @@ new class extends Component
     #[Computed]
     public function employee()
     {
-        return Employee::where('id', $this->id)
-            ->with(['employeeContributions', 'employerContributions', 'overtimes', 'payslip', 'contractArchives', 'remunerations', 'leaves'])
+        return Employee::whereId($this->id)
+            ->with(['employeeContributions', 'employerContributions', 'overtimes', 'payslip', 'contractArchives', 'remunerations', 'leaves', 'overtimesSnapshot', 'leavesSnapshot', 'remunerationsSnapshot' ])
             ->firstOrFail();
     } //
 
@@ -80,6 +83,19 @@ new class extends Component
         $this->form->reset();
         Flux::toast(variant: 'success', text: __('toast.profil.success', ['name' => $this->employee->shortName]));
     }
+
+    public bool $syndicat = false;
+    public function updatedSyndicat()
+    {
+        // Update the employee data
+        $data = $this->employee->data ?? [];
+        $data['syndicat'] = $this->syndicat;
+        $this->employee->data = $data;
+        $this->employee->save();
+
+        calculateImpotJob::dispatch($this->employee);
+        Flux::toast(variant: "success", text: 'Veuillez patienter pour la prise en compte du syndicat..');
+    }
 };
 ?>
 
@@ -88,7 +104,7 @@ new class extends Component
     <div class="flex flex-wrap items-center justify-between gap-4 mb-5">
         <flux:breadcrumbs>
             <flux:breadcrumbs.item href="{{ route('employees') }}">{{ __('Employé') }}</flux:breadcrumbs.item>
-            <flux:breadcrumbs.item>{{ Str::limit($this->employee->name, 10, '.') }}</flux:breadcrumbs.item>
+            <flux:breadcrumbs.item>{{ $this->employee->shortName }}</flux:breadcrumbs.item>
         </flux:breadcrumbs>
     </div>
 
@@ -96,7 +112,7 @@ new class extends Component
         <div class="flex items-center justify-start gap-4">
             <flux:avatar name="{{ $this->employee->name }}" />
             <div>
-                <flux:heading level="1">{{ $this->employee->name }}</flux:heading>
+                <flux:heading level="1">{{ $this->employee->shortName }}</flux:heading>
                 <flux:text>{{ $this->employee->job_title . ' . ' . $this->employee->department }}</flux:text>
             </div>
         </div>
@@ -176,6 +192,8 @@ new class extends Component
             <div class="flex items-center justify-between">
                 <flux:heading size="lg">Editer l'employee {{ $this->employee->name }}</flux:heading>
             </div>
+        <flux:switch label="Syndicat" description="{{ __('L\'employé fait-il partie d\'un syndicat ?') }}" wire:model.live="syndicat" />
+
 
             <form wire:submit="update" class="container mx-auto p-4 max-w-4xl space-y-4">
                 <div>
@@ -249,6 +267,8 @@ new class extends Component
             </form>
         </div>
     </flux:modal>
+
+
     <flux:modal name="payslip-modal" class="min-w-225">
         <div class="space-y-6 pt-5">
             <div class="flex items-center justify-between">

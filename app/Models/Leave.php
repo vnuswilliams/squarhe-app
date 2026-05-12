@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
-use App\Enums\StatusEnum;
 use App\Enums\LeaveTypeEnum;
+use App\Enums\StatusEnum;
 use App\Observers\LeaveObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
-  
+
 #[ObservedBy(LeaveObserver::class)]
 class Leave extends Model
 {
@@ -21,12 +21,13 @@ class Leave extends Model
         'status',
         'notes',
         'approved_by',
+        'aded_by',
         'approbation_date',
         'last_leave',
         'leaves_balance',
         'leaves_majority',
         'leaves_seniority',
-        'leaves_child'
+        'leaves_child',
     ];
 
     protected $casts = [
@@ -51,27 +52,19 @@ class Leave extends Model
     {
         static::creating(function ($leave) {
 
-
             /*  auth()->user()?->companies()->with('payrollClosures')->first()
                 ->payrollClosures()->where('ref', now()->format('m-Y'))
                 ->where('status', PayrollClosureStatus::LOCKED)->first() ? $ref = now()->addMonth()->format('m-Y')  :  $ref = now()->format('m-Y');
 
 */
-            if (empty($leave->ref)) {
-                $leave->ref = now()->format('m-Y');
-            }
-            if(empty($leave->approbation_date)):
-                $leave->approbation_date = now();
-            endif;
-
-            if (empty($leave->approved_by)):
-                $leave->approved_by = auth()->user()->name;
-            endif;
+            $leave->ref ??= now()->format('m-Y');
+            $leave->approbation_date ??= now();
+            $leave->approved_by ??= auth()->user()->name;
+            $leave->added_by ??= auth()->user()->name;
         });
         static::updating(function ($leave) {
-              if ($leave->approved_by):
-                $leave->approved_by = auth()->user()->name;
-            endif;
+            $leave->approved_by ??= auth()->user()->name;
+            $leave->added_by ??= auth()->user()->name;
         });
     }
 }

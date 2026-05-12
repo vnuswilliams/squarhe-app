@@ -19,6 +19,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('/employees/add', 'pages::employees.add-employee')->name('employees.add');
     Route::livewire('/employees/import', 'pages::employees.employee-import')->name('employees.import');
     Route::livewire('employee/profil/{id}', 'pages::employees.employee-profil')->name('employees.show');
+    Route::livewire('employee/finish/contract', 'pages::employees.employee-end-contract')->name('employees.end.contract');
 
     // web.php
     Route::get('/invitation/accept/{company_code}/{invitation}', AcceptInvitationController::class)->name('invitation.accept');

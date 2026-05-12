@@ -54,7 +54,7 @@ class CalculateHsupp
     public function hourRate(Employee $employee)
     {
         $smic = $employee->data['smic'] ?? 0;
-        $addon = $employee->remunerations()
+        $addon = $employee->remunerations
             ->whereIn('name', [RemunerationEnum::PRIME_TECHNICITE, RemunerationEnum::PRIME_RENDEMENT, RemunerationEnum::PRIME_FONCTION])
             ->whereNotIn('name', [RemunerationEnum::PRIME_PANIER, RemunerationEnum::PRIME_ANCIENNETE, RemunerationEnum::INDEMNITE_LOGEMENT, RemunerationEnum::INDEMNITE_DEPLACEMENT, RemunerationEnum::INDEMNITE_TRANSPORT,             RemunerationEnum::PRIME_OUTILLAGE, RemunerationEnum::PRIME_ASSIDUITE])
             ->sum('amount');

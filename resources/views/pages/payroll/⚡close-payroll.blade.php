@@ -62,7 +62,7 @@ new #[Title('Clôturer la paie')] class extends Component {
         unset($this->company);
 
         if ($this->closeNow) {
-            ClosePayrollJob::dispatch($this->closure, true);
+            ClosePayrollJob::dispatch($this->closure, true, auth()->user()->company_id);
             Flux::toast(variant: 'success', text: 'La clôture immédiate a été lancée avec succès.');
             return;
         }

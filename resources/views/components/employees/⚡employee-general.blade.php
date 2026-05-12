@@ -1,10 +1,8 @@
 <?php
 
-use App\Jobs\calculateImpotForEmployee;
 use App\Models\Employee;
 use App\Enums\CivilityEnum;
 use App\Enums\NationalityEnum;
-use App\Enums\StatusEnum;
 use App\Enums\ContractTypeEnum;
 use App\Enums\RemunerationTypeEnum;
 use Flux\Flux;
@@ -13,33 +11,14 @@ use Livewire\Component;
 new class extends Component
 {
     public Employee $employee;
-    public bool $syndicat = false;
 
-    public function mount(Employee $employee)
-    {
-        $this->employee = $employee;
-        $this->syndicat = $this->employee->data['syndicat'] ?? false;
-    }
-
-    public function updatedSyndicat()
-    {
-        // Update the employee data
-        $data = $this->employee->data ?? [];
-        $data['syndicat'] = $this->syndicat;
-        $this->employee->data = $data;
-        $this->employee->save();
-
-        calculateImpotForEmployee::dispatch($this->employee);
-        Flux::toast(variant: "success", text: 'Veuillez patienter pour la prise en compte du syndicat..');
-    }
+   
 };
 ?>
 
 <div class="space-y-8">
 
-    <x-container>
-        <flux:switch label="Syndicat" description="{{ __('L\'employé fait-il partie d\'un syndicat ?') }}" wire:model.live="syndicat" />
-    </x-container>
+  
 
 @php
     $salary = $employee->salary;

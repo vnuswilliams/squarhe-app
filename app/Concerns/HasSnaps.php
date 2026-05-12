@@ -18,38 +18,33 @@ trait HasSnaps
 {
     public function leavesSnapshot()
     {
-        return $this->hasMany(LeaveSnapshot::class);
+        return $this->hasMany(LeaveSnapshot::class)->latest();
     }
 
-    public function payrollBookSnapshot()
-    {
-        return $this->hasMany(PayrollBookSnapshot::class);
-
-    }
-
+  
     public function overtimesSnapshot()
     {
-        return $this->hasMany(OvertimeSnapshot::class);
+        return $this->hasMany(OvertimeSnapshot::class)->latest();
     }
 
     public function salariesSnapshot()
     {
-        return $this->hasMany(SalarySnapshot::class);
+        return $this->hasMany(SalarySnapshot::class)->latest();
     }
 
     public function employeeContributionsSnapshot()
     {
-        return $this->hasMany(EmployeeContributionSnapshot::class);
+        return $this->hasMany(EmployeeContributionSnapshot::class)->latest();
     }
 
     public function employerContributionsSnapshot()
     {
-        return $this->hasMany(EmployerContributionSnapshot::class);
+        return $this->hasMany(EmployerContributionSnapshot::class)->latest();
     }
 
     public function payslipSnapshot()
     {
-        return $this->hasMany(PayslipSnapshot::class);
+        return $this->hasMany(PayslipSnapshot::class)->latest();
     }
 
     /**
@@ -57,7 +52,7 @@ trait HasSnaps
      */
     public function remunerationsSnapshot(): HasMany
     {
-        return $this->hasMany(RemunerationSnapshot::class);
+        return $this->hasMany(RemunerationSnapshot::class)->latest();
     }
 
     /**
@@ -65,7 +60,7 @@ trait HasSnaps
      */
     public function iransSnapshot(): HasMany
     {
-        return $this->hasMany(IranSnapshot::class);
+        return $this->hasMany(IranSnapshot::class)->latest();
     }
 
     /**
@@ -73,7 +68,7 @@ trait HasSnaps
      */
     public function advnatsSnapshot(): HasMany
     {
-        return $this->hasMany(AdvNatSnapshot::class);
+        return $this->hasMany(AdvNatSnapshot::class)->latest();
     }
 
   

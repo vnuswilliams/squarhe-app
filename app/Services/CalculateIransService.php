@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\Employee;
 use App\Enums\IranEnum;
 
-class CalculateIrans
+class CalculateIransService
 {
 
     public function handle(Employee $employee,bool $inDatabase = false)

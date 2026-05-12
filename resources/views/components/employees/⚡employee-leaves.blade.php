@@ -2,18 +2,16 @@
 
 use App\Enums\LeaveTypeEnum;
 use App\Enums\StatusEnum;
+use App\Jobs\ImportEmployeeLeavesJob;
 use App\Livewire\Forms\EmployeeLeaveForm;
 use App\Models\Leave;
-use App\Jobs\ImportEmployeeLeavesJob;
 use App\Services\CalculateDays;
-use App\Services\DeterminateLeaveEmployeeQuotaService;
-use Carbon\Carbon;
 use Flux\Flux;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
-use Rap2hpoutre\FastExcel\Facades\FastExcel;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Rap2hpoutre\FastExcel\FastExcel;
@@ -21,27 +19,27 @@ use Rap2hpoutre\FastExcel\FastExcel;
 new class extends Component
 {
     use WithFileUploads;
+
     public $employee;
-    public $showImportLeave = false;
-    public $showAddLeaveForm = false;
-    public $showLeaveArchives = false;
+
     public $editingLeaveId;
+
     public $snapshotRef = '';
 
-
     public $previewData = [];
-    public $importFile;
-    public array $previewRows = [];
-    public array $importErrors = [];
-    public bool $readyToImport = false;
-    public $validationStep = false;
-    public EmployeeLeaveForm $form;
-    public function mount($employee)
-    {
-        $this->employee = $employee;
 
-         
-    }
+    public $importFile;
+
+    public array $previewRows = [];
+
+    public array $importErrors = [];
+
+    public bool $readyToImport = false;
+
+    public $validationStep = false;
+
+    public EmployeeLeaveForm $form;
+
     #[Computed]
     public function leaves()
     {
@@ -57,19 +55,17 @@ new class extends Component
         $this->form->create();
 
         $this->form->reset();
-        $this->showAddLeaveForm = false;
         Flux::toast(variant: 'success', text: 'Votre absences ou congés a été ajouté avec succès.');
     }
 
     public function edit($leaveId)
     {
-        $leaveToUpdate  = Leave::whereId($leaveId)  
-        ->whereEmployeeId($this->employee->id)
+        $leaveToUpdate = Leave::whereId($leaveId)
+            ->whereEmployeeId($this->employee->id)
             ->firstOrFail();
         $this->form->setLeave($leaveToUpdate);
         Flux::modal('edit-leave-modal')->show();
     }
-
 
     public function update()
     {
@@ -81,35 +77,43 @@ new class extends Component
     }
 
     public $leaveToDelete = null;
+
     public function confirmBeforeDelete($idLeaveWeWantToDelete)
     {
         $this->leaveToDelete = Leave::whereId($idLeaveWeWantToDelete)
             ->whereEmployeeId($this->employee->id)
-            ->firstOrFail();
-        Flux::modal('delete-leave-modal')->show();
+            ->first();
+
+        if ($this->leaveToDelete) {
+            Flux::modal('delete-leave-modal')->show();
+
+            return;
+        }
+        Flux::toast(variant: 'warning', text: __('toast.deleteNotFound'));
+
     }
+
     public function delete()
     {
-        if ($this->leaveToDelete):
+        if ($this->leaveToDelete) {
             Gate::authorize('delete', [Leave::class, $this->leaveToDelete]);
             $this->leaveToDelete->delete();
             Flux::toast(variant: 'success', text: 'Votre absence ou congé a été supprimé avec succès.');
             Flux::modal('delete-leave-modal')->close();
             $this->leaveToDelete = null;
-        endif;
+        }
     }
-
 
     #[Computed]
     public function leavesSnapshot()
     {
-        $query = $this->employee->leavesSnapshot()->latest();
+        $query = $this->employee->leavesSnapshot;
 
         if (filled($this->snapshotRef)) {
-            $query->where('ref', 'like', '%' . trim($this->snapshotRef) . '%');
+            $query->where('ref', 'like', '%'.trim($this->snapshotRef).'%');
         }
 
-        return $query->get();
+        return $query ?? [];
     }
 
     public function exportLeavesArchives()
@@ -123,20 +127,7 @@ new class extends Component
             __('Statut') => $snapshot->status?->label(),
         ]);
 
-        return new FastExcel($rows)->download('archives_conges_' . $this->employee->id . '_' . now()->format('m_Y') . '.xlsx');
-    }
-
-    public function toggleFormAddLeave()
-    {
-        $this->showAddLeaveForm = !$this->showAddLeaveForm;
-        $this->showImportLeave = false;
-    }
-
-
-    public function toggleImportLeave()
-    {
-        $this->showImportLeave = !$this->showImportLeave;
-        $this->showAddLeaveForm = false;
+        return new FastExcel($rows)->download('archives_conges_'.$this->employee->id.'_'.now()->format('m_Y').'.xlsx');
     }
 
     public function previewImport(): void
@@ -145,7 +136,7 @@ new class extends Component
             'importFile' => ['required', 'file', 'mimes:xlsx,csv', 'max:5120'],
         ]);
 
-        $rows = (new FastExcel())->import($this->importFile->getRealPath());
+        $rows = (new FastExcel)->import($this->importFile->getRealPath());
         $this->previewRows = [];
         $this->importErrors = [];
 
@@ -159,7 +150,7 @@ new class extends Component
             ];
 
             $validator = Validator::make($data, [
-                'type' => ['required', \Illuminate\Validation\Rule::in(LeaveTypeEnum::values())],
+                'type' => ['required', Rule::in(LeaveTypeEnum::values())],
                 'start_date' => ['required', 'date'],
                 'end_date' => ['required', 'date', 'after_or_equal:start_date'],
                 'notes' => ['nullable', 'string', 'max:100'],
@@ -180,10 +171,11 @@ new class extends Component
     {
         if (! $this->readyToImport) {
             Flux::toast(variant: 'danger', text: __('Corrigez les erreurs avant import.'));
+
             return;
         }
         $path = $this->importFile->store('imports');
-        ImportEmployeeLeavesJob::dispatch($path, $this->employee->id, auth()->id());
+        ImportEmployeeLeavesJob::dispatch($path, $this->employee->id, auth()->user()->name);
         $this->reset('importFile', 'previewRows', 'importErrors', 'readyToImport');
         Flux::toast(variant: 'success', text: __('Import lancé. Le traitement est en cours.'));
     }
@@ -192,7 +184,7 @@ new class extends Component
     {
         $path = 'templates/leaves_import_template.xlsx';
 
-        if (!Storage::exists($path)) {
+        if (! Storage::exists($path)) {
             $rows = collect([[
                 'type' => LeaveTypeEnum::ANNUAL->value,
                 'start_date' => now()->toDateString(),
@@ -206,7 +198,6 @@ new class extends Component
 
         return Storage::download($path);
     }
-
 };
 ?>
 
@@ -218,20 +209,18 @@ new class extends Component
         </div>
 
         <div class="flex items-center gap-2">
-            <flux:button @click="activeForm = 'a' " variant="primary">
-                {{ __('Ajouter une absence') }}
-            </flux:button>
-              
+            <flux:button tooltip="Ajouter une absence ou un congé" @click="activeForm = 'a' " variant="primary" icon="plus" />
+            <flux:button tooltip="Voir les archives" @click="activeForm = activeForm === 'archives-leaves' ? null : 'archives-leaves'" icon="archive-box" />
 
 
             <flux:dropdown>
                 <flux:button icon="bars-3" />
                 <flux:menu>
 
-                    <flux:menu.item wire:click="toggleImportLeave">
+                    <flux:menu.item @click="activeForm = 'b' ">
                         {{ __('Importer des absences et congés') }}
                     </flux:menu.item>
-                    <flux:menu.item wire:click="downloadTemplate">
+                    <flux:menu.item wire:click="downloadTemplate" >
                         {{ __('Télécharger le template') }}
                     </flux:menu.item>
                 </flux:menu>
@@ -250,6 +239,7 @@ new class extends Component
                     </option>
                     @endforeach
                 </flux:select>
+                <flux:input wire:model="form.approved_by" label="Approuvé par"/>
                 @if(in_array($form->type, [LeaveTypeEnum::ANNUAL->value]))
                 <flux:input wire:model="form.last_leave" type="date" label="Date du dernier congé annuel (optionnel) "></flux:input>
                 @endif
@@ -272,7 +262,27 @@ new class extends Component
                 </flux:button>
             </div>
         </form>
-            @if(!empty($previewRows))
+               </x-container>
+
+   
+    <x-container x-show="activeForm === 'b' "  x-transition>
+        <form wire:submit="previewImport" class="space-y-4 mt-4">
+        <div class="flex justify-between align-center">
+
+<flux:heading level="1" size="lg" class="mb-5">{{ __('Importer les absences') }}</flux:heading>
+
+<flux:button wire:click="downloadTemplate" icon="arrow-down-tray">
+    {{ __('Télécharger le template') }}
+</flux:button>
+</div>
+            <flux:input type="file" wire:model="importFile" label="{{ __('Fichier Excel (xlsx/csv)') }}" />
+            <div class="flex justify-end items-center gap-2">
+                <flux:button type="button" wire:click="toggleImportLeave">{{ __('Cancel') }}</flux:button>
+                <flux:button type="submit" variant="primary">{{ __('Prévisualiser') }}</flux:button>
+            </div>
+        </form>
+
+        @if(!empty($previewRows))
                 <div class="mt-4">
                     <flux:text>{{ __("Lignes prévisualisées") }}: {{ count($previewRows) }}</flux:text>
                     @if(!empty($importErrors))
@@ -290,32 +300,7 @@ new class extends Component
                     </div>
                 </div>
             @endif
-
     </x-container>
-
-    @if($showImportLeave)
-    <x-container>
-        <form wire:submit="previewImport" class="space-y-4 mt-4">
-            <flux:input type="file" wire:model="importFile" label="{{ __('Fichier Excel (xlsx/csv)') }}" />
-            <div class="flex justify-end items-center gap-2">
-                <flux:button type="button" wire:click="toggleImportLeave">{{ __('Cancel') }}</flux:button>
-                <flux:button type="submit" variant="primary">{{ __('Prévisualiser') }}</flux:button>
-            </div>
-        </form>
-    </x-container>
-    @endif
-
-    @if($showImportLeave)
-    <x-container>
-        <form wire:submit="previewImport" class="space-y-4 mt-4">
-            <flux:input type="file" wire:model="importFile" label="{{ __('Fichier Excel (xlsx/csv)') }}" />
-            <div class="flex justify-end items-center gap-2">
-                <flux:button type="button" wire:click="toggleImportLeave">{{ __('Cancel') }}</flux:button>
-                <flux:button type="submit" variant="primary">{{ __('Prévisualiser') }}</flux:button>
-            </div>
-        </form>
-    </x-container>
-    @endif
 
 
     
@@ -348,11 +333,7 @@ new class extends Component
            
         ]" />
 
-    <div class="mt-4 mb-2 flex items-center gap-2">
-        <flux:button @click="activeForm = activeForm === 'archives-leaves' ? null : 'archives-leaves'" variant="filled">
-            {{ __('Afficher les archives') }}
-        </flux:button>
-    </div>
+    
 
     <x-container x-show="activeForm === 'archives-leaves'" x-transition>
         <div class="mb-4 flex items-end justify-between gap-4">
@@ -361,7 +342,7 @@ new class extends Component
                 <flux:text>{{ __('Filtrez par ref (format m-Y).') }}</flux:text>
             </div>
             <div class="flex items-center gap-2">
-                <flux:input wire:model.live.debounce.300ms="snapshotRef" :label="__('Filtrer par ref')" :placeholder="__('ex: 05-2026')" />
+                <flux:input wire:model.live.debounce.300ms="snapshotRef" :placeholder="__('Filtrer')" />
                 <flux:button wire:click="exportLeavesArchives" icon="arrow-up-tray">{{ __('Exporter') }}</flux:button>
             </div>
         </div>
@@ -389,7 +370,7 @@ new class extends Component
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6" class="text-center py-8">{{ __('Aucune archive de congés trouvée.') }}</td>
+                    <td colspan="6" class="text-center py-8"> <x-empty-state /></td>
                 </tr>
                 @endforelse
             </tbody>
@@ -496,7 +477,7 @@ new class extends Component
                         </option>
                         @endforeach
                     </flux:select>
-
+                    <flux:input wire:model="form.approved_by" label="Approuvé par"/>
                     @if(in_array($form->type, [LeaveTypeEnum::ANNUAL->value]))
                     <flux:input wire:model="form.last_leave" type="date" label="Date du dernier congé annuel (optionnel) "></flux:input>
                     @endif

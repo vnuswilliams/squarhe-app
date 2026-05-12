@@ -65,18 +65,12 @@ class Remuneration extends Model
                 ->where('status', PayrollClosureStatus::LOCKED)->first() ? $ref = now()->addMonth()->format('m-Y')  :  $ref = now()->format('m-Y');
             */
 
-            if (empty($remuneration->ref)) {
-                $remuneration->ref = (string) $ref;
-            }
-            if (empty($remuneration->added_by)):
-                $remuneration->added_by = auth()->user()->name;
-            endif;
+                $remuneration->ref ??= (string) $ref;
+                $remuneration->added_by ??= auth()->user()->name;
         });
 
         static::updating(function ($remuneration) {
-            if ($remuneration->added_by):
-                $remuneration->added_by = auth()->user()->name;
-            endif;
+                $remuneration->added_by ??= auth()->user()->name;
         });
     }
 }

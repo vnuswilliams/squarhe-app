@@ -11,7 +11,7 @@ use App\Enums\RetenuesEnum;
 use App\Models\Employee;
 use App\Services\CalculateAdvnats;
 use App\Services\CalculateHsupp;
-use App\Services\CalculateIrans;
+use App\Services\CalculateIransService;
 use App\Services\CalculateLeave;
 use App\Services\CalculatePanc;
 
@@ -40,12 +40,12 @@ class CalculateSalaryService
 
         // calcul du salaire brut taxable intermediaire
         $intermediateGrossTaxableSalary = $grossSalary - $employee->remunerations()
-            ->where('ImpactEnum', ImpactEnum::NEUTRE->value)
+            ->where('impact', ImpactEnum::NEUTRE->value)
             ->whereIn('name', IranEnum::cases())
             ->sum('amount');
 
         // calculate advnats and irans
-        $calculateIrans = app(CalculateIrans::class)->handle($employee, true);
+        $calculateIrans = app(CalculateIransService::class)->handle($employee, true);
         $calculateAdvnats = app(CalculateAdvnats::class)->handle($employee, true);
 
         // Calcul du salaire taxable
@@ -55,7 +55,7 @@ class CalculateSalaryService
 
         // Caclcul du salaire cotisable
         $contributorSalary = $base_salary + $employee->remunerations()
-            ->whereIn('ImpactEnum', [ImpactEnum::COTISABLE->value, ImpactEnum::TAXCOT->value])
+            ->whereIn('impact', [ImpactEnum::COTISABLE->value, ImpactEnum::TAXCOT->value])
             ->sum('amount') + $employee->remunerations()
             ->whereIn('name', IranEnum::cases())->sum('amount') + $employee->advnats()->sum('excedent');
 

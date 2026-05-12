@@ -14,7 +14,8 @@ class EmployeeLeaveForm extends Form
 {
     public $employee_id;
     public  $type;
-    public  $start_date, $end_date, $days, $status, $notes, $last_leave, $approved_by, $approbation_date;
+    public string $approved_by;
+    public  $start_date, $end_date, $days, $status, $notes, $last_leave, $approbation_date;
     public $leave;
     public function rules(): array
     {
@@ -24,6 +25,7 @@ class EmployeeLeaveForm extends Form
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'days' => ['required', 'numeric'],
+            'approved_by' => ['required', 'string'],
             'status' => ['required', Rule::in(StatusEnum::values())],
             'notes' => ['nullable', 'string', 'max:100'],
             'last_leave' => ['nullable', 'date']
@@ -40,6 +42,7 @@ class EmployeeLeaveForm extends Form
         $this->start_date = $leave->start_date?->format('Y-m-d');
         $this->end_date = $leave->end_date?->format('Y-m-d');
         $this->days = $leave->days;
+        $this->approved_by = $leave->approved_by;
         $this->notes = $leave->notes;
         $this->approbation_date = now();
 
@@ -52,7 +55,7 @@ class EmployeeLeaveForm extends Form
         Gate::authorize('create', Leave::class);
 
         $validateData = $this->validate();
-        $employee = Employee::find($this->employee_id);
+        $employee = Employee::whereId($this->employee_id);
         $employee->leaves()->create($validateData);
     }
     public function update()

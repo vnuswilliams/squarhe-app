@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('status')->nullable(); // pending, approved, rejected
             $table->string('notes', 100)->nullable(); // notes
             $table->string('approved_by'); // qui a approuvé
+            $table->string('added_by'); // qui a ajoute les leaves
             $table->date('approbation_date'); // qui a approuvé
              $table->date('last_leave')->nullable();
             $table->string('leaves_balance')->default(0);

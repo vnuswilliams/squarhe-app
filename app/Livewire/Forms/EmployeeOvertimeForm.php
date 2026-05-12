@@ -29,7 +29,7 @@ class EmployeeOvertimeForm extends Form
     {
         Gate::authorize('create', Overtime::class);
         $overtimeToCreate = $this->validate();
-        $employee = Employee::find($this->employee_id);
+        $employee = Employee::whereId($this->employee_id);
         $employee->overtimes()->create($overtimeToCreate);
     }
 

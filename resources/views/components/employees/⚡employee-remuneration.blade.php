@@ -7,10 +7,10 @@ use App\Jobs\ImportEmployeeRemunerationsJob;
 use App\Livewire\Forms\EmployeeRemunerationForm;
 use App\Models\Remuneration;
 use Flux\Flux;
-use Rap2hpoutre\FastExcel\Facades\FastExcel;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -21,13 +21,16 @@ new class extends Component
     use WithFileUploads;
 
     public $employee;
+
     public $importFile;
+
     public array $previewRows = [];
+
     public array $importErrors = [];
+
     public bool $readyToImport = false;
 
     public EmployeeRemunerationForm $form;
-
 
     public function mount()
     {
@@ -35,6 +38,9 @@ new class extends Component
         $this->smic = $this->employee->data['smic'] ?? 0;
     }
 
+    /**
+     * Paginated + searchable + sortable remunerations for the main table.
+     */
     #[Computed]
     public function remunerations()
     {
@@ -47,7 +53,7 @@ new class extends Component
         $this->form->type = RemunerationEnum::from($this->form->name)->type();
 
         $this->form->create();
-        Flux::toast(variant: 'success', text: __("L'élément de rémun. a été ajouté avec  succès."));
+        Flux::toast(variant: 'success', text: __('toast.remun.addElem'));
         $this->form->reset();
     }
 
@@ -65,7 +71,7 @@ new class extends Component
         $this->form->update();
         $this->form->reset();
         Flux::modal('edit-remuneration-modal')->close();
-        Flux::toast(variant: 'success', text: "L'élément de remun. a été mis à jour avec succès.");
+        Flux::toast(variant: 'success', text: __('toast.remun.updateElem'));
     }
 
     public $remunerationToDelete = null;
@@ -74,8 +80,15 @@ new class extends Component
     {
         $this->remunerationToDelete = Remuneration::whereId($idRemunWeWantToDelete)
             ->whereEmployeeId($this->employee->id)
-            ->firstOrFail();
-        Flux::modal('delete-remuneration-modal')->show();
+            ->first();
+
+        if ($this->remunerationToDelete) {
+            Flux::modal('delete-remuneration-modal')->show();
+
+            return;
+        }
+
+        Flux::toast(variant: 'warning', text: __('toast.deleteNotFound'));
     }
 
     public function delete()
@@ -83,7 +96,7 @@ new class extends Component
         if ($this->remunerationToDelete) {
             Gate::authorize('delete', [Remuneration::class, $this->remunerationToDelete]);
             $this->remunerationToDelete->delete();
-            Flux::toast(variant: 'success', text: 'Cet élément de remun. a été supprimé avec succès.');
+            Flux::toast(variant: 'success', text: __('toast.remun.deleteElem'));
             Flux::modal('delete-remuneration-modal')->close();
             $this->remunerationToDelete = null;
         }
@@ -94,25 +107,17 @@ new class extends Component
     public $smic;
 
     public $snapshotRef = '';
-    public $showRemunerationArchives = false;
-
 
     #[Computed]
     public function remunerationsSnapshot()
     {
-        $query = $this->employee->remunerationsSnapshot()->latest();
+        $query = $this->employee->remunerationsSnapshot;
 
         if (filled($this->snapshotRef)) {
-            $query->where('ref', 'like', '%' . trim($this->snapshotRef) . '%');
+            $query->where('ref', 'like', '%'.trim($this->snapshotRef).'%');
         }
 
-        return $query->get();
-    }
-
-
-    public function toggleRemunerationArchives(): void
-    {
-        $this->showRemunerationArchives = !$this->showRemunerationArchives;
+        return $query ?? [];
     }
 
     public function exportRemunerationArchives()
@@ -126,7 +131,7 @@ new class extends Component
             __('Impact') => $snapshot->impact?->label(),
         ]);
 
-        return new FastExcel($rows)->download('archives_remunerations_' . $this->employee->id . '_' . now()->format('m_Y') . '.xlsx');
+        return (new FastExcel($rows))->download('archives_remunerations_'.$this->employee->id.'_'.now()->format('m_Y').'.xlsx');
     }
 
     public function addAvgSalary()
@@ -137,14 +142,13 @@ new class extends Component
             'avgSalary' => 'nullable|numeric|min:1',
             'smic' => 'nullable|numeric|min:1',
         ]);
+
         $data['smic'] = $this->avgSalary;
         $data['average_salary'] = $this->smic;
 
-        $this->employee->update([
-            'data' => $data,
-        ]);
+        $this->employee->update(['data' => $data]);
 
-        Flux::toast(variant: 'success', text: 'Vous avez mis a jour le smic et le salaire moyen.');
+        Flux::toast(variant: 'success', text: __('toast.remun.avgSuccess'));
     }
 
     public function previewImport(): void
@@ -153,7 +157,7 @@ new class extends Component
             'importFile' => ['required', 'file', 'mimes:xlsx,csv', 'max:5120'],
         ]);
 
-        $rows = (new FastExcel())->import($this->importFile->getRealPath());
+        $rows = (new FastExcel)->import($this->importFile->getRealPath());
         $this->previewRows = [];
         $this->importErrors = [];
 
@@ -167,10 +171,10 @@ new class extends Component
             ];
 
             $validator = Validator::make($data, [
-                'name' => ['required', \Illuminate\Validation\Rule::in(RemunerationEnum::values())],
+                'name' => ['required', Rule::in(RemunerationEnum::values())],
                 'amount' => ['required', 'numeric', 'min:100'],
-                'periodicity' => ['required', \Illuminate\Validation\Rule::in(PeriodicityEnum::values())],
-                'impact' => ['required', \Illuminate\Validation\Rule::in(ImpactEnum::values())],
+                'periodicity' => ['required', Rule::in(PeriodicityEnum::values())],
+                'impact' => ['required', Rule::in(ImpactEnum::values())],
                 'notes' => ['nullable', 'string', 'max:100'],
             ]);
 
@@ -187,21 +191,22 @@ new class extends Component
     public function confirmImport(): void
     {
         if (! $this->readyToImport) {
-            Flux::toast(variant: 'danger', text: __('Corrigez les erreurs avant import.'));
+            Flux::toast(variant: 'danger', text: __('toast.remun.importLaunch'));
+
             return;
         }
 
         $path = $this->importFile->store('imports');
-        ImportEmployeeRemunerationsJob::dispatch($path, $this->employee->id, auth()->id());
+        ImportEmployeeRemunerationsJob::dispatch($path, $this->employee->id);
         $this->reset('importFile', 'previewRows', 'importErrors', 'readyToImport');
-        Flux::toast(variant: 'success', text: __('Import lancé. Le traitement est en cours.'));
+        Flux::toast(variant: 'success', text: __('toast.remun.importLaunch'));
     }
 
     public function downloadTemplate()
     {
         $path = 'templates/remunerations_import_template.xlsx';
 
-        if (!Storage::exists($path)) {
+        if (! Storage::exists($path)) {
             $rows = collect([[
                 'name' => RemunerationEnum::SUR_SALAIRE->value,
                 'amount' => 10000,
@@ -215,123 +220,75 @@ new class extends Component
 
         return Storage::download($path);
     }
-
-  
 };
 ?>
 
-<div x-data="{ activeForm : null }">
+<div x-data="{ activeForm: null }">
+
+    {{-- ─── PAGE HEADER ─── --}}
     <div class="flex justify-between items-center mb-4">
         <div>
-            <flux:heading level="1" class="font-bold"> Éléments de rémunération </flux:heading>
-            <flux:text class="text-gray-300">Primes, retenues, et autres variables de paie appliqués a cet employé.</flux:text>
+            <flux:heading level="1" class="font-bold">Éléments de rémunération</flux:heading>
+            <flux:text class="text-gray-300">Primes, retenues, et autres variables de paie appliqués à cet employé.</flux:text>
         </div>
 
         <div class="flex items-center gap-2">
-
-            <flux:button @click="activeForm = 'a' " variant="primary">
-                Ajouter un élément
-            </flux:button>
+            <flux:button @click="activeForm = activeForm === 'a' ? null : 'a'" variant="primary" icon="plus" tooltip="Ajouter un élément de rémunération" />
+            <flux:button @click="activeForm = activeForm === 'archives-remunerations' ? null : 'archives-remunerations'" tooltip="Voir les archives" icon="archive-box" />
             <flux:dropdown>
                 <flux:button icon="bars-3" />
                 <flux:menu>
-                    <flux:menu.item @click="activeForm = 'b' ">
-                        {{ __('Add average salary') }}
-                    </flux:menu.item>
-                    <flux:menu.item @click="activeForm = 'c'">
-                        {{ __('Importer des éléments') }}
-                    </flux:menu.item>
-                    <flux:menu.item wire:click="downloadTemplate">
-                        {{ __('Télécharger le template') }}
-                    </flux:menu.item>
+                    <flux:menu.item @click="activeForm = 'b'">{{ __('Add average salary') }}</flux:menu.item>
+                    <flux:menu.item @click="activeForm = 'c'">{{ __('Importer des éléments') }}</flux:menu.item>
+                    <flux:menu.item wire:click="downloadTemplate">{{ __('Télécharger le template') }}</flux:menu.item>
                 </flux:menu>
             </flux:dropdown>
-
         </div>
-
     </div>
 
-    <x-container x-show="activeForm === 'a' "  x-transition>
-        <flux:heading level="1" size="lg" class="mb-5"> Ajouter des éléments de rémunération de votre employé </flux:heading>
+    {{-- ─── FORM : ADD ELEMENT ─── --}}
+    <x-container x-show="activeForm === 'a'" x-transition>
+        <flux:heading level="1" size="lg" class="mb-5">Ajouter des éléments de rémunération de votre employé</flux:heading>
         <form wire:submit.prevent="save">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Left Column -->
                 <div class="space-y-4">
-
-                    <div>
-                        <flux:select label="Nom de l'élément" wire:model="form.name">
-                            <flux:select.option value="">Choisir un élément</flux:select.option>
-                            @foreach(RemunerationEnum::forSelect() as $option)
-                            <flux:select.option value="{{ $option->value }}">
-                                {{ $option->name }}
-                            </flux:select.option>
-                            @endforeach
-                        </flux:select>
-                    </div>
-
-                    <div>
-                        <flux:input label="Montant" placeholder="Montant de l'élèment" wire:model="form.amount" />
-                    </div>
+                    <flux:select label="Nom de l'élément" wire:model="form.name">
+                        <flux:select.option value="">Choisir un élément</flux:select.option>
+                        @foreach(RemunerationEnum::forSelect() as $option)
+                            <flux:select.option value="{{ $option->value }}">{{ $option->name }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                    <flux:input label="Montant" placeholder="Montant de l'élément" wire:model="form.amount" />
                 </div>
-
-                <!-- Right Column -->
                 <div class="space-y-4">
-                    <div>
-                        <flux:select label="Périodicité" wire:model="form.periodicity">
-                            <flux:select.option value="">Choisir</flux:select.option>
-                            @foreach(PeriodicityEnum::options() as $option)
-                            <flux:select.option value="{{ $option['value'] }}">{{ $option['label'] }}
-                            </flux:select.option>
-                            @endforeach
-                        </flux:select>
-                    </div>
-
-                    <div>
-                        <flux:select label="Impact" wire:model="form.impact">
-                            <flux:select.option value="">Choisir</flux:select.option>
-                            @foreach(ImpactEnum::options() as $option)
-                            <flux:select.option value="{{ $option['value'] }}">{{ $option['label'] }}
-                            </flux:select.option>
-                            @endforeach
-                        </flux:select>
-                    </div>
-
-                    <div>
-                        <flux:textarea label="Notes (Optionnel)" wire:model="form.notes"></flux:textarea>
-                    </div>
+                    <flux:select label="Périodicité" wire:model="form.periodicity">
+                        <flux:select.option value="">Choisir</flux:select.option>
+                        @foreach(PeriodicityEnum::options() as $option)
+                            <flux:select.option value="{{ $option['value'] }}">{{ $option['label'] }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                    <flux:select label="Impact" wire:model="form.impact">
+                        <flux:select.option value="">Choisir</flux:select.option>
+                        @foreach(ImpactEnum::options() as $option)
+                            <flux:select.option value="{{ $option['value'] }}">{{ $option['label'] }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                    <flux:textarea label="Notes (Optionnel)" wire:model="form.notes"></flux:textarea>
                 </div>
             </div>
-
             <div class="flex justify-end items-center mt-5 gap-4">
-                <flux:button type="button" @click="activeForm = null ">Annuler</flux:button>
-                <flux:button type="submit" variant="primary">
-                    Enregistrer
-                </flux:button>
+                <flux:button type="button" @click="activeForm = null">Annuler</flux:button>
+                <flux:button type="submit" variant="primary">Enregistrer</flux:button>
             </div>
         </form>
-            @if(!empty($previewRows))
-                <div class="mt-4">
-                    <flux:text>{{ __("Lignes prévisualisées") }}: {{ count($previewRows) }}</flux:text>
-                    @if(!empty($importErrors))
-                        <flux:callout icon="exclamation-triangle" variant="danger" class="mt-2">
-                            <flux:callout.heading>{{ __("Erreurs détectées") }}</flux:callout.heading>
-                            <flux:callout.text>
-                                @foreach($importErrors as $error)
-                                    <div>{{ __("Ligne") }} {{ $error["line"] }}: {{ implode(", ", $error["errors"]) }}</div>
-                                @endforeach
-                            </flux:callout.text>
-                        </flux:callout>
-                    @endif
-                    <div class="flex justify-end mt-3">
-                        <flux:button wire:click="confirmImport" variant="primary" :disabled="!$readyToImport">{{ __("Valider et importer") }}</flux:button>
-                    </div>
-                </div>
-            @endif
-
     </x-container>
 
-    <x-container x-show="activeForm === 'c' " x-transition>
-        <flux:heading level="1" size="lg" class="mb-5">{{ __('Importer les éléments de rémunération') }}</flux:heading>
+    {{-- ─── FORM : IMPORT ─── --}}
+    <x-container x-show="activeForm === 'c'" x-transition>
+        <div class="flex justify-between items-center">
+            <flux:heading level="1" size="lg" class="mb-5">{{ __('Importer les éléments de rémunération') }}</flux:heading>
+            <flux:button wire:click="downloadTemplate" icon="arrow-down-tray">{{ __('Télécharger le template') }}</flux:button>
+        </div>
         <form wire:submit="previewImport" class="space-y-4">
             <flux:input type="file" wire:model="importFile" label="{{ __('Fichier Excel (xlsx/csv)') }}" />
             <div class="flex justify-end items-center gap-4">
@@ -359,38 +316,32 @@ new class extends Component
         @endif
     </x-container>
 
-
-    <x-container  x-show="activeForm === 'b' " x-transition>
-        <flux:heading level="1" size="lg" class="mb-5"> Ajouter le salaire moyen et le smic de {{ $employee->name }} </flux:heading>
+    {{-- ─── FORM : AVG SALARY ─── --}}
+    <x-container x-show="activeForm === 'b'" x-transition>
+        <flux:heading level="1" size="lg" class="mb-5">Ajouter le salaire moyen et le smic de {{ $employee->name }}</flux:heading>
         <form wire:submit="addAvgSalary" class="">
             <flux:input wire:model="avgSalary" label="Salaire moyen" />
-            <flux:input wire:model="smic" label="SMIC du secteur " />
-
-
+            <flux:input wire:model="smic" label="SMIC du secteur" />
             <flux:callout class="m-4" icon="information-circle">
                 <flux:callout.heading>Information</flux:callout.heading>
-
                 <flux:callout.text>
                     <ul>
-                        <li>Salaire moyen : il sert à calculer les allocations congés annuel payé de votre employé. </li>
+                        <li>Salaire moyen : il sert à calculer les allocations congés annuel payé de votre employé.</li>
                         <li>SMIC du secteur : il sert à calculer la prime d'ancienneté.</li>
                     </ul>
-                    <flux:text class="text-bold">Si non fourni le salaire de base sera utilisé commme base de calcul.</flux:text>
+                    <flux:text class="text-bold">Si non fourni le salaire de base sera utilisé comme base de calcul.</flux:text>
                 </flux:callout.text>
             </flux:callout>
-
-
             <div class="flex justify-end items-center gap-4">
-                <flux:button @click="activeForm = null "> {{ __('Cancel') }} </flux:button>
+                <flux:button @click="activeForm = null">{{ __('Cancel') }}</flux:button>
                 <flux:button type="submit" variant="primary">Ajouter</flux:button>
-
             </div>
         </form>
     </x-container>
 
    @if($this->remunerations->isNotEmpty())
 
-    <x-delta-card :cards="[
+        <x-delta-card :cards="[
             [
                 'label' => 'Total éléments de rémunération',
                 'current' => $this->remunerations->sum('amount').' F cfa',
@@ -416,11 +367,8 @@ new class extends Component
                 'current' =>  $this->remunerations->where('impact', ImpactEnum::NEUTRE)->sum('amount') .' F cfa',
                 'delta' => '',
                 'color' => 'rose'
-            ]
+            ],
         ]" />
-
-
-
     @endif
         <x-container>
 
@@ -512,12 +460,6 @@ new class extends Component
     </x-container>
 
 
-    <div class="mt-4 mb-2 flex items-center gap-2">
-        <flux:button @click="activeForm = activeForm === 'archives-remunerations' ? null : 'archives-remunerations'" variant="filled">
-            {{ __('Afficher les archives') }}
-        </flux:button>
-    </div>
-
     <x-container x-show="activeForm === 'archives-remunerations'" x-transition>
         <div class="mb-4 flex items-end justify-between gap-4">
             <div>
@@ -525,11 +467,10 @@ new class extends Component
                 <flux:text>Filtrez par ref (format m-Y).</flux:text>
             </div>
             <div class="flex items-center gap-2">
-                <flux:input wire:model.live.debounce.300ms="snapshotRef" :label="__('Filtrer par ref')" :placeholder="__('ex: 05-2026')" />
+                <flux:input wire:model.live.debounce.300ms="snapshotRef" :placeholder="__('Filtrer par ref 05-2026')" />
                 <flux:button wire:click="exportRemunerationArchives" icon="arrow-up-tray">{{ __('Exporter') }}</flux:button>
             </div>
         </div>
-
         <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
             <thead class="bg-gray-50 dark:bg-neutral-700">
                 <tr>
@@ -543,18 +484,18 @@ new class extends Component
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
                 @forelse($this->remunerationsSnapshot as $snapshot)
-                <tr wire:key="remu-snapshot-{{ $snapshot->id }}">
-                    <td class="px-6 py-4 text-sm">{{ $snapshot->ref }}</td>
-                    <td class="px-6 py-4 text-sm">{{ $snapshot->name?->label() }}</td>
-                    <td class="px-6 py-4 text-sm">{{ $snapshot->type?->label() }}</td>
-                    <td class="px-6 py-4 text-sm">{{ number_format($snapshot->amount, 0, ',', ' ') }} F cfa</td>
-                    <td class="px-6 py-4 text-sm">{{ $snapshot->periodicity?->label() }}</td>
-                    <td class="px-6 py-4 text-sm">{{ $snapshot->impact?->label() }}</td>
-                </tr>
+                    <tr wire:key="remu-snapshot-{{ $snapshot->id }}">
+                        <td class="px-6 py-4 text-sm">{{ $snapshot->ref }}</td>
+                        <td class="px-6 py-4 text-sm">{{ $snapshot->name?->label() }}</td>
+                        <td class="px-6 py-4 text-sm">{{ $snapshot->type?->label() }}</td>
+                        <td class="px-6 py-4 text-sm">{{ number_format($snapshot->amount, 0, ',', ' ') }} F cfa</td>
+                        <td class="px-6 py-4 text-sm">{{ $snapshot->periodicity?->label() }}</td>
+                        <td class="px-6 py-4 text-sm">{{ $snapshot->impact?->label() }}</td>
+                    </tr>
                 @empty
-                <tr>
-                    <td colspan="6" class="text-center py-8">Aucune rémunération snapshot trouvée.</td>
-                </tr>
+                    <tr>
+                        <td colspan="6" class="text-center py-8"><x-empty-state /></td>
+                    </tr>
                 @endforelse
             </tbody>
         </table>
@@ -562,83 +503,58 @@ new class extends Component
 
     <flux:modal name="edit-remuneration-modal" class="min-w-225">
         <div class="space-y-6 pt-5">
-            <div class="flex items-center justify-between">
-                <flux:heading size="lg">Mettre à jour un congé ou une absence</flux:heading>
-            </div>
+            <flux:heading size="lg">Mettre à jour un élément de rémunération</flux:heading>
             <form wire:submit="update" class="container mx-auto p-4 max-w-4xl space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Left Column -->
                     <div class="space-y-4">
-
-                        <div>
-                            <flux:select label="Nom de l'élément" wire:model="form.name">
-                                <flux:select.option value="">Choisir un élément</flux:select.option>
-                                @foreach(RemunerationEnum::forSelect() as $option)
-                                <flux:select.option value="{{ $option->value }}">
-                                    {{ $option->name }}
-                                </flux:select.option>
-                                @endforeach
-                            </flux:select>
-                        </div>
-
-                        <div>
-                            <flux:input label="Montant" placeholder="Montant de l'élèment" wire:model="form.amount" />
-                        </div>
+                        <flux:select label="Nom de l'élément" wire:model="form.name">
+                            <flux:select.option value="">Choisir un élément</flux:select.option>
+                            @foreach(RemunerationEnum::forSelect() as $option)
+                                <flux:select.option value="{{ $option->value }}">{{ $option->name }}</flux:select.option>
+                            @endforeach
+                        </flux:select>
+                        <flux:input label="Montant" placeholder="Montant de l'élément" wire:model="form.amount" />
                     </div>
-
-                    <!-- Right Column -->
                     <div class="space-y-4">
-                        <div>
-                            <flux:select label="Périodicité" wire:model="form.periodicity">
-                                <flux:select.option value="">Choisir</flux:select.option>
-                                @foreach(PeriodicityEnum::options() as $option)
-                                <flux:select.option value="{{ $option['value'] }}">{{ $option['label'] }}
-                                </flux:select.option>
-                                @endforeach
-                            </flux:select>
-                        </div>
-
-                        <div>
-                            <flux:select label="Impact" wire:model="form.impact">
-                                <flux:select.option value="">Choisir</flux:select.option>
-                                @foreach(ImpactEnum::options() as $option)
-                                <flux:select.option value="{{ $option['value'] }}">{{ $option['label'] }}
-                                </flux:select.option>
-                                @endforeach
-                            </flux:select>
-                        </div>
-
-                        <div>
-                            <flux:textarea label="Notes (Optionnel)" wire:model="form.notes"></flux:textarea>
-                        </div>
+                        <flux:select label="Périodicité" wire:model="form.periodicity">
+                            <flux:select.option value="">Choisir</flux:select.option>
+                            @foreach(PeriodicityEnum::options() as $option)
+                                <flux:select.option value="{{ $option['value'] }}">{{ $option['label'] }}</flux:select.option>
+                            @endforeach
+                        </flux:select>
+                        <flux:select label="Impact" wire:model="form.impact">
+                            <flux:select.option value="">Choisir</flux:select.option>
+                            @foreach(ImpactEnum::options() as $option)
+                                <flux:select.option value="{{ $option['value'] }}">{{ $option['label'] }}</flux:select.option>
+                            @endforeach
+                        </flux:select>
+                        <flux:textarea label="Notes (Optionnel)" wire:model="form.notes"></flux:textarea>
                     </div>
                 </div>
-
-                <div class="flex justify-end gap-2  pt-4">
+                <div class="flex justify-end gap-2 pt-4">
                     <flux:button type="submit" variant="primary">Enregistrer</flux:button>
                 </div>
             </form>
         </div>
     </flux:modal>
+
+    {{-- ─── MODAL : DELETE ─── --}}
     <flux:modal name="delete-remuneration-modal">
         <div class="space-y-6 pt-5">
-            <div class="flex items-center justify-between">
-                <flux:heading size="lg">Supprimer ce congé ou absence</flux:heading>
-            </div>
+            <flux:heading size="lg">Supprimer cet élément de rémunération</flux:heading>
             @if($remunerationToDelete)
-            <p>
-                Voulez vous vraiment supprimer {{$remunerationToDelete->name->label()}} ajouté par {{ $remunerationToDelete->added_by }} ?
-            </p>
-            <p>Cette action est irréversiblee.</p>
+                <p>
+                    Voulez-vous vraiment supprimer <strong>{{ $remunerationToDelete->name->label() }}</strong> ajouté par <strong>{{ $remunerationToDelete->added_by }}</strong> ?
+                </p>
+                <p class="text-sm text-red-600 dark:text-red-400">Cette action est irréversible.</p>
             @endif
-
-            <div class="flex justify-end gap-2  pt-4">
+            <div class="flex justify-end gap-2 pt-4">
                 <flux:modal.close>
                     <flux:button>Annuler</flux:button>
-
                 </flux:modal.close>
                 <flux:button wire:click="delete" variant="danger">Oui, j'en suis sûr</flux:button>
             </div>
         </div>
     </flux:modal>
+
 </div>

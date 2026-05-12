@@ -100,9 +100,7 @@ new class extends Component {
             <flux:text class="text-gray-300">Il sera visble en fonction de votre niveau d'accès</flux:text>
         </div>
 
-        <flux:button @click="activeForm = 'a' " variant="primary">
-            Ajouter un document
-        </flux:button>
+        <flux:button tooltip="Ajouter un nouveau document" @click="activeForm = 'a' " variant="primary" icon="plus" />
     </div>
     @if($this->documents->isNotEmpty())
     {{-- Delta Card for Documents --}}

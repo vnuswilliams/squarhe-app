@@ -16,7 +16,8 @@ class ClosePayrollJob implements ShouldQueue
 
     public function __construct(
         public PayrollClosure $closure,
-        public bool $isImmediate = false
+        public bool $isImmediate = false,
+        public int|string $company_id
     ) {}
 
     public function handle(): void
@@ -41,7 +42,7 @@ class ClosePayrollJob implements ShouldQueue
             $this->closure->payrollBook()->where('ref', $ref)->delete();
 
             // 2. Archivage au niveau des employés
-            $employees = Employee::where('company_id', auth()->user()->company_id)
+            $employees = Employee::whereCompanyId($this->company_id)
                 ->active()
                 ->notInternship()
                 ->withPayslip()

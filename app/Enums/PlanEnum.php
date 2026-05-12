@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-use LucasDotVin\Soulbscription\Enums\PeriodicityType;
+use Squarhe\Subscription\Enums\PeriodicityType;
 
 enum PlanEnum: string
 {

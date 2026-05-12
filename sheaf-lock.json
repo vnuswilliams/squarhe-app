@@ -1,0 +1,56 @@
+{
+    "files": {
+        "resources/js/components/select.js": [
+            "select"
+        ],
+        "Livewire/Concerns/WithPagination.php": [
+            "pagination",
+            "table"
+        ],
+        "Livewire/Concerns/CanExportCsv.php": [
+            "table"
+        ],
+        "Livewire/Concerns/WithSelection.php": [
+            "table"
+        ],
+        "Livewire/Concerns/WithReordering.php": [
+            "table"
+        ],
+        "Livewire/Concerns/WithSearch.php": [
+            "table"
+        ],
+        "Livewire/Concerns/WithSorting.php": [
+            "table"
+        ]
+    },
+    "helpers": {
+        "popup": [
+            "select"
+        ]
+    },
+    "internalDependencies": {
+        "icon": [
+            "button",
+            "select",
+            "pagination",
+            "dropdown",
+            "table"
+        ],
+        "text": [
+            "select"
+        ],
+        "button": [
+            "pagination",
+            "table"
+        ],
+        "select": [
+            "pagination"
+        ],
+        "pagination": [
+            "table"
+        ],
+        "dropdown": [
+            "table"
+        ]
+    }
+}

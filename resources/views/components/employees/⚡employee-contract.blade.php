@@ -17,10 +17,10 @@ new class extends Component
     public $showAddContractForm = false;
     public $showNewContractForm = false; // 🔹 Nouveau
 
-    public function mount($employee)
+    public function mount()
     {
-        $this->employee = $employee;
         $this->form->setContract($this->employee);
+        
     }
 
     public function toggleFormEditContract()
@@ -95,23 +95,32 @@ new class extends Component
         </div>
         <div class="flex items-center gap-2">
 
-            <flux:button wire:click="toggleFormEditContract" variant="primary">
-
-                {{ __('Modifier le contrat') }}
-
-            </flux:button>
-
-            <flux:button
-                wire:click="toggleFormNewContract">
-                {{ __('Ajoutez un nouveau contrat') }}
-            </flux:button>
-            <flux:button variant="danger" wire:click="toggleFormEndContract" icon="arrow-right-start-on-rectangle" />
+            <flux:button tooltip="Editer le contrat existant" wire:click="toggleFormEditContract" variant="primary" icon="pencil" />
+            <flux:button tooltip="Ajouter un nouveau contrat" wire:click="toggleFormNewContract" icon="document-plus" />
+            <flux:button href="{{ route('employees.end.contract', ['employee' => $this->employee] ) }}" tooltip="Rupture ou suspension de contrat" icon="arrow-right-start-on-rectangle" variant="danger"  />
         </div>
     </div>
 
-
     @if ($showAddContractForm)
     <x-container wire:transition>
+        @if($createNewContract) 
+    <div class="mb-4">
+            <flux:heading level="1" class="font-bold"> 
+            Modifier le contrat 
+            
+        </flux:heading>
+        <flux:text class="text-gray-300">{{ __('Le présent contrat sera modifier.') }}</flux:text>
+    </div>
+    @else  
+    <div class="mb-4">
+            <flux:heading level="1" class="font-bold"> 
+            Ajouter un nouveau contrat 
+            
+        </flux:heading>
+        <flux:text class="text-gray-300">{{ __('Le présent contrat sera modifier et archiver, votre collaborateur sera averti de son nouveau contrat.') }}</flux:text>
+    </div>
+    @endif
+
         <form wire:submit="update" class="space-y-6" id="add-document-form" enctype="multipart/form-data">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <!-- Department -->
@@ -208,7 +217,7 @@ new class extends Component
     </x-container>
 
 
-    @if($this->employee->contractArchives)
+    @if($this->employee->contractArchives->isNotEmpty())
      <div>
             <flux:heading level="1" class="font-bold"> {{ __('Contrat archivé(s)') }}</flux:heading>
             <flux:text class="text-gray-300">{{ __('Consulter le(s) contrat(s) passé(s) de votre collaborateur.') }}</flux:text>

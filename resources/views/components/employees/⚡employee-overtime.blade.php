@@ -9,8 +9,8 @@ use Flux\Flux;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
-use Rap2hpoutre\FastExcel\Facades\FastExcel;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Rap2hpoutre\FastExcel\FastExcel;
@@ -20,33 +20,40 @@ new class extends Component
     use WithFileUploads;
 
     public $employee;
+
     public $importFile;
+
     public array $previewRows = [];
+
     public array $importErrors = [];
+
     public bool $readyToImport = false;
+
     public EmployeeOvertimeForm $form;
-    public function mount($employee)
+
+    public function mount()
     {
-        $this->employee = $employee;
         $this->form->hours_rate = app(CalculateHsupp::class)->hourRate($this->employee);
     }
+
     #[Computed]
     public function overtimes()
     {
         return $this->employee->overtimes ?? [];
     }
+
     public function save()
     {
         $this->form->employee_id = $this->employee->id;
         $this->form->multiplier = HsuppEnum::from($this->form->day_type)->dayType();
         $this->form->create();
-        $this->showOvertimeForm = false;
-        Flux::toast(variant: 'success', text: __('Heure(s) supp(s).  ajoutée(s) avec  succès.'));
+        Flux::toast(variant: 'success', text: __('toast.ov.addOvSuccess'));
         $this->form->resetExcept('hours_rate');
     }
+
     public function edit($overtimeId)
     {
-        $overtimeToUpdate  = Overtime::whereId($overtimeId)->whereEmployeeId($this->employee->id)
+        $overtimeToUpdate = Overtime::whereId($overtimeId)->whereEmployeeId($this->employee->id)
             ->firstOrFail();
 
         $this->form->setOvertime($overtimeToUpdate);
@@ -58,48 +65,51 @@ new class extends Component
         $this->form->multiplier = HsuppEnum::from($this->form->day_type)->dayType();
         $this->form->update();
         Flux::modal('edit-overtime-modal')->close();
-        Flux::toast(variant: 'success', text: 'Heure(s) supp(s). a été mise(s) à jour avec succès.');
+        Flux::toast(variant: 'success', text: __('toast.ov.updateOvSuccess'));
         $this->form->resetExcept('hours_rate');
     }
+
     public $overtimeToDelete = null;
+
     public function confirmBeforeDelete($idOvertimeWeWantToDelete)
     {
         $this->overtimeToDelete = Overtime::whereId($idOvertimeWeWantToDelete)
             ->whereEmployeeId($this->employee->id)
-            ->firstOrFail();
-        Flux::modal('delete-overtime-modal')->show();
-    }
-    public function delete()
-    {
-        if ($this->overtimeToDelete):
-            Gate::authorize('delete', [Overtime::class, $this->overtimeToDelete]);
-            $this->overtimeToDelete->delete();
-            Flux::toast(variant: 'success', text: 'Heure(s) supp(s). supprimé(e)s avec succès.');
-            Flux::modal('delete-overtime-modal')->close();
-            $this->overtimeToDelete = null;
-        endif;
+            ->first();
+
+        if ($this->overtimeToDelete) {
+            Flux::modal('delete-overtime-modal')->show();
+
+            return;
+        }
+        Flux::toast(variant: 'warning', text: __('toast.deleteNotFound'));
+
     }
 
-    public $showOvertimeForm = false;
+    public function delete()
+    {
+        if ($this->overtimeToDelete) {
+            Gate::authorize('delete', [Overtime::class, $this->overtimeToDelete]);
+            $this->overtimeToDelete->delete();
+            Flux::toast(variant: 'success', text: __('toast.ov.deleteOvSuccess'));
+
+            Flux::modal('delete-overtime-modal')->close();
+            $this->overtimeToDelete = null;
+        }
+    }
+
     public $snapshotRef = '';
-    public $showOvertimeArchives = false;
 
     #[Computed]
     public function overtimesSnapshot()
     {
-        $query = $this->employee->overtimesSnapshot()->latest();
+        $query = $this->employee->overtimesSnapshot;
 
         if (filled($this->snapshotRef)) {
-            $query->where('ref', 'like', '%' . trim($this->snapshotRef) . '%');
+            $query->where('ref', 'like', '%'.trim($this->snapshotRef).'%');
         }
 
-        return $query->get();
-    }
-
-
-    public function toggleOvertimeArchives(): void
-    {
-        $this->showOvertimeArchives = !$this->showOvertimeArchives;
+        return $query ?? [];
     }
 
     public function exportOvertimeArchives()
@@ -113,12 +123,7 @@ new class extends Component
             __('Alloc estimés') => $snapshot->alloc,
         ]);
 
-        return new FastExcel($rows)->download('archives_heures_supp_' . $this->employee->id . '_' . now()->format('m_Y') . '.xlsx');
-    }
-
-    public function toggleFormOvertime(): void
-    {
-        $this->showOvertimeForm = !$this->showOvertimeForm;
+        return new FastExcel($rows)->download('archives_heures_supp_'.$this->employee->id.'_'.now()->format('m_Y').'.xlsx');
     }
 
     public function previewImport(): void
@@ -127,8 +132,7 @@ new class extends Component
             'importFile' => ['required', 'file', 'mimes:xlsx,csv', 'max:5120'],
         ]);
 
-
-        $rows = (new FastExcel())->import($this->importFile->getRealPath());
+        $rows = (new FastExcel)->import($this->importFile->getRealPath());
         $this->previewRows = [];
         $this->importErrors = [];
 
@@ -142,14 +146,16 @@ new class extends Component
             ];
 
             $validator = Validator::make($data, [
-                'day_type' => ['required', \Illuminate\Validation\Rule::in(HsuppEnum::values())],
+                'day_type' => ['required', Rule::in(HsuppEnum::values())],
                 'hours' => ['required', 'numeric', 'min:1'],
                 'hours_rate' => ['required', 'numeric', 'min:1'],
                 'week' => ['required', 'numeric', 'regex:/^[1-5]$/'],
                 'notes' => ['nullable', 'string', 'max:100'],
             ]);
 
-            if ($validator->fails()) $this->importErrors[] = ['line' => $index + 2, 'errors' => $validator->errors()->all()];
+            if ($validator->fails()) {
+                $this->importErrors[] = ['line' => $index + 2, 'errors' => $validator->errors()->all()];
+            }
             $this->previewRows[] = $data;
         }
         $this->readyToImport = count($this->importErrors) === 0 && count($this->previewRows) > 0;
@@ -157,18 +163,22 @@ new class extends Component
 
     public function confirmImport(): void
     {
-        if (! $this->readyToImport) { Flux::toast(variant: 'danger', text: __('Corrigez les erreurs avant import.')); return; }
+        if (! $this->readyToImport) {
+            Flux::toast(variant: 'danger', text: __('toast.ov.launchImportFail'));
+
+            return;
+        }
         $path = $this->importFile->store('imports');
-        ImportEmployeeOvertimesJob::dispatch($path, $this->employee->id, auth()->id());
+        ImportEmployeeOvertimesJob::dispatch($path, $this->employee->id);
         $this->reset('importFile', 'previewRows', 'importErrors', 'readyToImport');
-        Flux::toast(variant: 'success', text: __('Import lancé. Le traitement est en cours.'));
+        Flux::toast(variant: 'success', text: __('toast.ov.launchImport'));
     }
 
     public function downloadTemplate()
     {
         $path = 'templates/overtimes_import_template.xlsx';
 
-        if (!Storage::exists($path)) {
+        if (! Storage::exists($path)) {
             $rows = collect([[
                 'day_type' => HsuppEnum::HEURE_SUPP_120->value,
                 'hours' => 2,
@@ -182,7 +192,6 @@ new class extends Component
 
         return Storage::download($path);
     }
-
 };
 ?>
 
@@ -196,16 +205,20 @@ new class extends Component
             </div>
             <p class="text-gray-400 text-sm">{{ __('Gérez les heures supplémenttaires de votre collaborateur') }}</p>
         </div>
-        <div>
-            <flux:button @click="activeForm = 'a' " variant="primary">
-                {{ __('Ajouter des heures supps') }}
-            </flux:button>
-            <flux:button @click="activeForm = 'b'" variant="ghost">
-                {{ __('Prévisualiser') }}
-            </flux:button>
-            <flux:button wire:click="downloadTemplate" variant="ghost">
-                {{ __('Télécharger le template') }}
-            </flux:button>
+        <div class="flex ites-center gap-2">
+            <flux:button @click="activeForm = 'a' " variant="primary" icon="plus" />
+            <flux:button @click="activeForm = activeForm === 'archives-overtimes' ? null : 'archives-overtimes'" icon="archive-box" />
+
+        <flux:dropdown>
+                <flux:button icon="bars-3" />
+                <flux:menu>
+
+                    <flux:menu.item @click="activeForm = 'b' ">
+                        {{ __('Importer des Heures supps') }}
+                    </flux:menu.item>
+                   
+                </flux:menu>
+            </flux:dropdown>
 
         </div>
 
@@ -240,8 +253,36 @@ new class extends Component
                 </flux:button>
                 <flux:button type="submit" variant="primary">{{ __('overtime.button.save') }}</flux:button>
             </div>
+        </form>       
+        <flux:callout icon="information-circle" class="mt-5">
+            <flux:callout.heading> Information</flux:callout.heading>
+            <flux:callout.text>
+                La base de calcul est égale au : (salaire catégoriel échelonné + diverses primes assimilées au salaire
+                (prime de technicité, de rendement, de fonction))*nbres d'heures * pourcentage des heures supplémentaires.
+                <flux:callout.link href="#">{{ __() }}</flux:callout.link>
+            </flux:callout.text>
+        </flux:callout>
+    </x-container>
+
+    <x-container x-show="activeForm === 'b'" x-transition>
+        <form wire:submit="previewImport" class="space-y-4">
+            <div class="flex justify-between align-center">
+
+                <flux:heading level="1" size="lg" class="mb-5">{{ __('Importer les heures supp') }}</flux:heading>
+                
+                <flux:button wire:click="downloadTemplate" icon="arrow-down-tray">
+                    {{ __('Télécharger le template') }}
+                </flux:button>
+            </div>
+                <flux:input type="file" wire:model="importFile" label="{{ __('Fichier Excel (xlsx/csv)') }}" />
+            
+            <div class="flex justify-end items-center gap-2">
+                <flux:button @click="activeForm = null">{{ __('Cancel') }}</flux:button>
+                <flux:button type="submit" variant="primary">{{ __('Importer') }}</flux:button>
+            </div>
         </form>
-            @if(!empty($previewRows))
+
+        @if(!empty($previewRows))
                 <div class="mt-4">
                     <flux:text>{{ __("Lignes prévisualisées") }}: {{ count($previewRows) }}</flux:text>
                     @if(!empty($importErrors))
@@ -259,26 +300,6 @@ new class extends Component
                     </div>
                 </div>
             @endif
-
-
-        <flux:callout icon="information-circle" class="mt-5">
-            <flux:callout.heading> Information</flux:callout.heading>
-            <flux:callout.text>
-                La base de calcul est égale au : (salaire catégoriel échelonné + diverses primes assimilées au salaire
-                (prime de technicité, de rendement, de fonction))*nbres d'heures * pourcentage des heures supplémentaires.
-                <flux:callout.link href="#">{{ __() }}</flux:callout.link>
-            </flux:callout.text>
-        </flux:callout>
-    </x-container>
-
-    <x-container x-show="activeForm === 'b'" x-transition>
-        <form wire:submit="previewImport" class="space-y-4">
-            <flux:input type="file" wire:model="importFile" label="{{ __('Fichier Excel (xlsx/csv)') }}" />
-            <div class="flex justify-end items-center gap-2">
-                <flux:button @click="activeForm = null">{{ __('Cancel') }}</flux:button>
-                <flux:button type="submit" variant="primary">{{ __('Importer') }}</flux:button>
-            </div>
-        </form>
     </x-container>
 
     @if(!$this->overtimes->isEmpty())
@@ -308,10 +329,50 @@ new class extends Component
             'color' => 'emerald',
         ]
     ]" />
-
-
     @endif
 
+    <x-container x-show="activeForm === 'archives-overtimes'" x-transition>
+        <div class="mb-4 flex items-end justify-between gap-4">
+            <div>
+                <flux:heading level="2">Historique des heures supp. (snapshots)</flux:heading>
+                <flux:text>Filtrez par ref (format m-Y).</flux:text>
+            </div>
+            <div class="flex items-center gap-2">
+                <flux:input wire:model.live.debounce.300ms="snapshotRef" :label="__('Filtrer par ref')" :placeholder="__('ex: 05-2026')" />
+                <flux:button wire:click="exportOvertimeArchives" icon="arrow-up-tray">{{ __('Exporter') }}</flux:button>
+                
+            </div>
+        </div>
+
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
+            <thead class="bg-gray-50 dark:bg-neutral-700">
+                <tr>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Ref</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Semaine</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Type</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Heures</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Taux</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Alloc</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
+                @forelse($this->overtimesSnapshot as $snapshot)
+                <tr wire:key="ot-snapshot-{{ $snapshot->id }}">
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->ref }}</td>
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->week }}</td>
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->day_type?->label() }}</td>
+                    <td class="px-6 py-4 text-sm">{{ $snapshot->hours }}</td>
+                    <td class="px-6 py-4 text-sm">{{ number_format($snapshot->hours_rate, 0, ',', ' ') }} F cfa</td>
+                    <td class="px-6 py-4 text-sm">{{ number_format($snapshot->alloc, 0, ',', ' ') }} F cfa</td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="6" class="text-center py-8"> <x-empty-state/></td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </x-container>
     <x-container>
         <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
             <thead class="bg-gray-50 dark:bg-neutral-700">
@@ -403,54 +464,6 @@ new class extends Component
 
 
 
-
-    <div class="mt-4 mb-2 flex items-center gap-2">
-        <flux:button @click="activeForm = activeForm === 'archives-overtimes' ? null : 'archives-overtimes'" variant="filled">
-            {{ __('Afficher les archives') }}
-        </flux:button>
-    </div>
-
-    <x-container x-show="activeForm === 'archives-overtimes'" x-transition>
-        <div class="mb-4 flex items-end justify-between gap-4">
-            <div>
-                <flux:heading level="2">Historique des heures supp. (snapshots)</flux:heading>
-                <flux:text>Filtrez par ref (format m-Y).</flux:text>
-            </div>
-            <div class="flex items-center gap-2">
-                <flux:input wire:model.live.debounce.300ms="snapshotRef" :label="__('Filtrer par ref')" :placeholder="__('ex: 05-2026')" />
-                <flux:button wire:click="exportOvertimeArchives" icon="arrow-up-tray">{{ __('Exporter') }}</flux:button>
-            </div>
-        </div>
-
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
-            <thead class="bg-gray-50 dark:bg-neutral-700">
-                <tr>
-                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Ref</th>
-                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Semaine</th>
-                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Type</th>
-                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Heures</th>
-                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Taux</th>
-                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">Alloc</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
-                @forelse($this->overtimesSnapshot as $snapshot)
-                <tr wire:key="ot-snapshot-{{ $snapshot->id }}">
-                    <td class="px-6 py-4 text-sm">{{ $snapshot->ref }}</td>
-                    <td class="px-6 py-4 text-sm">{{ $snapshot->week }}</td>
-                    <td class="px-6 py-4 text-sm">{{ $snapshot->day_type?->label() }}</td>
-                    <td class="px-6 py-4 text-sm">{{ $snapshot->hours }}</td>
-                    <td class="px-6 py-4 text-sm">{{ number_format($snapshot->hours_rate, 0, ',', ' ') }} F cfa</td>
-                    <td class="px-6 py-4 text-sm">{{ number_format($snapshot->alloc, 0, ',', ' ') }} F cfa</td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="6" class="text-center py-8">Aucune heure supp. snapshot trouvée.</td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </x-container>
 
     <flux:modal name="edit-overtime-modal" class="min-w-225">
         <div class="space-y-6 pt-5">
