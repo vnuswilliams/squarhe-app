@@ -100,8 +100,7 @@ enum RemunerationEnum: string
     case AVANTAGE_REP_INTERNET = 'avantage_rep_internet';
     case AVANTAGE_REP_GARDINNAGE = 'avantage_rep_gardinnage';
 
-        // --- AUTRE ---
-    case AUTRE = 'autre';
+       
     public static function forSelect(): array
     {
         return [
@@ -304,7 +303,6 @@ enum RemunerationEnum: string
             self::AVANTAGE_REP_GARDINNAGE => 'Iran - gardinnage',
 
 
-            self::AUTRE => 'Autre élément de rémunération',
         };
     }
     public function taux(): ?float

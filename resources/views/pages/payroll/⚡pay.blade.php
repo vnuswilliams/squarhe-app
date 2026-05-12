@@ -10,10 +10,7 @@ use Livewire\Component;
 new #[Title('Paie')]  class extends Component
 
 {
-public function mount()
-{
-    
-}
+
 
     #[Computed()]
     public function company()
@@ -129,29 +126,31 @@ public function mount()
             </div>
         </div>
     </div>
+    <x-ui.tabs variant="non-contained">
+    <x-ui.tab.group>
+        <x-ui.tab label="Vue d'ensemble" icon="globe-alt" />
+        <x-ui.tab label="Bulletin de paie" icon="document" />
+        <x-ui.tab label="Livre de paie" icon="book-open" />
+        <x-ui.tab label="Déclarations" icon="building-office-2" />
+    </x-ui.tab.group>
+    <x-ui.tab.panel>
+    <livewire:payroll.payroll-general :company="$this->company" />
 
-<x-tabs :tabs="['Vue d\'ensemble', 'Bulletin de paie', 'Livre de paie', 'Déclarations']">
-        <x-slot:tab1>
-            <livewire:payroll.payroll-general :company="$this->company" />
-        </x-slot:tab1>
-        <x-slot:tab2>
-            <livewire:payroll.payroll-payslips :company="$this->company" />
-        </x-slot:tab2>
+    </x-ui.tab.panel>
+    <x-ui.tab.panel>
+    <livewire:payroll.payroll-payslips :company="$this->company" />
 
-        <x-slot:tab3>
-            <livewire:payroll.payroll-book :company="$this->company" />
+    </x-ui.tab.panel>
+    <x-ui.tab.panel>
+    <livewire:payroll.payroll-book :company="$this->company" />
 
-        </x-slot:tab3>
+    </x-ui.tab.panel>
+    <x-ui.tab.panel>
+    <livewire:payroll.payroll-declaration :company="$this->company" />
 
-        <x-slot:tab4>
-            <livewire:payroll.payroll-declaration :company="$this->company" />
-        </x-slot:tab4>
 
-        {{--<x-slot:tab5>
-            <livewire:payroll.payroll-archive />
-        </x-slot:tab5>--}}
-
-    </x-tabs>
+    </x-ui.tab.panel>
+</x-ui.tabs>
 
 
 

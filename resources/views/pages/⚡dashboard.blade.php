@@ -111,7 +111,10 @@ new class extends Component
         </button>
       </div>
     </div>
-
+    <div class="px-6 pb-6 mt-6">
+    <livewire:dashboard.remuneration-overview-chart />
+    <livewire:dashboard.employee-overview-chart />
+</div>
     <!-- Scrollable Body -->
     <x-delta-card  :cards="[
             [

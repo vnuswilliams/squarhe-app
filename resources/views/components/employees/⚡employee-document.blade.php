@@ -1,5 +1,6 @@
 <?php
 
+use App\Concerns\HasTableOptions;
 use App\Enums\DocumentAccessEnum;
 use App\Enums\DocumentTypeEnum;
 use App\Livewire\Forms\EmployeeDocumentForm;
@@ -11,89 +12,112 @@ use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Livewire\WithoutUrlPagination;
+use Livewire\WithPagination;
 
-new class extends Component {
-    use WithFileUploads;
+new class extends Component{  
+    use HasTableOptions;
+use WithFileUploads;
+use WithoutUrlPagination, WithPagination;
+
     public $employee;
+
     public EmployeeDocumentForm $form;
 
     #[Computed]
     public function documents()
     {
-        return $this->employee->documents;
+        $paginator = $this->baseQuery()
+            ->when(filled($this->searchQuery), fn($q) => $this->applySearch($q))
+            ->when(filled($this->sortBy), fn($q) => $this->applySorting($q))
+            ->latest()
+            ->paginate(15);
+
+        // Required by WithSelection so "select all on page" works correctly.
+        $this->visibleIds = $paginator->pluck("id")->map(fn($id) => (string) $id)->toArray();
+
+        return $paginator;
     }
-   
+
+    protected function applySearch($query)
+    {
+        return $query->where(function ($q) {
+            $q->where("name", "like", "%" . $this->searchQuery . "%")
+                ->orWhere("notes", "like", "%" . $this->searchQuery . "%")
+                ->orWhere("added_by", "like", "%" . $this->searchQuery . "%")
+                ->orWhere("type", "like", "%" . $this->searchQuery . "%");
+        });
+    }
+
+    protected function baseQuery()
+    {
+        return Document::query()->whereEmployeeId($this->employee->id);
+    }
+
     public function save()
     {
         $this->form->employee_id = $this->employee->id;
         $this->form->isCreating = true;
 
         $this->form->create();
-       
-        Flux::toast(variant: 'success', text: __("toast.document.createDocumentSuccessfull"));
+
+        Flux::toast(variant: "success", text: __("toast.document.createDocumentSuccessfull"));
         $this->form->reset();
     }
 
-
     public function edit($documentId)
     {
-        $documentToUpdate  = Document::whereId($documentId)
-            ->whereEmployeeId($this->employee->id)
-            ->firstOrFail();
+        $documentToUpdate = Document::whereId($documentId)->whereEmployeeId($this->employee->id)->firstOrFail();
 
         $this->form->setDocument($documentToUpdate);
-        Flux::modal('edit-document-modal')->show();
+        Flux::modal("edit-document-modal")->show();
     }
 
     public function update()
     {
         $this->form->update();
-        Flux::modal('edit-document-modal')->close();
-        Flux::toast(variant: 'success', text: __('toast.document.updateDocumentSuccessfull') );
-       
+        Flux::modal("edit-document-modal")->close();
+        Flux::toast(variant: "success", text: __("toast.document.updateDocumentSuccessfull"));
 
         $this->form->reset();
     }
 
-
-
     public $documentToDelete = null;
+
     public function confirmBeforeDelete($idDocumentWeWantToDelete)
     {
-        $this->documentToDelete = Document::whereId($idDocumentWeWantToDelete)
-            ->whereEmployeeId($this->employee->id)
-            ->firstOrFail();
-        Flux::modal('delete-document-modal')->show();
+        $this->documentToDelete = Document::whereId($idDocumentWeWantToDelete)->whereEmployeeId($this->employee->id)->firstOrFail();
+        Flux::modal("delete-document-modal")->show();
     }
+
     public function delete()
     {
-        if ($this->documentToDelete):
-            Gate::authorize('delete', [Document::class, $this->documentToDelete]);
+        if ($this->documentToDelete) {
+            Gate::authorize("delete", [Document::class, $this->documentToDelete]);
 
-            Storage::disk('public')->exists($this->documentToDelete->path) ?: Storage::disk('public')->delete($this->documentToDelete->path);
-
+            Storage::disk("public")->exists($this->documentToDelete->path) ?: Storage::disk("public")->delete($this->documentToDelete->path);
 
             $this->documentToDelete->delete();
 
-            Flux::toast(variant: 'success', text: __('toast.document.deleteDocumentSuccessfull'));
-           
-            Flux::modal('delete-document-modal')->close();
+            Flux::toast(variant: "success", text: __("toast.document.deleteDocumentSuccessfull"));
+
+            Flux::modal("delete-document-modal")->close();
             $this->documentToDelete = null;
-        endif;
+        }
     }
 
     public function downloadDoc($id)
     {
-        $docToDownload = Document::whereId($id)->whereEmployeeId($this->employee->id)
-            ->firstOrFail();
-        Gate::authorize('view', [Document::class, $docToDownload]);
+        $docToDownload = Document::whereId($id)->whereEmployeeId($this->employee->id)->firstOrFail();
+        Gate::authorize("view", [Document::class, $docToDownload]);
 
-        $name =  Str::snake($this->employee->shortName . ' ' . $docToDownload->type?->value . ' ' . $docToDownload->name . ' ' . now()->format('_d_m_Y_H_i_s'));
-        return Storage::disk('public')->download($docToDownload->path, $name);
+        $name = Str::snake($this->employee->shortName . " " . $docToDownload->type?->value . " " . $docToDownload->name . " " . now()->format("_d_m_Y_H_i_s"));
+
+        return Storage::disk("public")->download($docToDownload->path, $name);
     }
 };
 ?>
-<div x-data="{activeForm : null}" >
+<div x-data="{ activeForm: null }">
     <div class="flex items-center justify-between">
         <div>
             <flux:heading level="1" class="font-bold">Ajouter un document a votre collaborateur</flux:heading>
@@ -102,18 +126,17 @@ new class extends Component {
 
         <flux:button tooltip="Ajouter un nouveau document" @click="activeForm = 'a' " variant="primary" icon="plus" />
     </div>
-    @if($this->documents->isNotEmpty())
-    {{-- Delta Card for Documents --}}
-        <x-delta-card :cards="[
+    @if ($this->documents->isNotEmpty())
+        {{-- Delta Card for Documents --}}
+        <x-delta-card :cards='[
             [
-                'label' => 'Total Documents',
-                'current' => $this->documents()->count(),
-                'delta' => '',
-                'color' => 'blue',
-            ]
-        ]" />
-
-        @endif
+                "label" => "Total Documents",
+                "current" => $this->documents()->count(),
+                "delta" => "",
+                "color" => "blue",
+            ],
+        ]'  />
+    @endif
     <x-container x-show="activeForm === 'a' " x-transition>
         <form wire:submit="save" class="space-y-6" id="add-document-form" enctype="multipart/form-data">
 
@@ -127,8 +150,7 @@ new class extends Component {
                 <flux:select wire:model="form.type" label="Type de document" placeholder="Choisir un type">
                     <option value="">Choisir une option</option>
                     @foreach (DocumentTypeEnum::options() as $option)
-                    <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
-
+                        <option value="{{ $option["value"] }}">{{ $option["label"] }}</option>
                     @endforeach
 
                 </flux:select>
@@ -136,7 +158,7 @@ new class extends Component {
                 <flux:select wire:model="form.access" label="Niveau d’accès" placeholder="Choisir le niveau d’accès">
                     <option value="">Choisir une option</option>
                     @foreach (DocumentAccessEnum::options() as $option)
-                    <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
+                        <option value="{{ $option["value"] }}">{{ $option["label"] }}</option>
                     @endforeach
                 </flux:select>
             </div>
@@ -156,7 +178,7 @@ new class extends Component {
             {{-- Bouton d’enregistrement --}}
             <div class="flex items-center justify-end  gap-2">
                 <flux:button @click="activeForm = null ">
-                    {{ __('Cancel') }}
+                    {{ __("Cancel") }}
 
                 </flux:button>
                 <flux:button variant="primary" type="submit" class="cursor-pointer w-full">
@@ -170,89 +192,96 @@ new class extends Component {
 
 
     <x-container>
-       
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
-            <thead class="bg-gray-50 dark:bg-neutral-700">
-                <tr>
-                    <th scope="col"
-                        class="px-6 py-3 text-start cursor-pointer text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">
-                        {{ __('Nom du doc.') }}
-                    </th>
-
-                    <th scope="col"
-                        class="px-6 py-3 text-start cursor-pointer text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">
-                        {{ __('Type') }}
-                    </th>
-                    <th scope="col"
-                        class="px-6 py-3 text-start cursor-pointer text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">
-                        {{ __('Ajouté par') }}
-                    </th>
-                    <th scope="col"
-                        class="px-6 py-3 text-start cursor-pointer text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">
-                        {{ __('Accesible par') }}
-                    </th>
-                    <th scope="col"
-                        class="px-6 py-3 text-start cursor-pointer text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">
-                        {{ __('Ajouté le') }}
-                    </th>
-                    <th scope="col"
-                        class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">
-                        {{ __('Actions') }}
-                    </th>
-                </tr>
-            </thead>
-
-            <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
-                @forelse ($this->documents as $doc)
-                <tr wire:key="{{ $doc->id }}">
-
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">
-                        <flux:heading class="flex items-center gap-2">
-                            {{ $doc->name }}
-                            <flux:tooltip toggleable>
-                                <flux:button icon="information-circle" size="sm" variant="ghost" />
-                                <flux:tooltip.content>
-                                    {{ $doc->notes }}
-                                </flux:tooltip.content>
-                            </flux:tooltip>
-
-                        </flux:heading>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">
-                        {{ $doc->type->label()                    }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">
-                        {{ $doc->added_by }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">
-                        {{ $doc->access }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">
-                        {{ $doc->created_at->translatedFormat('d M Y') }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex items-center gap-2">
-                            <flux:button variant="primary" icon="arrow-down-tray" siez="sm"
-                                wire:click="downloadDoc({{ $doc->id }})" />
-                            <flux:button wire:click="edit({{ $doc->id }})" size="sm" variant="ghost" icon="pencil" />
+        <div class="flex items-center gap-2">
 
 
-                            <flux:button wire:click="confirmBeforeDelete({{ $doc->id }})"
-                                size="sm"
-                                variant="ghost" icon="trash" />
-                        </div>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="7" class="text-center py-8">
-                        <x-empty-state message=" 
-                    {{ __('Aucun documents trouvés pour ').$this->employee->name }}" />
-                    </td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
+            {{-- Search --}}
+            <div class="ml-auto">
+                <flux:input placeholder='{{ __("Rechercher...") }}' wire:model.live.debounce.300ms="searchQuery" />
+            </div>
+
+        </div>
+        <x-ui.table.container>
+
+            <x-ui.table variant="default" wire:loading loadOn="pagination, search, sorting">
+                <x-ui.table.header sticky class="dark:bg-neutral-900 bg-white" id="table">
+                    <x-ui.table.columns>
+                        <x-ui.table.head column="name" sortable :currentSortBy="$sortBy" :currentSortDir="$sortDir">
+                            {{ __("Nom du doc.") }}
+                        </x-ui.table.head>
+
+                        <x-ui.table.head column="name" sortable :currentSortBy="$sortBy" :currentSortDir="$sortDir">
+                            {{ __("Type") }}
+                        </x-ui.table.head>
+                        <x-ui.table.head column="name" sortable :currentSortBy="$sortBy" :currentSortDir="$sortDir">
+                            {{ __("Ajouté par") }}
+                        </x-ui.table.head>
+                        <x-ui.table.head column="name" sortable :currentSortBy="$sortBy" :currentSortDir="$sortDir">
+                            {{ __("Accesible par") }}
+                        </x-ui.table.head>
+                        <x-ui.table.head column="name" sortable :currentSortBy="$sortBy" :currentSortDir="$sortDir">
+                            {{ __("Ajouté le") }}
+                        </x-ui.table.head>
+                        <x-ui.table.head column="name" sortable :currentSortBy="$sortBy" :currentSortDir="$sortDir">
+                            {{ __("Actions") }}
+                        </x-ui.table.head>
+
+                    </x-ui.table.columns>
+                </x-ui.table.header>
+
+                <x-ui.table.rows>
+                    @forelse ($this->documents as $doc)
+                        <x-ui.table.row :key="$doc->id"
+                            class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+
+                            <x-ui.table.cell>
+                                <flux:heading class="flex items-center gap-2">
+                                    {{ $doc->name }}
+                                    <flux:tooltip toggleable>
+                                        <flux:button icon="information-circle" size="sm" variant="ghost" />
+                                        <flux:tooltip.content>
+                                            {{ $doc->notes }}
+                                        </flux:tooltip.content>
+                                    </flux:tooltip>
+
+                                </flux:heading>
+                            </x-ui.table.cell>
+                            <x-ui.table.cell>
+                                {{ $doc->type->label() }}
+                            </x-ui.table.cell>
+                            <x-ui.table.cell>
+                                {{ $doc->added_by }}
+                            </x-ui.table.cell>
+                            <x-ui.table.cell>
+                                {{ $doc->access }}
+                            </x-ui.table.cell>
+                            <x-ui.table.cell>
+                                {{ $doc->created_at->translatedFormat("d M Y") }}
+                            </x-ui.table.cell>
+                            <x-ui.table.cell>
+                                <div class="flex items-center gap-2">
+                                    <flux:button variant="primary" icon="arrow-down-tray" siez="sm"
+                                        wire:click="downloadDoc({{ $doc->id }})" />
+                                    <flux:button wire:click="edit({{ $doc->id }})" size="sm" variant="ghost"
+                                        icon="pencil" />
+
+
+                                    <flux:button wire:click="confirmBeforeDelete({{ $doc->id }})" size="sm"
+                                        variant="ghost" icon="trash" />
+                                </div>
+                            </x-ui.table.cell>
+                        </x-ui.table.row>
+                    @empty
+                        <x-ui.table.empty>
+                            <x-empty-state
+                                message="                     {{ __("Aucun documents trouvés pour ") . $this->employee->name }}" />
+                        </x-ui.table.empty>
+                    @endforelse
+                </x-ui.table.rows>
+            </x-ui.table>
+            {{ $this->documents->links(data: ["scrollTo" => "#table"]) }}
+
+        </x-ui.table.container>
 
     </x-container>
 
@@ -274,16 +303,16 @@ new class extends Component {
                     <flux:select wire:model="form.type" label="Type de document" placeholder="Choisir un type">
                         <option value="">Choisir une option</option>
                         @foreach (DocumentTypeEnum::options() as $option)
-                        <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
-
+                            <option value="{{ $option["value"] }}">{{ $option["label"] }}</option>
                         @endforeach
 
                     </flux:select>
                     {{-- Droit d’accès --}}
-                    <flux:select wire:model="form.access" label="Niveau d’accès" placeholder="Choisir le niveau d’accès">
+                    <flux:select wire:model="form.access" label="Niveau d’accès"
+                        placeholder="Choisir le niveau d’accès">
                         <option value="">Choisir une option</option>
                         @foreach (DocumentAccessEnum::options() as $option)
-                        <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
+                            <option value="{{ $option["value"] }}">{{ $option["label"] }}</option>
                         @endforeach
                     </flux:select>
                 </div>
@@ -294,7 +323,8 @@ new class extends Component {
                     placeholder="Ex : Contrat du salarié pour l'année 2025" rows="3" />
 
                 {{-- Fichier --}}
-                <flux:input type="file" wire:model="form.file" label="Fichier" accept=".pdf,.doc,.docx,.jpg,.png" />
+                <flux:input type="file" wire:model="form.file" label="Fichier"
+                    accept=".pdf,.doc,.docx,.jpg,.png" />
 
 
 
@@ -310,11 +340,11 @@ new class extends Component {
             <div class="flex items-center justify-between">
                 <flux:heading size="lg">Supprimer ce document</flux:heading>
             </div>
-            @if($documentToDelete)
-            <p>
-                Voulez vous vraiment supprimer le document {{$documentToDelete->name}} ?
-            </p>
-            <p>Cette action est irréversiblee.</p>
+            @if ($documentToDelete)
+                <p>
+                    Voulez vous vraiment supprimer le document {{ $documentToDelete->name }} ?
+                </p>
+                <p>Cette action est irréversiblee.</p>
             @endif
 
             <div class="flex justify-end gap-2  pt-4">

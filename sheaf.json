@@ -1,0 +1,38 @@
+{
+    "project_hash": "de24dcc7-f947-4692-89c6-dbc69540206a",
+    "components": {
+        "table": {
+            "installationTime": 1778472294
+        },
+        "button": {
+            "installationTime": 1778472300
+        },
+        "icon": {
+            "installationTime": 1778472302
+        },
+        "pagination": {
+            "installationTime": 1778472305
+        },
+        "select": {
+            "installationTime": 1778472309
+        },
+        "popup": {
+            "installationTime": 1778472310
+        },
+        "text": {
+            "installationTime": 1778472317
+        },
+        "dropdown": {
+            "installationTime": 1778472318
+        },
+        "tabs": {
+            "installationTime": 1778551856
+        },
+        "empty": {
+            "installationTime": 1778555101
+        },
+        "kbd": {
+            "installationTime": 1778555145
+        }
+    }
+}

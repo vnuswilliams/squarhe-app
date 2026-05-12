@@ -35,6 +35,20 @@ use Illuminate\Support\Str;
 ])]
 class Employee extends Model
 {
+
+    //contenu du array data 
+    /*
+    'birth_date',
+    'nationality',
+    'civility',
+    'child' = nbres d'enfnts,
+    'niu',
+    'cnps_number',
+    'category',
+    'average_salary',
+    'smic',
+
+    */
     use EmployeeAccessors, HasUuids, HasSnaps;
 
     protected function casts(): array

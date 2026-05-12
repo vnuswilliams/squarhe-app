@@ -1,7 +1,9 @@
 <?php
 
+use App\Concerns\HasTableOptions;
 use App\Enums\ImpactEnum;
 use App\Enums\PeriodicityEnum;
+use App\Enums\PermissionEnum;
 use App\Enums\RemunerationEnum;
 use App\Jobs\ImportEmployeeRemunerationsJob;
 use App\Livewire\Forms\EmployeeRemunerationForm;
@@ -14,11 +16,15 @@ use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Livewire\WithoutUrlPagination;
+use Livewire\WithPagination;
 use Rap2hpoutre\FastExcel\FastExcel;
 
 new class extends Component
 {
+    use HasTableOptions;
     use WithFileUploads;
+    use WithoutUrlPagination, WithPagination;
 
     public $employee;
 
@@ -44,7 +50,48 @@ new class extends Component
     #[Computed]
     public function remunerations()
     {
-        return $this->employee->remunerations ?? [];
+        $paginator = $this->baseQuery()
+            ->when(filled($this->searchQuery), fn ($q) => $this->applySearch($q))
+            ->when(filled($this->sortBy), fn ($q) => $this->applySorting($q))
+            ->latest()
+            ->paginate(15);
+
+        // Required by WithSelection so "select all on page" works correctly.
+        $this->visibleIds = $paginator->pluck('id')
+            ->map(fn ($id) => (string) $id)
+            ->toArray();
+
+        return $paginator;
+    }
+
+    /**
+     * Aggregate stats across ALL remunerations (no pagination) — used by the delta cards.
+     */
+    #[Computed]
+    public function remunerationStats()
+    {
+        return $this->employee->remunerations;
+    }
+
+    /**
+     * Core Eloquent query shared by all methods.
+     */
+    protected function baseQuery()
+    {
+        return Remuneration::query()->where('employee_id', $this->employee->id);
+    }
+
+    /**
+     * Sheaf WithSearch: define which columns are searched.
+     */
+    protected function applySearch($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('name', 'like', '%'.$this->searchQuery.'%')
+                ->orWhere('notes', 'like', '%'.$this->searchQuery.'%')
+                ->orWhere('added_by', 'like', '%'.$this->searchQuery.'%')
+                ->orWhere('amount', 'like', '%'.$this->searchQuery.'%');
+        });
     }
 
     public function save()
@@ -100,6 +147,23 @@ new class extends Component
             Flux::modal('delete-remuneration-modal')->close();
             $this->remunerationToDelete = null;
         }
+    }
+
+    /**
+     * Bulk-delete all selected rows.
+     */
+    public function deleteSelected()
+    {
+        // Gate::authorize('delete', Remuneration::class);
+
+        // eauth()->user()->can(PermissionEnum::DELETE_REMUNERATION->ownerPermission());
+
+        $this->baseQuery()
+            ->whereIn('id', $this->selectedIds)
+            ->delete();
+
+        $this->deselectAll();
+        Flux::toast(variant: 'success', text: __('toast.remun.deleteElem'));
     }
 
     public $avgSalary;
@@ -220,6 +284,20 @@ new class extends Component
 
         return Storage::download($path);
     }
+
+    public function exportSelected()
+    {
+        Flux::toast(variant: 'warning', text : 'Fonctionnalité disponible très prochainement');
+
+        return;
+        $export = $this->baseQuery();
+        if (filled($this->selectedIds)) {
+            $export = $export->whereIn('id', $this->selectedIds);
+
+        }
+
+        return $this->csv($export->get());
+    }
 };
 ?>
 
@@ -339,127 +417,39 @@ new class extends Component
         </form>
     </x-container>
 
-   @if($this->remunerations->isNotEmpty())
-
+    {{-- ─── DELTA CARDS (stats sur toutes les rémuné., sans pagination) ─── --}}
+    @if($this->remunerationStats->isNotEmpty())
         <x-delta-card :cards="[
             [
                 'label' => 'Total éléments de rémunération',
-                'current' => $this->remunerations->sum('amount').' F cfa',
+                'current' => $this->remunerationStats->sum('amount').' F cfa',
                 'delta' => '',
                 'color' => 'blue'
             ],
             [
                 'label' => 'Eléments côtisable',
-                'current' =>  $this->remunerations->where('impact', ImpactEnum::TAXCOT)->sum('amount') +
-                $this->remunerations->where('impact', ImpactEnum::COTISABLE)->sum('amount').' F cfa',
+                'current' => ($this->remunerationStats->where('impact', ImpactEnum::TAXCOT)->sum('amount') +
+                    $this->remunerationStats->where('impact', ImpactEnum::COTISABLE)->sum('amount')).' F cfa',
                 'delta' => '',
                 'color' => 'emerald'
             ],
             [
                 'label' => 'Eléments taxable',
-                'current' =>  $this->remunerations->where('impact', ImpactEnum::TAXCOT)->sum('amount') +
-                $this->remunerations->where('impact', ImpactEnum::TAXABLE)->sum('amount').' F cfa',
+                'current' => ($this->remunerationStats->where('impact', ImpactEnum::TAXCOT)->sum('amount') +
+                    $this->remunerationStats->where('impact', ImpactEnum::TAXABLE)->sum('amount')).' F cfa',
                 'delta' => '',
                 'color' => 'rose'
             ],
             [
                 'label' => 'Eléments neutres',
-                'current' =>  $this->remunerations->where('impact', ImpactEnum::NEUTRE)->sum('amount') .' F cfa',
+                'current' => $this->remunerationStats->where('impact', ImpactEnum::NEUTRE)->sum('amount').' F cfa',
                 'delta' => '',
                 'color' => 'rose'
             ],
         ]" />
     @endif
-        <x-container>
 
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
-            <thead class="bg-gray-50 dark:bg-neutral-700">
-                <tr>
-
-                    <th scope="col"
-                        class="px-6 py-3 text-start cursor-pointer text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">
-                        {{ __('Nom') }}
-                    </th>
-                    <th scope="col"
-                        class="px-6 py-3 text-start cursor-pointer text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">
-                        {{ __('Type') }}
-
-                    </th>
-                    <th scope="col"
-                        class="px-6 py-3 text-start cursor-pointer text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">
-                        {{ __('Montant') }}
-                    </th>
-                    <th scope="col"
-                        class="px-6 py-3 text-start cursor-pointer text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">
-                        {{ __('Périodicité') }}
-                    </th>
-                    <th scope="col"
-                        class="px-6 py-3 text-start cursor-pointer text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">
-                        {{ __('Impact') }}
-                    </th>
-                    <th scope="col"
-                        class="px-6 py-3 text-start cursor-pointer text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">
-                        {{ __('Ajouté par') }}
-                    </th>
-                    <th scope="col"
-                        class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400">
-                        {{ __('Actions') }}
-                    </th>
-                </tr>
-            </thead>
-
-            <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
-                @forelse($this->remunerations as $remun)
-                <tr wire:key="{{ $remun->id }}">
-
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">
-                        <flux:heading class="flex items-center gap-2">
-                            {{ $remun->name->label() }}
-                            <flux:tooltip toggleable>
-                                <flux:button icon="information-circle" size="sm" variant="ghost" />
-                                <flux:tooltip.content>
-                                    {{ $remun->notes }}
-                                </flux:tooltip.content>
-                            </flux:tooltip>
-
-                        </flux:heading>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">
-                        {{ $remun->type->label() }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">
-                        {{ $remun->amount }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">
-                        {{ $remun->periodicity->label() }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">
-                        {{ $remun->impact->label()}}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">
-                        {{ $remun->added_by }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex items-center gap-2">
-                            <flux:button wire:click="edit({{ $remun->id }})" size="sm" variant="ghost" icon="pencil" />
-                            <flux:button wire:click="confirmBeforeDelete({{ $remun->id }})" size="sm" variant="ghost" icon="trash" />
-                        </div>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="7" class="text-center py-8">
-                        <x-empty-state message=" 
-                    {{ __('Aucun élément(s) de rémun. trouvé(s) pour '). $this->employee->name.'.' }}" />
-                    </td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
-
-    </x-container>
-
-
+    {{-- ─── ARCHIVES / SNAPSHOTS ─── --}}
     <x-container x-show="activeForm === 'archives-remunerations'" x-transition>
         <div class="mb-4 flex items-end justify-between gap-4">
             <div>
@@ -501,6 +491,163 @@ new class extends Component
         </table>
     </x-container>
 
+    {{-- ─── MAIN TABLE (Sheaf UI) ─── --}}
+    <x-container>
+        {{-- Toolbar : bulk actions | search | column visibility --}}
+        <div class="flex items-center gap-2">
+
+            {{-- Bulk-delete : visible seulement quand des lignes sont sélectionnées --}}
+            <div style="display:none;" wire:show="selectedIds.length">
+                <flux:button
+                    wire:click="deleteSelected"
+                    wire:confirm="{{ __('Voulez-vous vraiment supprimer les éléments sélectionnés ? Cette action est irréversible.') }}"
+                    variant="danger"
+                    size="sm"
+                    icon="trash"
+                >
+                    {{ __('Supprimer la sélection') }}
+                    (<span x-text="$wire.selectedIds.length"></span>)
+                </flux:button>
+            </div>
+
+            {{-- Search --}}
+            <div class="ml-auto">
+                <flux:input
+                    placeholder="{{ __('Rechercher...') }}"
+                    wire:model.live.debounce.300ms="searchQuery"
+                />
+                <flux:button  wire:click="exportSelected" >Exporter</flux:button>
+            </div>          
+
+        </div>
+
+    <x-ui.table.container>
+
+
+        {{-- Table --}}
+        <x-ui.table       variant="default"         wire:loading            loadOn="pagination, search, sorting"        >
+            <x-ui.table.header sticky class="dark:bg-neutral-900 bg-white" id="table">
+                <x-ui.table.columns withCheckAll>
+
+                    {{-- Nom —sortable --}}
+                    <x-ui.table.head         variant="default"                column="name"                        sortable                        :currentSortBy="$sortBy"                        :currentSortDir="$sortDir"                    >
+                        {{ __('Nom') }}
+                    </x-ui.table.head>
+
+                    {{-- Type --}}
+                    <x-ui.table.head      variant="default"                   column="type"                        sortable                        :currentSortBy="$sortBy"                       :currentSortDir="$sortDir"                    >
+                        {{ __('Type') }}
+                    </x-ui.table.head>
+
+                    {{-- Montant — sortable, dropdown variant --}}
+                    <x-ui.table.head  variant="default"
+                        column="amount"
+                        sortable
+                        :currentSortBy="$sortBy"
+                        :currentSortDir="$sortDir"
+                    >
+                        {{ __('Montant') }}
+                    </x-ui.table.head>
+
+                    {{-- Périodicité --}}
+                    <x-ui.table.head  variant="default"
+                        column="periodicity"
+                        sortable
+                        :currentSortBy="$sortBy"
+                        :currentSortDir="$sortDir"
+                    >
+                        {{ __('Périodicité') }}
+                    </x-ui.table.head>
+
+                    {{-- Impact --}}
+                    <x-ui.table.head
+                        column="impact"
+                        sortable
+                        :currentSortBy="$sortBy"
+                        :currentSortDir="$sortDir"
+                    >
+                        {{ __('Impact') }}
+                    </x-ui.table.head>
+
+                    {{-- Ajouté par (masquable) --}}
+                    <x-ui.table.head>
+                        {{ __('Ajouté par') }}
+                    </x-ui.table.head>
+
+                    {{-- Actions --}}
+                    <x-ui.table.head>{{ __('Actions') }}</x-ui.table.head>
+
+                </x-ui.table.columns>
+            </x-ui.table.header>
+
+            <x-ui.table.rows>
+                @forelse($this->remunerations as $remun)
+                    <x-ui.table.row
+                        :key="$remun->id"
+                        :checkboxId="$remun->id"
+                        class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
+                    >
+                        {{-- Nom --}}
+                        <x-ui.table.cell>
+                            <flux:heading class="font-medium">{{ $remun->name->label() }}
+
+                                @if($remun->notes)
+                                <flux:tooltip toggleable>
+                                    <flux:button icon="information-circle" size="sm" variant="ghost" />
+                                    <flux:tooltip.content>{{ $remun->notes }}</flux:tooltip.content>
+                                </flux:tooltip>
+                                @endif
+                            </flux:heading>
+                        </x-ui.table.cell>
+
+                        {{-- Type --}}
+                        <x-ui.table.cell>
+                            <span class="text-sm text-gray-600 dark:text-neutral-300">{{ $remun->type->label() }}</span>
+                        </x-ui.table.cell>
+
+                        {{-- Montant --}}
+                        <x-ui.table.cell>
+                            <span class="font-mono text-sm font-semibold">
+                                {{ number_format($remun->amount, 0, ',', ' ') }} F cfa
+                            </span>
+                        </x-ui.table.cell>
+
+                        {{-- Périodicité --}}
+                        <x-ui.table.cell>
+                            <span class="text-sm">{{ $remun->periodicity->label() }}</span>
+                        </x-ui.table.cell>
+
+                        {{-- Impact --}}
+                        <x-ui.table.cell>
+                         
+                                {{ $remun->impact->label() }}
+                        </x-ui.table.cell>
+
+                        {{-- Ajouté par (masquable) --}}
+                        <x-ui.table.cell >
+                            <span class="text-sm text-gray-500 dark:text-neutral-400">{{ $remun->added_by }}</span>
+                        </x-ui.table.cell>
+                        {{-- Actions --}}
+                        <x-ui.table.cell>
+                            <div class="flex items-center gap-2">
+                                <flux:button wire:click="edit({{ $remun->id }})" size="sm" variant="ghost" icon="pencil" tooltip="{{ __('Modifier') }}" />
+                                <flux:button wire:click="confirmBeforeDelete({{ $remun->id }})" size="sm" variant="ghost" icon="trash" tooltip="{{ __('Supprimer') }}" />
+                            </div>
+                        </x-ui.table.cell>
+                    </x-ui.table.row>
+                @empty
+                    <x-ui.table.empty>
+                    <x-empty-state message=" {{ __('Aucun rémunérations trouvés pour ').$this->employee->shortName }}" />
+                    </x-ui.table.empty>
+                @endforelse
+            </x-ui.table.rows>
+        </x-ui.table>
+        {{ $this->remunerations->links(data: ['scrollTo' => "#table" ]) }}
+
+    </x-ui.table.container>
+    </x-container>
+
+    {{-- ─── MODAL : EDIT ─── --}}
     <flux:modal name="edit-remuneration-modal" class="min-w-225">
         <div class="space-y-6 pt-5">
             <flux:heading size="lg">Mettre à jour un élément de rémunération</flux:heading>

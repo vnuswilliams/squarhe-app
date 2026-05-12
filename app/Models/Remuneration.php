@@ -11,11 +11,12 @@ use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Attributes\Scope;
-
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 #[ObservedBy(RemunerationObserver::class)]
 class Remuneration extends Model
 {
+    use HasFactory;
 
     protected $fillable = [
         'ref',

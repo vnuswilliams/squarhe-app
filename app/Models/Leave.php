@@ -21,7 +21,7 @@ class Leave extends Model
         'status',
         'notes',
         'approved_by',
-        'aded_by',
+        'added_by',
         'approbation_date',
         'last_leave',
         'leaves_balance',

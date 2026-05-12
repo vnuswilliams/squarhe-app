@@ -12,3 +12,4 @@
 
 {{--     <p class="text-sm text-zinc-500">{{ $message }}</p> --}}
 </div>
+

@@ -1,1 +1,2 @@
 import "./passkeys";
+import "./chartjs";

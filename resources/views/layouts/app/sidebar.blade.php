@@ -40,7 +40,7 @@
 
     <flux:sidebar.item 
     icon="bell" 
-        :href="route('documents')" 
+        :href="route('notif')" 
         :current="request()->routeIs(['notif', 'notif.*'])" 
         wire:navigate
     >

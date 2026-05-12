@@ -21,6 +21,15 @@
         ],
         "Livewire/Concerns/WithSorting.php": [
             "table"
+        ],
+        "resources/views/components/ui/tab/index.blade.php": [
+            "tabs"
+        ],
+        "resources/views/components/ui/tab/group.blade.php": [
+            "tabs"
+        ],
+        "resources/views/components/ui/tab/panel.blade.php": [
+            "tabs"
         ]
     },
     "helpers": {
