@@ -63,6 +63,15 @@
     >
         {{ __('Métriques') }}
     </flux:sidebar.item>
+
+    <flux:sidebar.item 
+        icon="lifebuoy" 
+        :href="route('support')" 
+        :current="request()->routeIs(['support', 'support.*'])" 
+        wire:navigate
+    >
+        {{ __('support.menu') }}
+    </flux:sidebar.item>
 </flux:sidebar.nav>
 
             <flux:spacer />
