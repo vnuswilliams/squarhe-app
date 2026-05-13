@@ -27,7 +27,7 @@ window.payrollOverviewChart = function (initialData) {
         chart: null,
 
         init() {
-            const ctx = document.getElementById('payroll-overview-canvas');
+            const ctx = this.$refs.canvas;
             this.chart = new Chart(ctx, {
                 type: 'bar',
                 data: initialData,
@@ -151,7 +151,7 @@ window.employeeDemographicsChart = function (initialData, initialType) {
 
         // ── Init ───────────────────────────────────────────
         init() {
-            const ctx = document.getElementById('demographics-canvas');
+            const ctx = this.$refs.canvas;
             this.chart = new Chart(ctx, {
                 type   : this.resolveType(this.chartType),
                 data   : initialData,
@@ -169,7 +169,7 @@ window.employeeDemographicsChart = function (initialData, initialType) {
             if (newType !== this.chartType) {
                 this.chartType = newType;
                 this.chart.destroy();
-                const ctx = document.getElementById('demographics-canvas');
+                const ctx = this.$refs.canvas;
                 this.chart = new Chart(ctx, {
                     type   : this.resolveType(newType),
                     data   : chartData,

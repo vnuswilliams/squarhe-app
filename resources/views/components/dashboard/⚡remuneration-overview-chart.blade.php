@@ -317,7 +317,7 @@ new class  extends Component
     {{-- ── Graphique ── --}}
     <div wire:ignore x-data="payrollOverviewChart({{ Js::from($initialChartData) }})" x-init="init()"
         @payroll-overview-updated.window="onUpdate($event.detail)">
-        <canvas id="payroll-overview-canvas" class="max-h-72"></canvas>
+        <canvas x-ref="canvas" class="max-h-72"></canvas>
     </div>
 
 </x-container>
