@@ -87,6 +87,11 @@ new  #[Title('Tous les employés')] class extends Component
             <flux:button icon="user-group" href="{{ route('employees.import') }}" wire:navigate />
             <flux:dropdown>
                 <flux:button icon="bars-3" />
+                <flux:menu>
+                    <flux:menu.item href="{{ route('employees.import.overtimes') }}" wire:navigate>{{ __('Import HS entreprise') }}</flux:menu.item>
+                    <flux:menu.item href="{{ route('employees.import.leaves') }}" wire:navigate>{{ __('Import congés entreprise') }}</flux:menu.item>
+                    <flux:menu.item href="{{ route('employees.import.remunerations') }}" wire:navigate>{{ __('Import rémunérations entreprise') }}</flux:menu.item>
+                </flux:menu>
             </flux:dropdown>
         </div>
     </div>
