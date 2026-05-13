@@ -231,10 +231,13 @@ new class  extends Component
 
     private function pushUpdate(): void
     {
+        $chartType = $this->groupBy === 'employee' ? 'bar' : 'doughnut';
+
         $this->dispatch('payroll-overview-updated',
             chartData : $this->chartData(),
             stats     : $this->stats(),
             availableRefs : $this->availableRefs(),
+            chartType : $chartType,
         );
     }
 
@@ -242,6 +245,7 @@ new class  extends Component
     {
         return [
             'initialChartData' => $this->chartData(),
+            'initialChartType' => $this->groupBy === 'employee' ? 'bar' : 'doughnut',
             'stats'            => $this->stats(),
             'availableRefs'    => $this->availableRefs(),
         ];
@@ -315,9 +319,9 @@ new class  extends Component
 
 
     {{-- ── Graphique ── --}}
-    <div wire:ignore x-data="payrollOverviewChart({{ Js::from($initialChartData) }})" x-init="init()"
+    <div wire:ignore x-data="payrollOverviewChart({{ Js::from($initialChartData) }}, '{{ $initialChartType }}')" x-init="init()"
         @payroll-overview-updated.window="onUpdate($event.detail)">
-        <canvas id="payroll-overview-canvas" class="max-h-72"></canvas>
+        <canvas x-ref="canvas" :class="chartType === 'doughnut' ? 'max-h-64' : 'max-h-72'"></canvas>
     </div>
 
 </x-container>
