@@ -360,7 +360,7 @@ new class  extends Component
     >
         {{-- Hauteur adaptée : doughnut moins haut que les barres --}}
         <canvas
-            id="demographics-canvas"
+            x-ref="canvas"
             :class="chartType === 'doughnut' ? 'max-h-64' : 'max-h-72'"
         ></canvas>
     </div>

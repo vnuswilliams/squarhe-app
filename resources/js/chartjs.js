@@ -22,59 +22,78 @@ window.Chart = Chart;
 
 // resources/js/charts/payrollOverviewChart.js
 
-window.payrollOverviewChart = function (initialData) {
+window.payrollOverviewChart = function (initialData, initialType = 'bar') {
     return {
         chart: null,
+        chartType: initialType,
+
+        buildOptions(type) {
+            const isDoughnut = type === 'doughnut';
+            return {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: isDoughnut, position: 'right' },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => {
+                                const v = Number(ctx.raw);
+                                return ' ' + v.toLocaleString('fr-FR');
+                            },
+                        },
+                    },
+                },
+                scales: isDoughnut ? {} : {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            font: { size: 11 },
+                            callback(val) {
+                                const l = this.getLabelForValue(val);
+                                return l.length > 14 ? l.slice(0, 14) + '…' : l;
+                            },
+                        },
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0,0,0,0.04)' },
+                        ticks: {
+                            font: { size: 11 },
+                            callback: (v) =>
+                                v >= 1_000_000 ? (v / 1_000_000).toFixed(1) + 'M'
+                                : v >= 1_000   ? (v / 1_000).toFixed(0) + 'k'
+                                : v,
+                        },
+                    },
+                },
+                animation: { duration: 400, easing: 'easeInOutQuart' },
+            };
+        },
 
         init() {
-            const ctx = document.getElementById('payroll-overview-canvas');
+            const ctx = this.$refs.canvas;
             this.chart = new Chart(ctx, {
-                type: 'bar',
+                type: this.chartType,
                 data: initialData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: (ctx) => {
-                                    const v = Number(ctx.raw);
-                                    return ' ' + v.toLocaleString('fr-FR');
-                                },
-                            },
-                        },
-                    },
-                    scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: {
-                                font: { size: 11 },
-                                callback(val) {
-                                    const l = this.getLabelForValue(val);
-                                    return l.length > 14 ? l.slice(0, 14) + '…' : l;
-                                },
-                            },
-                        },
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: 'rgba(0,0,0,0.04)' },
-                            ticks: {
-                                font: { size: 11 },
-                                callback: (v) =>
-                                    v >= 1_000_000 ? (v / 1_000_000).toFixed(1) + 'M'
-                                    : v >= 1_000   ? (v / 1_000).toFixed(0) + 'k'
-                                    : v,
-                            },
-                        },
-                    },
-                    animation: { duration: 400, easing: 'easeInOutQuart' },
-                },
+                options: this.buildOptions(this.chartType),
             });
         },
 
-        onUpdate({ chartData }) {
+        onUpdate({ chartData, chartType }) {
             if (!this.chart) return;
+            const newType = chartType ?? this.chartType;
+
+            if (newType !== this.chartType) {
+                this.chartType = newType;
+                this.chart.destroy();
+                this.chart = new Chart(this.$refs.canvas, {
+                    type: newType,
+                    data: chartData,
+                    options: this.buildOptions(newType),
+                });
+                return;
+            }
+
             this.chart.data.labels   = chartData.labels;
             this.chart.data.datasets = chartData.datasets;
             this.chart.update('active');
@@ -151,7 +170,7 @@ window.employeeDemographicsChart = function (initialData, initialType) {
 
         // ── Init ───────────────────────────────────────────
         init() {
-            const ctx = document.getElementById('demographics-canvas');
+            const ctx = this.$refs.canvas;
             this.chart = new Chart(ctx, {
                 type   : this.resolveType(this.chartType),
                 data   : initialData,
@@ -169,7 +188,7 @@ window.employeeDemographicsChart = function (initialData, initialType) {
             if (newType !== this.chartType) {
                 this.chartType = newType;
                 this.chart.destroy();
-                const ctx = document.getElementById('demographics-canvas');
+                const ctx = this.$refs.canvas;
                 this.chart = new Chart(ctx, {
                     type   : this.resolveType(newType),
                     data   : chartData,
