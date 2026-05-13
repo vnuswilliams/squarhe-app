@@ -62,7 +62,7 @@ new class  extends Component
 
     private function remunerationsChartData(): array
     {
-        $query = Remuneration::where('ref', $this->ref);
+        $query = Remuneration::whereRef( $this->ref);
 
         if ($this->groupBy === 'employee') {
             $rows = $query
@@ -75,23 +75,19 @@ new class  extends Component
 
             $labels = $rows->map(fn ($r) => $r->employee?->name ?? '—')->toArray();
             $data   = $rows->pluck('total')->map(fn ($v) => (int) $v)->toArray();
-        } else {
-            $rows = $query
-                ->selectRaw('name, SUM(amount) as total')
-                ->groupBy('name')
-                ->orderByDesc('total')
-                ->get();
-
-            $labels = $rows->map(fn ($r) => $r->name->label())->toArray();
-            $data   = $rows->pluck('total')->map(fn ($v) => (int) $v)->toArray();
-        }
+            } else {
+                $rows = $query->selectRaw("type, SUM(amount) as total")->groupBy("type")->orderBy("type")->get();
+    
+                $labels = $rows->map(fn($r) => $r->type->label())->toArray();
+                $data = $rows->pluck("total")->map(fn($v) => (int) $v)->toArray();
+            }
 
         return $this->buildDataset($labels, $data, "Rémunérations — {$this->ref}", 'indigo');
     }
 
     private function remunerationsStats(): array
     {
-        $q = Remuneration::where('ref', $this->ref);
+        $q = Remuneration::whereRef( $this->ref);
         return [
             ['label' => 'Masse totale',  'value' => number_format($q->sum('amount'), 0, ',', ' ') . ' F', 'icon' => '💰'],
             ['label' => 'Employés',      'value' => $q->distinct('employee_id')->count('employee_id'),     'icon' => '👥'],
@@ -104,7 +100,7 @@ new class  extends Component
 
     private function leavesChartData(): array
     {
-        $query = Leave::where('ref', $this->ref);
+        $query = Leave::whereRef( $this->ref);
 
         if ($this->groupBy === 'employee') {
             $rows = $query
@@ -134,7 +130,7 @@ new class  extends Component
 
     private function leavesStats(): array
     {
-        $q = Leave::where('ref', $this->ref);
+        $q = Leave::whereRef( $this->ref);
         return [
             ['label' => 'Total jours',   'value' => $q->sum('days'),                                  'icon' => '🗓️'],
             ['label' => 'Employés',      'value' => $q->distinct('employee_id')->count('employee_id'), 'icon' => '👥'],
@@ -147,7 +143,7 @@ new class  extends Component
 
     private function overtimesChartData(): array
     {
-        $query = Overtime::where('ref', $this->ref);
+        $query = Overtime::whereRef( $this->ref);
 
         if ($this->groupBy === 'employee') {
             $rows = $query
@@ -179,7 +175,7 @@ new class  extends Component
 
     private function overtimesStats(): array
     {
-        $q = Overtime::where('ref', $this->ref);
+        $q = Overtime::whereRef( $this->ref);
         return [
             ['label' => 'Total alloc.',  'value' => number_format($q->sum('alloc'), 0, ',', ' ') . ' F', 'icon' => '💸'],
             ['label' => 'Heures',        'value' => round($q->sum('hours'), 1) . ' h',                   'icon' => '⏱️'],
@@ -253,105 +249,76 @@ new class  extends Component
 }
 ?>
 
-{{-- resources/views/livewire/dashboard/payroll-overview-chart.blade.php --}}
+<div>
 
-<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
-
+{{-- ── KPI Cards ── --}}
+<div x-data="{ stats: {{ Js::from($stats) }} }" @payroll-overview-updated.window="stats = $event.detail.stats"
+    class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <template x-for="kpi in stats" :key="kpi.label">
+        <div class="rounded-xl border border-gray-100 bg-gray-50 p-3">
+            <div class="text-lg leading-none mb-1" x-text="kpi.icon"></div>
+            <div class="text-[11px] text-gray-400 uppercase tracking-wide" x-text="kpi.label"></div>
+            <div class="text-sm font-semibold text-gray-700 mt-0.5" x-text="kpi.value"></div>
+        </div>
+    </template>
+</div>
+<x-container>
     {{-- ── En-tête + contrôles ── --}}
-    <div class="flex flex-wrap items-start justify-between gap-4">
+    @dump($groupBy)
+    <div class="flex  items-center justify-between">
 
         <div>
             <h2 class="text-base font-semibold text-gray-800">Analyse RH</h2>
             <p class="text-xs text-gray-400 mt-0.5">
-                {{ match($module) {
-                    'leaves'    => 'Congés',
-                    'overtimes' => 'Heures supplémentaires',
-                    default     => 'Rémunérations',
-                } }} · {{ $ref }}
+                {{ match ($module) {
+                    "leaves" => "Congés",
+                    "overtimes" => "Heures supplémentaires",
+                    default => "Rémunérations",
+                } }}
+                · {{ $ref }}
             </p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center gap-2">
 
             {{-- Sélecteur de module --}}
-            <select
-                wire:model.live="module"
-                class="text-sm border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700
-                       bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
-            >
+            <flux:select wire:model.live="module">
                 <option value="remunerations">💰 Rémunérations</option>
                 <option value="leaves">🗓️ Congés</option>
                 <option value="overtimes">⏱️ Heures supp.</option>
-            </select>
+            </flux:select>
 
             {{-- Sélecteur de mois --}}
-            <select
-                wire:model.live="ref"
-                class="text-sm border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600
-                       bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
-            >
-                @foreach($availableRefs as $r)
+            <flux:select wire:model.live="ref">
+                @foreach ($availableRefs as $r)
                     <option value="{{ $r }}">{{ $r }}</option>
                 @endforeach
-            </select>
+            </flux:select>
 
             {{-- Toggle groupBy --}}
-            <div class="flex rounded-lg border border-gray-200 overflow-hidden text-xs">
-                @foreach(['employee' => 'Employés', 'type' => 'Types'] as $val => $lbl)
-                    <button
-                        wire:click="$set('groupBy', '{{ $val }}')"
-                        class="px-3 py-1.5 transition-colors
-                               {{ $groupBy === $val
-                                   ? 'bg-indigo-600 text-white'
-                                   : 'text-gray-500 hover:bg-gray-50' }}"
-                    >
-                        {{ $lbl }}
-                    </button>
-                @endforeach
-            </div>
+            <flux:select wire:model.live="groupBy">
+                <option value="type">Types</option>
+                <option value="employee">Employes</option>
+            </flux:select>
 
             {{-- Limite Top N --}}
-            @if($groupBy === 'employee')
-                <select
-                    wire:model.live="limit"
-                    class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600
-                           bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                >
-                    @foreach([5, 10, 20, 50] as $n)
+            @if ($groupBy === "employee")
+                <flux:select wire:model.live="limit">
+                    @foreach ([5, 10, 20, 50] as $n)
                         <option value="{{ $n }}">Top {{ $n }}</option>
                     @endforeach
-                </select>
+                </flux:select>
             @endif
 
         </div>
     </div>
 
-    {{-- ── KPI Cards ── --}}
-    <div
-        x-data="{ stats: {{ Js::from($stats) }} }"
-        @payroll-overview-updated.window="stats = $event.detail.stats"
-        class="grid grid-cols-2 sm:grid-cols-4 gap-3"
-    >
-        <template x-for="kpi in stats" :key="kpi.label">
-            <div class="rounded-xl border border-gray-100 bg-gray-50 p-3">
-                <div class="text-lg leading-none mb-1" x-text="kpi.icon"></div>
-                <div class="text-[11px] text-gray-400 uppercase tracking-wide" x-text="kpi.label"></div>
-                <div class="text-sm font-semibold text-gray-700 mt-0.5" x-text="kpi.value"></div>
-            </div>
-        </template>
-    </div>
 
     {{-- ── Graphique ── --}}
-    <div
-        wire:ignore
-        x-data="payrollOverviewChart({{ Js::from($initialChartData) }})"
-        x-init="init()"
-        @payroll-overview-updated.window="onUpdate($event.detail)"
-    >
+    <div wire:ignore x-data="payrollOverviewChart({{ Js::from($initialChartData) }})" x-init="init()"
+        @payroll-overview-updated.window="onUpdate($event.detail)">
         <canvas id="payroll-overview-canvas" class="max-h-72"></canvas>
     </div>
 
-    {{-- ── Sélecteur de mois réactif (mis à jour via event) ── --}}
-    {{-- Le select wire:model.live="ref" se met à jour seul via Livewire --}}
-
+</x-container>
 </div>
