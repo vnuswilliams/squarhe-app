@@ -54,6 +54,7 @@ enum PayslipItemsEnum: string
     case INDEMNITE_LICENCIEMENT = 'indemnite_licenciement';
     case INDEMNITE_PREAVIS = 'indemnite_preavis';
     case INDEMNITE_CHOMAGE_TECHNIQUE = 'indemnite_chomage_technique';
+    case INDEMNITE_COMPENSATRISE_CONGE_PAYE = 'indemnite_compensatrise_conge_page';
 
         // --- 4xx : CHARGES SALARIALES ---
     case CNPS_VIEILLESSE_SALARIALE = 'cnps_pension_vieillesse_salariale';
@@ -135,6 +136,7 @@ enum PayslipItemsEnum: string
             self::PRIME_ASSIDUITE => 'Prime d’assiduité',
             self::PRIME_INSALUBRITE => 'Prime d\'insalubrité',
             self::PRIME_TECHNICITE => 'Prime de technicité',
+            self::PRIME_OUTILLAGE => "Prime d'outillage",
 
             self::INDEMNITE_LOGEMENT => 'Indem. de logement',
             self::INDEMNITE_TRANSPORT => 'Indem. de transport',
@@ -151,6 +153,7 @@ enum PayslipItemsEnum: string
             self::INDEMNITE_LICENCIEMENT => 'Indem. de licenciement',
             self::INDEMNITE_PREAVIS => 'Indem. de préavis',
             self::INDEMNITE_CHOMAGE_TECHNIQUE => 'Indem. de chômage technique',
+            self::INDEMNITE_COMPENSATRISE_CONGE_PAYE => 'Indem. compensatrise du congé payé',
 
             self::IRPP => 'IRPP (Impôt sur le revenu)',
             self::CENTIME_COMMUNAL => 'Centime additionnel communal',
@@ -221,12 +224,13 @@ enum PayslipItemsEnum: string
             self::PRIME_ASSIDUITE => '107',
             self::PRIME_INSALUBRITE => '108',
             self::PRIME_OUTILLAGE => '109',
+            self::PRIME_TECHNICITE => '110',
 
 
             self::INDEMNITE_PREAVIS => '200',
             self::INDEMNITE_LICENCIEMENT => '201',
             self::INDEMNITE_CHOMAGE_TECHNIQUE => '202',
-            self::INDEMNITE_REPAS => '203',
+            self::INDEMNITE_COMPENSATRISE_CONGE_PAYE => "203",
             self::INDEMNITE_INSALUBRITE => '204',
             self::INDEMNITE_SALISSURE => '205',
             self::INDEMNITE_SUJETION => '206',
@@ -238,6 +242,7 @@ enum PayslipItemsEnum: string
             self::INDEMNITE_USAGE_VEHICULE => '212',
             self::INDEMNITE_TRANSPORT => '213',
             self::INDEMNITE_LOGEMENT => '214',
+            self::INDEMNITE_REPAS => '215',
 
             self::AVANTAGE_LOGEMENT => '300',
             self::AVANTAGE_VEHICULE => '301',

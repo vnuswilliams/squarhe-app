@@ -4,7 +4,7 @@ use App\Concerns\HasTableOptions;
 use App\Enums\HsuppEnum;
 use App\Jobs\ImportEmployeeOvertimesJob;
 use Livewire\WithPagination;
-use Livewire\WithouthPagination;
+use Livewire\WithoutUrlPagination;
 use App\Livewire\Forms\EmployeeOvertimeForm;
 use App\Models\Overtime;
 use App\Services\CalculateHsupp;
@@ -21,7 +21,7 @@ use Rap2hpoutre\FastExcel\FastExcel;
 new class extends Component
 {
     use WithFileUploads;
-    use WithPagination, WithouthPagination;
+    use WithPagination, WithoutUrlPagination;
     use HasTableOptions;
 
     public $employee;
@@ -424,8 +424,7 @@ new class extends Component
     </x-container>
 
     {{-- ─── MAIN TABLE (Sheaf UI) ─── --}}
-    <x-container></x-container>
-    <x-ui.table.container                x-data="{ hiddenCols: $persist([]).as('overtimes-table-hidden-cols') }"    >
+    <x-ui.table.container variant="default"                x-data="{ hiddenCols: $persist([]).as('overtimes-table-hidden-cols') }"    >
 
         {{-- Toolbar : bulk delete | search | column visibility --}}
         <div class="flex items-center gap-2">
@@ -446,7 +445,7 @@ new class extends Component
 
             {{-- Search --}}
             <div class="ml-auto">
-                <x-ui.input
+                <flux:input
                     class="[&_input]:bg-transparent"
                     placeholder="{{ __('Rechercher...') }}"
                     leftIcon="magnifying-glass"

@@ -54,7 +54,7 @@ new class extends Component
             ->when(filled($this->searchQuery), fn ($q) => $this->applySearch($q))
             ->when(filled($this->sortBy), fn ($q) => $this->applySorting($q))
             ->latest()
-            ->paginate(15);
+            ->paginate(10);
 
         // Required by WithSelection so "select all on page" works correctly.
         $this->visibleIds = $paginator->pluck('id')
@@ -78,7 +78,7 @@ new class extends Component
      */
     protected function baseQuery()
     {
-        return Remuneration::query()->where('employee_id', $this->employee->id);
+        return Remuneration::whereEmployeeId($this->employee->id);
     }
 
     /**
@@ -593,7 +593,7 @@ new class extends Component
 
                                 @if($remun->notes)
                                 <flux:tooltip toggleable>
-                                    <flux:button icon="information-circle" size="sm" variant="ghost" />
+                                    <flux:button icon="information-circle" square />
                                     <flux:tooltip.content>{{ $remun->notes }}</flux:tooltip.content>
                                 </flux:tooltip>
                                 @endif
@@ -630,8 +630,8 @@ new class extends Component
                         {{-- Actions --}}
                         <x-ui.table.cell>
                             <div class="flex items-center gap-2">
-                                <flux:button wire:click="edit({{ $remun->id }})" size="sm" variant="ghost" icon="pencil" tooltip="{{ __('Modifier') }}" />
-                                <flux:button wire:click="confirmBeforeDelete({{ $remun->id }})" size="sm" variant="ghost" icon="trash" tooltip="{{ __('Supprimer') }}" />
+                                <flux:button wire:click="edit({{ $remun->id }})" square icon="pencil" tooltip="{{ __('Modifier') }}" />
+                                <flux:button wire:click="confirmBeforeDelete({{ $remun->id }})" square icon="trash" tooltip="{{ __('Supprimer') }}" />
                             </div>
                         </x-ui.table.cell>
                     </x-ui.table.row>

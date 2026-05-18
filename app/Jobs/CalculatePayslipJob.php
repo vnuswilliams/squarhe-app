@@ -6,6 +6,7 @@ use App\Enums\AdvnatEnum;
 use App\Enums\ContractTypeEnum;
 use App\Enums\LeaveTypeEnum;
 use App\Enums\PayslipItemsEnum;
+use App\Enums\RemunerationTypeEnum;
 use App\Enums\RetenuesEnum;
 use App\Enums\StatusEnum;
 use App\Models\Employee;
@@ -111,12 +112,15 @@ class CalculatePayslipJob implements ShouldQueue
             $remuneration = $this->employee->remunerations()->sumByName()
                 ->get();
 
-            foreach ($remuneration as $rem) {
-                $elements[] = [
-                    'code' => $rem->name->code(),
-                    'label' => $rem->name->label(),
-                    'amount' => number_format($rem->total_amount, 0, '', ''),
-                ];
+                if(!empty($remuneration)){
+
+                    foreach ($remuneration as $rem) {
+                        $elements[] = [
+                            'code' => $rem->name->code(),
+                            'label' => $rem->name->label(),
+                            'amount' => number_format($rem->total_amount, 0, '', ''),
+                            ];
+                            }
             }
             usort($elements, function ($a, $b) {
                 return intval($a['code']) <=> intval($b['code']);
@@ -216,6 +220,7 @@ class CalculatePayslipJob implements ShouldQueue
 
             $employeeRetenues = $this->employee->remunerations()
                 ->whereIn('name', RetenuesEnum::cases())
+                ->orWhere('type',  RemunerationTypeEnum::RETENU->value)
                 ->sumByName()
                 ->get();
             $retenues = [];

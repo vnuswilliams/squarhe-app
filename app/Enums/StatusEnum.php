@@ -18,17 +18,18 @@ enum StatusEnum: string
     case DRAFT = 'draft';
     case CLOSED = 'closed';
     case LOCKED = 'locked';
+    case SUSPEND = 'suspend';
 
     public function label(): string
     {
         return match ($this) {
             self::APPROVED => __('Approuvé'),
-            self::ONLEAVE => __('En congé'),
+            self::ONLEAVE => __('En congé/absent'),
             self::PENDING => __('En attente'),
             self::REJECTED => __('Rejetté'),
             self::TERMINATED => 'Terminé',
             self::ACTIVE => 'active',
-            self::TERMINATED => 'Terminé',
+            self::SUSPEND => 'suspendu',
             self::DRAFT => 'Brouillon',
             self::CLOSED => 'Clôturé',
             self::LOCKED => 'Verrouillé',
@@ -40,11 +41,11 @@ enum StatusEnum: string
         return match ($this) {
             self::APPROVED => 'green',
             self::ONLEAVE => 'orange',
+            self::SUSPEND => 'orange',
             self::PENDING => 'blue',
             self::TERMINATED => 'red',
             self::REJECTED => 'red',
-            self::ACTIVE => 'green'
-,            self::REJECTED => 'red',
+            self::ACTIVE => 'green',
 
             self::DRAFT => 'orange',
             self::CLOSED => 'green',

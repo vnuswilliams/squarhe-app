@@ -64,7 +64,13 @@
         {{ __('Métriques') }}
     </flux:sidebar.item>
 
-    <flux:sidebar.item 
+   
+</flux:sidebar.nav>
+
+            <flux:spacer />
+
+            <flux:sidebar.nav>
+            <flux:sidebar.item 
         icon="lifebuoy" 
         :href="route('support')" 
         :current="request()->routeIs(['support', 'support.*'])" 
@@ -72,15 +78,6 @@
     >
         {{ __('support.menu') }}
     </flux:sidebar.item>
-</flux:sidebar.nav>
-
-            <flux:spacer />
-
-            <flux:sidebar.nav>
-                <flux:sidebar.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit" target="_blank">
-                    {{ __('Repository') }}
-                </flux:sidebar.item>
-
                 <flux:sidebar.item icon="credit-card" href="{{route('settings.company.soubscription')}}" wire:navigate :current="request()->routeIs('settings.company.soubscription')">
                     {{ __('Subscription') }}
                 </flux:sidebar.item>

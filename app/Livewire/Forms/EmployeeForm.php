@@ -4,6 +4,7 @@ namespace App\Livewire\Forms;
 
 use App\Enums\CivilityEnum;
 use App\Enums\ContractTypeEnum;
+use App\Enums\DepartmentEnum;
 use App\Enums\NationalityEnum;
 use App\Models\Employee;
 use App\Policies\SubscriptionPolicy;
@@ -58,7 +59,7 @@ class EmployeeForm extends Form
             'niu' => ['nullable', 'string', 'max:20', 'unique:employees,niu'],
             'cnps_number' => ['nullable', 'string', 'max:255', 'unique:employees,cnps'],
 
-            'department' => [$this->isCreating ? 'required' : 'nullable', 'string', 'max:30'],
+            'department' => [$this->isCreating ? 'required' : 'nullable', Rule::in(DepartmentEnum::values())],
             'job_title' => [$this->isCreating ? 'required' : 'nullable', 'string', 'max:50'],
             'contract_type' => [$this->isCreating ? 'required' : 'nullable', Rule::in(ContractTypeEnum::values())],
             'start_date' => [$this->isCreating ? 'required' : 'nullable', 'date'],

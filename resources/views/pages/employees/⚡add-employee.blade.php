@@ -2,6 +2,7 @@
 
 use App\Enums\CivilityEnum;
 use App\Enums\ContractTypeEnum;
+use App\Enums\DepartmentEnum;
 use App\Enums\NationalityEnum;
 use App\Livewire\Forms\EmployeeForm;
 use App\Services\SubscriptionService;
@@ -109,8 +110,14 @@ new #[Title('Ajouter un employé')] class extends Component
 
 
                 <!-- Department -->
-                <flux:input id="department" wire:model="form.department" type="text" :label="__('Department')" />
+                <flux:select id="department" wire:model="form.department"  :label="__('Department')" />
+                    <flux:select.option value=""> Choisir une option</flux:select.option>
+                    @foreach (DepartmentEnum::cases() as $case)
+                    <option value="{{ $case->value }}">{{ $case->name }}</option>
+                    @endforeach
+                </flux:select>
 
+                
                 <!-- Job Title -->
                 <flux:input id="job_title" wire:model="form.job_title" type="text" :label="__('Job Title')" />
 

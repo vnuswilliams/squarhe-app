@@ -11,7 +11,7 @@ return [
     'holidaysave' => "Public holidays have been successfully updated.",
     'companyregencodefail' => "An error occurred while regenerating the company code.",
     'deletecompanyfail' => "An error occurred while deleting the company.",
-
+"download" => "The download will start",
     'subscription' => [
         'success' => "Subscription successfully activated — Plan: :plan (maximum number of employees included).",
         'fail' => "An error occurred while activating the subscription. Please try again.",

@@ -33,9 +33,7 @@ use WithoutUrlPagination, WithPagination;
             ->latest()
             ->paginate(15);
 
-        // Required by WithSelection so "select all on page" works correctly.
-        $this->visibleIds = $paginator->pluck("id")->map(fn($id) => (string) $id)->toArray();
-
+       
         return $paginator;
     }
 
@@ -51,7 +49,7 @@ use WithoutUrlPagination, WithPagination;
 
     protected function baseQuery()
     {
-        return Document::query()->whereEmployeeId($this->employee->id);
+        return Document::whereEmployeeId($this->employee->id);
     }
 
     public function save()
@@ -67,10 +65,12 @@ use WithoutUrlPagination, WithPagination;
 
     public function edit($documentId)
     {
-        $documentToUpdate = Document::whereId($documentId)->whereEmployeeId($this->employee->id)->firstOrFail();
+        $documentToUpdate = $this->documents->where('id',$documentId)->first();
+if($documentToUpdate){
 
-        $this->form->setDocument($documentToUpdate);
-        Flux::modal("edit-document-modal")->show();
+    $this->form->setDocument($documentToUpdate);
+    Flux::modal("edit-document-modal")->show();
+    }
     }
 
     public function update()
@@ -86,7 +86,7 @@ use WithoutUrlPagination, WithPagination;
 
     public function confirmBeforeDelete($idDocumentWeWantToDelete)
     {
-        $this->documentToDelete = Document::whereId($idDocumentWeWantToDelete)->whereEmployeeId($this->employee->id)->firstOrFail();
+        $this->documentToDelete = $this->documents->where('id', $idDocumentWeWantToDelete)->first();
         Flux::modal("delete-document-modal")->show();
     }
 
@@ -108,12 +108,16 @@ use WithoutUrlPagination, WithPagination;
 
     public function downloadDoc($id)
     {
-        $docToDownload = Document::whereId($id)->whereEmployeeId($this->employee->id)->firstOrFail();
+        $docToDownload = $this->documents->where('id', $id)->first();
+        if($docToDownload):
         Gate::authorize("view", [Document::class, $docToDownload]);
 
         $name = Str::snake($this->employee->shortName . " " . $docToDownload->type?->value . " " . $docToDownload->name . " " . now()->format("_d_m_Y_H_i_s"));
 
+        Flux::toast(variant:'success', text:__('toast.download'));
         return Storage::disk("public")->download($docToDownload->path, $name);
+endif;
+
     }
 };
 ?>
@@ -131,7 +135,7 @@ use WithoutUrlPagination, WithPagination;
         <x-delta-card :cards='[
             [
                 "label" => "Total Documents",
-                "current" => $this->documents()->count(),
+                "current" => $this->documents->count(),
                 "delta" => "",
                 "color" => "blue",
             ],
@@ -150,7 +154,7 @@ use WithoutUrlPagination, WithPagination;
                 <flux:select wire:model="form.type" label="Type de document" placeholder="Choisir un type">
                     <option value="">Choisir une option</option>
                     @foreach (DocumentTypeEnum::options() as $option)
-                        <option value="{{ $option["value"] }}">{{ $option["label"] }}</option>
+                        <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
                     @endforeach
 
                 </flux:select>
@@ -158,7 +162,7 @@ use WithoutUrlPagination, WithPagination;
                 <flux:select wire:model="form.access" label="Niveau d’accès" placeholder="Choisir le niveau d’accès">
                     <option value="">Choisir une option</option>
                     @foreach (DocumentAccessEnum::options() as $option)
-                        <option value="{{ $option["value"] }}">{{ $option["label"] }}</option>
+                        <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
                     @endforeach
                 </flux:select>
             </div>
@@ -222,7 +226,7 @@ use WithoutUrlPagination, WithPagination;
                         <x-ui.table.head column="name" sortable :currentSortBy="$sortBy" :currentSortDir="$sortDir">
                             {{ __("Ajouté le") }}
                         </x-ui.table.head>
-                        <x-ui.table.head column="name" sortable :currentSortBy="$sortBy" :currentSortDir="$sortDir">
+                        <x-ui.table.head>
                             {{ __("Actions") }}
                         </x-ui.table.head>
 
@@ -260,21 +264,17 @@ use WithoutUrlPagination, WithPagination;
                             </x-ui.table.cell>
                             <x-ui.table.cell>
                                 <div class="flex items-center gap-2">
-                                    <flux:button variant="primary" icon="arrow-down-tray" siez="sm"
-                                        wire:click="downloadDoc({{ $doc->id }})" />
-                                    <flux:button wire:click="edit({{ $doc->id }})" size="sm" variant="ghost"
-                                        icon="pencil" />
-
-
-                                    <flux:button wire:click="confirmBeforeDelete({{ $doc->id }})" size="sm"
-                                        variant="ghost" icon="trash" />
+                                    
+                                    <flux:button  icon="arrow-down-tray"  tooltip="{{ __('Telecharger le document')}}"                                  wire:click="downloadDoc('{{ $doc->id }}')" />
+                                    <flux:button wire:click="edit('{{ $doc->id }}')" square icon="pencil" tooltip="{{ __('Modifier') }}" />
+                                    <flux:button wire:click="confirmBeforeDelete('{{ $doc->id }}')" square tooltip="{{__('Supprimer le document')}}"                                         icon="trash" />
                                 </div>
                             </x-ui.table.cell>
                         </x-ui.table.row>
                     @empty
                         <x-ui.table.empty>
                             <x-empty-state
-                                message="                     {{ __("Aucun documents trouvés pour ") . $this->employee->name }}" />
+                                message='                     {{ __("Aucun documents trouvés pour ") . $this->employee->name }}' />
                         </x-ui.table.empty>
                     @endforelse
                 </x-ui.table.rows>
@@ -303,7 +303,7 @@ use WithoutUrlPagination, WithPagination;
                     <flux:select wire:model="form.type" label="Type de document" placeholder="Choisir un type">
                         <option value="">Choisir une option</option>
                         @foreach (DocumentTypeEnum::options() as $option)
-                            <option value="{{ $option["value"] }}">{{ $option["label"] }}</option>
+                            <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
                         @endforeach
 
                     </flux:select>
@@ -312,7 +312,7 @@ use WithoutUrlPagination, WithPagination;
                         placeholder="Choisir le niveau d’accès">
                         <option value="">Choisir une option</option>
                         @foreach (DocumentAccessEnum::options() as $option)
-                            <option value="{{ $option["value"] }}">{{ $option["label"] }}</option>
+                            <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
                         @endforeach
                     </flux:select>
                 </div>

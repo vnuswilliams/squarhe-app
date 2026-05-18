@@ -12,7 +12,7 @@ return [
     'companyregencodefail' => "Une erreur est survenue lors de la régénération du code de l'entreprise.",
     'deletecompanyfail' => "Une erreur est survenue lors de la suppression de l'entreprise.",
     "deleteNotFound" => "Cet élément est introuvable ou à déjà été supprimé.",
-
+"download" =>"Le téléchargement va bientôt démarrer",
     'subscription' => [
         'success' => "Abonnement activé avec succès — Offre : :plan (nombre maximal d'employés inclus).",
         'fail' => "Une erreur est survenue lors de l'activation de l'abonnement. Veuillez réessayer.",

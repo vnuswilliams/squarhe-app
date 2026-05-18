@@ -35,6 +35,8 @@ new class extends Component
 ?>
 
 <div>
+<livewire:dashboard.remuneration-overview-chart />
+
     @if($this->invitations->isNotEmpty())
         <div class="mb-8 space-y-3">
             <flux:heading size="sm" class="flex items-center gap-2">
@@ -112,8 +114,6 @@ new class extends Component
       </div>
     </div>
     <div class="px-6 pb-6 mt-6">
-    <livewire:dashboard.remuneration-overview-chart />
-    <livewire:dashboard.employee-overview-chart />
 </div>
     <!-- Scrollable Body -->
     <x-delta-card  :cards="[

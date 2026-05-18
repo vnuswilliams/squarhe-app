@@ -118,7 +118,7 @@ new class extends Component
                 <div class="space-y-1">
                     <flux:text variant="subtle" size="sm">{{ __('Type de Contrat') }}</flux:text>
                     <flux:badge size="sm" color="zinc">
-                        {{ ContractTypeEnum::tryFrom($employee->contract_type)?->label() ?? 'N/A' }}
+                        {{ $employee->contract_type?->label() ?? 'N/A' }}
                     </flux:badge>
                 </div>
 

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Concerns\EmployeeAccessors;
 use App\Concerns\HasSnaps;
 use App\Enums\ContractTypeEnum;
+use App\Enums\DepartmentEnum;
 use App\Enums\StatusEnum;
 use App\Models\Scopes\EmployeeGlobalScope;
 use App\Observers\EmployeeObserver;
@@ -58,8 +59,10 @@ class Employee extends Model
             'start_date'  => 'date',
             'base_salary' => 'integer',
             'data'        => 'array',
+            'contract_type' => ContractTypeEnum::class, 
             'status'      => StatusEnum::class,
-        ];
+    'department' => DepartmentEnum::class,
+    ];
     }
 
     // ─────────────────────────────────────────────
@@ -189,6 +192,11 @@ class Employee extends Model
     public function irans()
     {
         return $this->hasMany(Iran::class)->latest();
+    }
+
+    public function endContract()
+    {
+        return $this->hasMany(EndContract::class)->latest() ;
     }
 
     public function remunerations()

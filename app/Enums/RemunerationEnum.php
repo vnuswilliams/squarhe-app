@@ -8,8 +8,7 @@ enum RemunerationEnum: string
 {
     use EnumTrait;
 
-
-        // --- 0xx : SALAIRES & ALLOCATIONS ---
+    // --- 0xx : SALAIRES & ALLOCATIONS ---
     case SALAIRE_BASE = 'salaire_base';
     case SUR_SALAIRE = 'sursalaire';
     case TREIZIEME_MOIS = '13eme_mois';
@@ -22,7 +21,7 @@ enum RemunerationEnum: string
     case HEURE_SUPP_200 = 'heure_supp_200';
     case HEURE_SUPP = 'heure_supp';
 
-        // --- 1xx : RETENUES ---
+    // --- 1xx : RETENUES ---
     case RETENUE_AVANCE_SALAIRE = 'retenue_avance_salaire';
     case RETENUE_PRET_EMPLOYE = 'retenue_pret_employe';
     case RETENUE_SANCTION = 'retenue_sanction_disciplinaire';
@@ -32,8 +31,7 @@ enum RemunerationEnum: string
 
     case RETENUE_ABSENCES = 'retenues_absences';
 
-
-        // --- 2xx : PRIMES ---
+    // --- 2xx : PRIMES ---
     case PRIME_INSALUBRITE = 'PRIME_insalubrite';
     case PRIME_ANCIENNETE = 'prime_anciennete';
     case PRIME_RENDEMENT = 'prime_rendement';
@@ -46,7 +44,7 @@ enum RemunerationEnum: string
     case PRIME_ASSIDUITE = 'prime_assiduite';
     case PRIME_OUTILLAGE = 'prime_outillage';
 
-        // --- 3xx : INDEMNITES ---
+    // --- 3xx : INDEMNITES ---
     case INDEMNITE_LOGEMENT = 'indemnite_logement';
     case INDEMNITE_TRANSPORT = 'indemnite_transport';
     case INDEMNITE_SUJETION = 'indemnite_sujetion';
@@ -62,7 +60,8 @@ enum RemunerationEnum: string
     case INDEMNITE_LICENCIEMENT = 'indemnite_licenciement';
     case INDEMNITE_PREAVIS = 'indemnite_preavis';
     case INDEMNITE_CHOMAGE_TECHNIQUE = 'indemnite_chomage_technique';
-        // --- 4xx : IMPÔTS ---
+    case INDEMNITE_COMPENSATRISE_CONGE_PAYE = 'indemnite_compensatrise_conge_page';
+    // --- 4xx : IMPÔTS ---
     case IRPP = 'irpp';
     case CENTIME_COMMUNAL = 'centime_additionnel_communal';
     case FNE = 'fond_national_emploi';
@@ -71,13 +70,13 @@ enum RemunerationEnum: string
     case REDEVANCE_AUDIO_VISUELLE = 'redevance_audio_visuelle';
     case SYNDICAT = 'syndicat';
 
-        // --- 5xx : COTISATIONS CNPS ---
+    // --- 5xx : COTISATIONS CNPS ---
     case CNPS_VIEILLESSE_SALARIALE = 'cnps_pension_vieillesse_salariale';
     case CNPS_VIEILLESSE_PATRONALE = 'cnps_pension_vieillesse_patronale';
     case CNPS_ALLOCATION_FAMILIALE = 'cnps_allocation_familiale';
     case CNPS_ACCIDENT_MALADIE_PRO = 'cnps_accident_maladie_pro';
 
-        // --- 6xx : AVANTAGES EN NATURE ---
+    // --- 6xx : AVANTAGES EN NATURE ---
     case AVANTAGE_LOGEMENT = 'avantage_logement';
     case AVANTAGE_VEHICULE = 'avantage_vehicule';
     case AVANTAGE_NOURRITURE = 'avantage_nourriture';
@@ -100,14 +99,12 @@ enum RemunerationEnum: string
     case AVANTAGE_REP_INTERNET = 'avantage_rep_internet';
     case AVANTAGE_REP_GARDINNAGE = 'avantage_rep_gardinnage';
 
-       
     public static function forSelect(): array
     {
         return [
             self::SUR_SALAIRE,
             self::TREIZIEME_MOIS,
             self::PRIME_INSALUBRITE,
-
 
             self::RETENUE_AVANCE_SALAIRE,
             self::RETENUE_PRET_EMPLOYE,
@@ -145,7 +142,6 @@ enum RemunerationEnum: string
             self::AVANTAGE_INTERNET,
             self::AVANTAGE_GARDINNAGE,
 
-
             self::AVANTAGE_REP_LOGEMENT,
             self::AVANTAGE_REP_VEHICULE,
             self::AVANTAGE_REP_NOURRITURE,
@@ -174,35 +170,34 @@ enum RemunerationEnum: string
             self::RETENUE_CANTINE => RemunerationTypeEnum::RETENU->value,
             self::ACCOMPTE_SALAIRE => RemunerationTypeEnum::RETENU->value,
 
-            self::PRIME_RENDEMENT =>  RemunerationTypeEnum::PRIME->value,
+            self::PRIME_RENDEMENT => RemunerationTypeEnum::PRIME->value,
             self::PRIME_PRODUCTION => RemunerationTypeEnum::PRIME->value,
-            self::PRIME_FONCTION =>  RemunerationTypeEnum::PRIME->value,
-            self::PRIME_RISQUE =>  RemunerationTypeEnum::PRIME->value,
-            self::PRIME_CAISSE =>  RemunerationTypeEnum::PRIME->value,
-            self::PRIME_PANIER =>  RemunerationTypeEnum::PRIME->value,
-            self::PRIME_ASSIDUITE =>  RemunerationTypeEnum::PRIME->value,
-            self::PRIME_TECHNICITE =>  RemunerationTypeEnum::PRIME->value,
-            self::PRIME_OUTILLAGE =>  RemunerationTypeEnum::PRIME->value,
+            self::PRIME_FONCTION => RemunerationTypeEnum::PRIME->value,
+            self::PRIME_RISQUE => RemunerationTypeEnum::PRIME->value,
+            self::PRIME_CAISSE => RemunerationTypeEnum::PRIME->value,
+            self::PRIME_PANIER => RemunerationTypeEnum::PRIME->value,
+            self::PRIME_ASSIDUITE => RemunerationTypeEnum::PRIME->value,
+            self::PRIME_TECHNICITE => RemunerationTypeEnum::PRIME->value,
+            self::PRIME_OUTILLAGE => RemunerationTypeEnum::PRIME->value,
 
-            self::INDEMNITE_SALISSURE =>  RemunerationTypeEnum::INDEMNITE->value,
-            self::INDEMNITE_DEPLACEMENT =>  RemunerationTypeEnum::INDEMNITE->value,
-            self::INDEMNITE_LAIT =>  RemunerationTypeEnum::INDEMNITE->value,
-            self::INDEMNITE_REPRESENTATION =>  RemunerationTypeEnum::INDEMNITE->value,
-            self::INDEMNITE_BICYCLETTE =>  RemunerationTypeEnum::INDEMNITE->value,
-            self::INDEMNITE_SECURITE =>  RemunerationTypeEnum::INDEMNITE->value,
+            self::INDEMNITE_SALISSURE => RemunerationTypeEnum::INDEMNITE->value,
+            self::INDEMNITE_DEPLACEMENT => RemunerationTypeEnum::INDEMNITE->value,
+            self::INDEMNITE_LAIT => RemunerationTypeEnum::INDEMNITE->value,
+            self::INDEMNITE_REPRESENTATION => RemunerationTypeEnum::INDEMNITE->value,
+            self::INDEMNITE_BICYCLETTE => RemunerationTypeEnum::INDEMNITE->value,
+            self::INDEMNITE_SECURITE => RemunerationTypeEnum::INDEMNITE->value,
             self::INDEMNITE_USAGE_VEHICULE => RemunerationTypeEnum::INDEMNITE->value,
 
-            self::AVANTAGE_LOGEMENT =>  RemunerationTypeEnum::ADVANTAGE->value,
-            self::AVANTAGE_VEHICULE =>  RemunerationTypeEnum::ADVANTAGE->value,
-            self::AVANTAGE_NOURRITURE =>  RemunerationTypeEnum::ADVANTAGE->value,
-            self::AVANTAGE_DOMESTIQUE =>  RemunerationTypeEnum::ADVANTAGE->value,
-            self::AVANTAGE_ELECTRICITE =>  RemunerationTypeEnum::ADVANTAGE->value,
+            self::AVANTAGE_LOGEMENT => RemunerationTypeEnum::ADVANTAGE->value,
+            self::AVANTAGE_VEHICULE => RemunerationTypeEnum::ADVANTAGE->value,
+            self::AVANTAGE_NOURRITURE => RemunerationTypeEnum::ADVANTAGE->value,
+            self::AVANTAGE_DOMESTIQUE => RemunerationTypeEnum::ADVANTAGE->value,
+            self::AVANTAGE_ELECTRICITE => RemunerationTypeEnum::ADVANTAGE->value,
             self::AVANTAGE_EAU => RemunerationTypeEnum::ADVANTAGE->value,
             self::AVANTAGE_CARBURANT => RemunerationTypeEnum::ADVANTAGE->value,
             self::AVANTAGE_TELEPHONE => RemunerationTypeEnum::ADVANTAGE->value,
             self::AVANTAGE_INTERNET => RemunerationTypeEnum::ADVANTAGE->value,
             self::AVANTAGE_GARDINNAGE => RemunerationTypeEnum::ADVANTAGE->value,
-
 
             self::AVANTAGE_REP_LOGEMENT => RemunerationTypeEnum::ADVANTAGE->value,
             self::AVANTAGE_REP_VEHICULE => RemunerationTypeEnum::ADVANTAGE->value,
@@ -216,6 +211,7 @@ enum RemunerationEnum: string
             self::AVANTAGE_REP_GARDINNAGE => RemunerationTypeEnum::ADVANTAGE->value,
         };
     }
+
     public function label(): string
     {
         return match ($this) {
@@ -249,6 +245,7 @@ enum RemunerationEnum: string
             self::PRIME_ASSIDUITE => 'Prime d’assiduité',
             self::PRIME_TECHNICITE => 'Prime de technicité',
             self::PRIME_OUTILLAGE => 'Prime d’outillage',
+            self::PRIME_INSALUBRITE => 'Prime d\'insalubrité',
 
             self::INDEMNITE_LOGEMENT => 'Indemnité de logement',
             self::INDEMNITE_TRANSPORT => 'Indemnité de transport',
@@ -265,6 +262,7 @@ enum RemunerationEnum: string
             self::INDEMNITE_LICENCIEMENT => 'Indemnité de licenciement',
             self::INDEMNITE_PREAVIS => 'Indemnité de préavis',
             self::INDEMNITE_CHOMAGE_TECHNIQUE => 'Indemnité de chômage technique',
+            self::INDEMNITE_COMPENSATRISE_CONGE_PAYE => 'Indemnité compensatrise du congé payé',
 
             self::IRPP => 'IRPP (Impôt sur le revenu)',
             self::CENTIME_COMMUNAL => 'Centime additionnel communal',
@@ -286,10 +284,9 @@ enum RemunerationEnum: string
             self::AVANTAGE_ELECTRICITE => 'Advnat – électricité',
             self::AVANTAGE_EAU => 'Advnat – eau',
             self::AVANTAGE_CARBURANT => 'Advnat - carburant',
-            self::AVANTAGE_TELEPHONE => "Advnat - téléphone",
+            self::AVANTAGE_TELEPHONE => 'Advnat - téléphone',
             self::AVANTAGE_INTERNET => 'Advnat - internet',
             self::AVANTAGE_GARDINNAGE => 'Advnat - gardinnage',
-
 
             self::AVANTAGE_REP_LOGEMENT => 'Iran – logement',
             self::AVANTAGE_REP_VEHICULE => 'Iran – véhicule',
@@ -298,13 +295,13 @@ enum RemunerationEnum: string
             self::AVANTAGE_REP_ELECTRICITE => 'Iran – électricité',
             self::AVANTAGE_REP_EAU => 'Iran – eau',
             self::AVANTAGE_REP_CARBURANT => 'Iran - carburant',
-            self::AVANTAGE_REP_TELEPHONE => "Iran - téléphone",
+            self::AVANTAGE_REP_TELEPHONE => 'Iran - téléphone',
             self::AVANTAGE_REP_INTERNET => 'Iran - internet',
             self::AVANTAGE_REP_GARDINNAGE => 'Iran - gardinnage',
 
-
         };
     }
+
     public function taux(): ?float
     {
         return match ($this) {
@@ -320,14 +317,12 @@ enum RemunerationEnum: string
             self::AVANTAGE_INTERNET => 0.05,
             self::AVANTAGE_GARDINNAGE => 0.05,
 
-
             self::AVANTAGE_REP_LOGEMENT => 0.15,
             self::AVANTAGE_REP_VEHICULE => 0.10,
             self::AVANTAGE_REP_NOURRITURE => 0.10,
             self::AVANTAGE_REP_DOMESTIQUE => 0.05,
             self::AVANTAGE_REP_ELECTRICITE => 0.04,
             self::AVANTAGE_REP_EAU => 0.02,
-
 
             self::AVANTAGE_REP_CARBURANT => 0.10,
             self::AVANTAGE_REP_TELEPHONE => 0.05,
@@ -337,16 +332,15 @@ enum RemunerationEnum: string
         };
     }
 
-
     public function code(): string
     {
         return match ($this) {
 
-            self::SALAIRE_BASE =>  PayslipItemsEnum::SALAIRE_BASE->code(),
-            self::SUR_SALAIRE =>  PayslipItemsEnum::SUR_SALAIRE->code(),
-            self::TREIZIEME_MOIS =>  PayslipItemsEnum::TREIZIEME_MOIS->code(),
-            self::ALLOCATION_CONGE =>  PayslipItemsEnum::ALLOCATION_CONGE->code(),
-            self::HEURE_SUPP =>  PayslipItemsEnum::HEURE_SUPP->code(),
+            self::SALAIRE_BASE => PayslipItemsEnum::SALAIRE_BASE->code(),
+            self::SUR_SALAIRE => PayslipItemsEnum::SUR_SALAIRE->code(),
+            self::TREIZIEME_MOIS => PayslipItemsEnum::TREIZIEME_MOIS->code(),
+            self::ALLOCATION_CONGE => PayslipItemsEnum::ALLOCATION_CONGE->code(),
+            self::HEURE_SUPP => PayslipItemsEnum::HEURE_SUPP->code(),
 
             self::PRIME_ANCIENNETE => PayslipItemsEnum::PRIME_ANCIENNETE->code(),
             self::PRIME_RENDEMENT => PayslipItemsEnum::PRIME_RENDEMENT->code(),
@@ -358,7 +352,7 @@ enum RemunerationEnum: string
             self::PRIME_ASSIDUITE => PayslipItemsEnum::PRIME_ASSIDUITE->code(),
             self::PRIME_TECHNICITE => PayslipItemsEnum::PRIME_TECHNICITE->code(),
             self::PRIME_OUTILLAGE => PayslipItemsEnum::PRIME_OUTILLAGE->code(),
-
+            self::PRIME_INSALUBRITE => PayslipItemsEnum::PRIME_INSALUBRITE->code(),
 
             self::INDEMNITE_LOGEMENT => PayslipItemsEnum::INDEMNITE_LOGEMENT->code(),
             self::INDEMNITE_TRANSPORT => PayslipItemsEnum::INDEMNITE_TRANSPORT->code(),
@@ -375,6 +369,8 @@ enum RemunerationEnum: string
             self::INDEMNITE_LICENCIEMENT => PayslipItemsEnum::INDEMNITE_LICENCIEMENT->code(),
             self::INDEMNITE_PREAVIS => PayslipItemsEnum::INDEMNITE_PREAVIS->code(),
             self::INDEMNITE_CHOMAGE_TECHNIQUE => PayslipItemsEnum::INDEMNITE_CHOMAGE_TECHNIQUE->code(),
+            self::INDEMNITE_COMPENSATRISE_CONGE_PAYE => PayslipItemsEnum::INDEMNITE_COMPENSATRISE_CONGE_PAYE->code(),
+
             self::AVANTAGE_LOGEMENT => PayslipItemsEnum::AVANTAGE_LOGEMENT->code(),
             self::AVANTAGE_VEHICULE => PayslipItemsEnum::AVANTAGE_VEHICULE->code(),
             self::AVANTAGE_NOURRITURE => PayslipItemsEnum::AVANTAGE_NOURRITURE->code(),
@@ -386,8 +382,7 @@ enum RemunerationEnum: string
             self::AVANTAGE_INTERNET => PayslipItemsEnum::AVANTAGE_INTERNET->code(),
             self::AVANTAGE_GARDINNAGE => PayslipItemsEnum::AVANTAGE_GARDINNAGE->code(),
 
-
-            //indemnite representative des avant en nat
+            // indemnite representative des avant en nat
             self::AVANTAGE_REP_LOGEMENT => PayslipItemsEnum::AVANTAGE_REP_LOGEMENT->code(),
             self::AVANTAGE_REP_VEHICULE => PayslipItemsEnum::AVANTAGE_REP_VEHICULE->code(),
             self::AVANTAGE_REP_NOURRITURE => PayslipItemsEnum::AVANTAGE_REP_NOURRITURE->code(),
@@ -398,7 +393,6 @@ enum RemunerationEnum: string
             self::AVANTAGE_REP_TELEPHONE => PayslipItemsEnum::AVANTAGE_REP_TELEPHONE->code(),
             self::AVANTAGE_REP_INTERNET => PayslipItemsEnum::AVANTAGE_REP_INTERNET->code(),
             self::AVANTAGE_REP_GARDINNAGE => PayslipItemsEnum::AVANTAGE_REP_GARDINNAGE->code(),
-
 
             self::RETENUE_AVANCE_SALAIRE => PayslipItemsEnum::RETENUE_AVANCE_SALAIRE->code(),
             self::RETENUE_PRET_EMPLOYE => PayslipItemsEnum::RETENUE_PRET_EMPLOYE->code(),

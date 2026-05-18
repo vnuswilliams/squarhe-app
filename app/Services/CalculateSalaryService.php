@@ -35,7 +35,7 @@ class CalculateSalaryService
         // Calcul du salaire brut
         $grossSalary = $employee->remunerations()
             ->whereNotIn('name', $this->exclude())
-            ->whereNotIn('type', [RemunerationTypeEnum::IMPOT->value])
+            ->whereNotIn('type', [RemunerationTypeEnum::IMPOT->value, RemunerationTypeEnum::RETENU->value])
             ->sum('amount') + $base_salary + $calculatePanc + $calculateLeave + $caculateHsupp;
 
         // calcul du salaire brut taxable intermediaire
@@ -63,7 +63,8 @@ class CalculateSalaryService
         $retenues = 0;
         $retenues = $employee->remunerations()
             ->whereIn('name', RetenuesEnum::cases())
-            ->sum('amount');
+                ->orWhere('type',  RemunerationTypeEnum::RETENU->value)
+                ->sum('amount');
         $daysLeft = $employee->leaves()
             ->whereIn('type', [LeaveTypeEnum::SUSPENSION, LeaveTypeEnum::INJUSTIFY_LEAVE])
             ->sum('days');

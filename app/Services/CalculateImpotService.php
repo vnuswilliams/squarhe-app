@@ -21,7 +21,12 @@ public function handle(Employee $employee): void
         $cfc = $company->data['cfc']['enabled'] ? floor($salary->taxable_gross_salary / 1000) * 1000 * 0.01 : 0;
 
         // calcil syndicat
-        $syndicat = $employee->data['syndicat'] ? ($salary->base_salary * 0.01) : 0;
+        $syndicat = 0;
+        if(array_key_exists('syndicat', $employee->data))
+            {
+
+                $syndicat = $salary->base_salary * 0.01;
+                }
         $tdl = 0;
         $rav = 0;
         $cac = 0;

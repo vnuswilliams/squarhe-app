@@ -142,7 +142,7 @@ new class extends Component {
         ],
         [
             "label" => "Type de contrat",
-            "current" => ContractTypeEnum::from($this->employee->contract_type)->label(),
+            "current" => $this->employee->contract_type?->label(),
             "delta" => "",
             "color" => "amber",
         ],
@@ -160,7 +160,7 @@ new class extends Component {
             <x-ui.tab label="Documents" icon="folder" />
         </x-ui.tab.group>
         <x-ui.tab.panel>
-            <livewire:employees.employee-leaves :employee="$this->employee" />
+            <livewire:employees.employee-general :employee="$this->employee" />
 
         </x-ui.tab.panel>
         <x-ui.tab.panel>

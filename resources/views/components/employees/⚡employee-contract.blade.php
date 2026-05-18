@@ -186,7 +186,7 @@ new class extends Component
             <div>
                 <flux:text class="text-gray-300 font-semibold">{{ __('Type de contrat') }}</flux:text>
                 <flux:text class="text-gray-200">
-                    {{ ContractTypeEnum::from($employee->contract_type)->label() }}
+                    {{ $employee->contract_type?->label() }}
                 </flux:text>
             </div>
             <div>
