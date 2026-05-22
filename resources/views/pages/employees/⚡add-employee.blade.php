@@ -1,5 +1,4 @@
 <?php
-
 use App\Enums\CivilityEnum;
 use App\Enums\ContractTypeEnum;
 use App\Enums\DepartmentEnum;
@@ -61,8 +60,8 @@ new #[Title('Ajouter un employé')] class extends Component
                 <!-- Civility -->
                 <flux:select id="civility" wire:model="form.civility" :label="__('Civility')">
                     <flux:select.option value=""> Choisir une option</flux:select.option>
-                    @foreach (CivilityEnum::cases() as $case)
-                    <option value="{{ $case->value }}">{{ $case->name }}</option>
+                    @foreach (CivilityEnum::options() as $case)
+                    <flux:select.option value="{{ $case['value'] }}">{{ $case['label'] }}</flux:select.option>
                     @endforeach
                 </flux:select>
 
@@ -81,8 +80,8 @@ new #[Title('Ajouter un employé')] class extends Component
                 <!-- Nationality -->
                 <flux:select id="nationality" wire:model="form.nationality" :label="__('Nationality')">
                     <flux:select.option value=""> Choisir une option</flux:select.option>
-                    @foreach (NationalityEnum::cases() as $case)
-                    <option value="{{ $case->value }}">{{ $case->name }}</option>
+                    @foreach (NationalityEnum::options() as $case)
+                    <flux:select.option value="{{ $case['value'] }}">{{ $case['label'] }}</flux:select.option>
                     @endforeach
                 </flux:select>
 
@@ -102,57 +101,52 @@ new #[Title('Ajouter un employé')] class extends Component
         <div
             class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md p-6 rounded-2xl shadow-md border border-zinc-100 dark:border-zinc-800">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
-                {{-- <x-icon name="briefcase" class="w-5 h-5 text-primary-600" /> --}}
+                
                 {{ __('Contract Details') }}
             </h2>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-
-                <!-- Department -->
-                <flux:select id="department" wire:model="form.department"  :label="__('Department')" />
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Department -->
+<flux:select id="department" wire:model="form.department" :label="__('department')">
                     <flux:select.option value=""> Choisir une option</flux:select.option>
-                    @foreach (DepartmentEnum::cases() as $case)
-                    <option value="{{ $case->value }}">{{ $case->name }}</option>
+                    @foreach (DepartmentEnum::options() as $case)
+                    <flux:select.option value="{{ $case['value'] }}">{{ $case['label'] }}</flux:select.option>
                     @endforeach
                 </flux:select>
 
-                
-                <!-- Job Title -->
-                <flux:input id="job_title" wire:model="form.job_title" type="text" :label="__('Job Title')" />
-
-                <!-- Contract Type -->
+   <!-- Job Title -->
+   <flux:input id="job_title" wire:model="form.job_title" type="text" :label="__('Job Title')" />
+   <!-- Contract Type -->
                 <flux:select id="contract_type" wire:model="form.contract_type" :label="__('Contract Type')">
                     <flux:select.option value=""> Choisir une option</flux:select.option>
-                    @foreach (ContractTypeEnum::cases() as $case)
-                    <option value="{{ $case->value }}">{{ $case->name }}</option>
+                    @foreach (ContractTypeEnum::options() as $case)
+                    <flux:select.option value="{{ $case['value'] }}">{{ $case['label'] }}</flux:select.option>
                     @endforeach
                 </flux:select>
-
+   
                 <!-- Start Date -->
                 <flux:input id="start_date" wire:model="form.start_date" type="date" :label="__('Start Date')" />
 
                 <!-- End Date -->
                 <flux:input id="end_date" wire:model="form.end_date" type="date" :label="__('End Date (optional)')" />
 
+<!-- Base Salary -->
+<flux:input id="base_salary" wire:model.blur="form.base_salary" type="number"
+    :label="__('Base Salary')" />
 
-                <!-- Base Salary -->
-                <flux:input id="base_salary" wire:model.blur="form.base_salary" type="number"
-                    :label="__('Base Salary')" />
 
-               
-                <!-- Average salary -->
-                <flux:input id="average_salary" wire:model="form.average_salary" type="number"
-                    :label="__('Salaire moyen (Optionnel')" />
+<!-- Average salary -->
+<flux:input id="average_salary" wire:model="form.average_salary" type="number"
+    :label="__('Salaire moyen (Optionnel)')" />
 
-                <!-- Smic -->
-                <flux:input id="smic" wire:model="form.smic" type="number"
-                    :label="__('Smic (Optionnel')" />
+<!-- Smic -->
+<flux:input id="smic" wire:model="form.smic" type="number"
+    :label="__('Smic (Optionnel)')" />
 
-                <!-- Professional Category -->
-                <flux:input id="category" wire:model="form.category" type="text"
-                    :label="__('Professional Category (optional)')" />
-            </div>
+<!-- Professional Category -->
+<flux:input id="category" wire:model="form.category" type="text"
+    :label="__('Professional Category (optional)')" />
+        </div>
         </div>
 
         <!-- ACTIONS -->

@@ -1,17 +1,37 @@
 <?php
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Models\User;
-use App\Models\Company;
+use App\Enums\CompanyRoleEnum;
+use App\Enums\LeaveTypeEnum;
+use App\Enums\PermissionEnum;
+use App\Jobs\SyncRolePermissionsJob;
 use App\Models\Employee;
 use App\Models\Leave;
-use App\Enums\LeaveTypeEnum;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Queue;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    foreach (PermissionEnum::cases() as $perm) {
+        Permission::firstOrCreate(['name' => $perm->ownerPermission()]);
+    }
+    // Create roles from CompanyRoleEnum enum
+    foreach (CompanyRoleEnum::cases() as $roleEnum) {
+        Role::firstOrCreate(['name' => $roleEnum->value]);
+    }
+
+    // Dispatch jobs to sync role permissions (only if needed)
+    Queue::fake();
+    SyncRolePermissionsJob::dispatch(CompanyRoleEnum::OWNER->value, 'owner');
+    SyncRolePermissionsJob::dispatch(CompanyRoleEnum::ADMIN->value, 'admin');
+    SyncRolePermissionsJob::dispatch(CompanyRoleEnum::MANAGER->value, 'manager');
+    Queue::assertPushed(SyncRolePermissionsJob::class);
+
     $this->user = User::create([
         'name' => 'Test User',
         'email' => 'test@example.com',
@@ -19,8 +39,7 @@ beforeEach(function () {
     ]);
 
     Auth::login($this->user);
-
-    $this->company = Company::create([
+    $this->user->company()->create([
         'name' => 'Test Company',
         'email' => 'company@example.com',
         'phone' => '123456789',
@@ -32,7 +51,7 @@ beforeEach(function () {
     ]);
 
     $this->employee = Employee::create([
-        'company_id' => $this->company->id,
+        'company_id' => $this->user->company_id,
         'name' => 'John Doe',
         'start_date' => now(),
     ]);

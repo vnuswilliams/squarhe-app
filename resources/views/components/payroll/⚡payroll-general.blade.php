@@ -1,22 +1,17 @@
 <?php
 
 use App\Enums\RemunerationTypeEnum;
+use App\Models\Company;
 use Livewire\Component;
 
 new class extends Component {
-    public $company;
+    public ?Company $company;
 
    
 
     public function with(): array
     {
-        $employees = $this->company->payrollEmployees()
-        ->with([
-            'salary',
-            'employeeContributions',
-            'employerContributions',
-            'remunerations',
-        ])->get();
+        $employees = $this->company->employees;
 
         $grossSalaries = (float) $employees->sum(fn ($employee) => (float) ($employee->salary?->gross_salary ?? 0));
         $netSalaries = (float) $employees->sum(fn ($employee) => (float) ($employee->salary?->nap ?? 0));
@@ -33,7 +28,7 @@ new class extends Component {
         });
 
         return [
-            'employeesCount' => $employees->count(),
+            'employeesCount' => $this->company->employees_count,
             'payrollMass' => $grossSalaries,
             'grossSalaries' => $grossSalaries,
             'netSalaries' => $netSalaries,

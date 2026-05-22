@@ -110,7 +110,7 @@ new class extends Component {
             <flux:avatar name="{{ $this->employee->name }}" />
             <div>
                 <flux:heading level="1">{{ $this->employee->shortName }}</flux:heading>
-                <flux:text>{{ $this->employee->job_title . " . " . $this->employee->department }}</flux:text>
+                <flux:text>{{ $this->employee->job_title . " . " . $this->employee->department?->label() }}</flux:text>
             </div>
         </div>
         <div class="flex items-center gap-2">

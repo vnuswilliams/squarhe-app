@@ -14,7 +14,7 @@ class EmployeeLeaveForm extends Form
 {
     public $employee_id;
     public  $type;
-    public string $approved_by;
+    public ?string $approved_by;
     public  $start_date, $end_date, $days, $status, $notes, $last_leave, $approbation_date;
     public $leave;
     public function rules(): array
@@ -55,7 +55,7 @@ class EmployeeLeaveForm extends Form
         Gate::authorize('create', Leave::class);
 
         $validateData = $this->validate();
-        $employee = Employee::whereId($this->employee_id);
+        $employee = Employee::whereId($this->employee_id)->first();
         $employee->leaves()->create($validateData);
     }
     public function update()

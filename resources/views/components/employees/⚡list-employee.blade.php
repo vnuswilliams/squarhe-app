@@ -107,15 +107,17 @@ new class extends Component
                     placeholder="{{ __('Nom, poste, département…') }}"
                     wire:model.live.debounce.300ms="searchQuery"
                 />
-                <flux:select wire:model.live.debounce.200ms="searchStatus">
-                    @foreach(App\Enums\DepartmentEnum::cases() as $value)
-                    <flux:select.option value="{{ $value->value }}">{{ $value->name }} </flux:select.option>
+                <flux:select wire:model.live.debounce.200ms="searchDep">
+                    <flux:select.option value="">Filtrer par départment </flux:select.option>
+                    @foreach(App\Enums\DepartmentEnum::options() as $value)
+                    <flux:select.option value="{{ $value['value'] }}">{{ $value['label'] }} </flux:select.option>
 
                     @endforeach
                 </flux:select>
                 <flux:select wire:model.live.debounce.200ms="searchStatus">
-                    @foreach(App\Enums\StatusEnum::cases() as $value)
-                    <flux:select.option value="{{ $value->value }}">{{ $value->name }} </flux:select.option>
+                    <flux:select.option value="">Filtrer par statut </flux:select.option>
+                    @foreach(App\Enums\StatusEnum::options() as $value)
+                    <flux:select.option value="{{ $value['value'] }}">{{ $value['label'] }} </flux:select.option>
 
                     @endforeach
                 </flux:select>

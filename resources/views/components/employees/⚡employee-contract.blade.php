@@ -176,8 +176,8 @@ new class extends Component
         <flux:heading level="2" class="font-bold mb-4">{{ __('Contrat actuel') }}</flux:heading>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
-                <flux:text class="text-gray-300 font-semibold">{{ __('department') }}</flux:text>
-                <flux:text class="text-gray-200">{{ $employee->department }}</flux:text>
+                <flux:text class="text-gray-300 font-semibold">{{ __('Département') }}</flux:text>
+                    <flux:text class="font-medium">{{ $employee->department?->label() ?? 'N/A' }}</flux:text>
             </div>
             <div>
                 <flux:text class="text-gray-300 font-semibold">{{ __('Intitulé du poste') }}</flux:text>

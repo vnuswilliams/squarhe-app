@@ -9,6 +9,7 @@
     "dependencies": {
         "@simplewebauthn/browser": "^13.3.0",
         "@tailwindcss/vite": "^4.1.11",
+        "apexcharts": "^5.12.0",
         "autoprefixer": "^10.4.20",
         "chart.js": "^4.5.1",
         "concurrently": "^9.0.1",

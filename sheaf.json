@@ -33,6 +33,15 @@
         },
         "kbd": {
             "installationTime": 1778555145
+        },
+        "modal": {
+            "installationTime": 1779165142
+        },
+        "date-picker": {
+            "installationTime": 1779166093
+        },
+        "input": {
+            "installationTime": 1779166112
         }
     }
 }

@@ -15,7 +15,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('settings/company/update', 'pages::settings.update-company')->name('settings.company.update');
     Route::livewire('settings/company/manage/admin', 'pages::settings.admin-company')->name('settings.company.admin');    
     Route::livewire('settings/company/setting', 'pages::settings.settings-company')->name('settings.company.setting');
-    Route::livewire('settings/company/soubscription', 'pages::settings.soubscription-company')->name('settings.company.soubscription');
+    Route::livewire('settings/company/checkout', 'pages::settings.soubscription-company')->name('settings.company.soubscription');
     Route::livewire('settings/security', 'pages::settings.security')
         ->middleware(when(Features::canManageTwoFactorAuthentication() && Features::optionEnabled(Features::twoFactorAuthentication(), 'confirmPassword'), ['password.confirm'], []))
         ->name('security.edit');

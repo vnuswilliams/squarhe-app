@@ -41,7 +41,7 @@ class Employee extends Model
     /*
     'birth_date',
     'nationality',
-    'civility',
+    'w',
     'child' = nbres d'enfnts,
     'niu',
     'cnps_number',

@@ -1,2 +1,3 @@
 import "./passkeys";
-import "./chartjs";
+import ApexCharts from 'apexcharts'
+window.ApexCharts = ApexCharts

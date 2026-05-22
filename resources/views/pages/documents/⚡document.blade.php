@@ -46,7 +46,7 @@ new #[Title('Tous les documents')] class extends Component {
 
     public function save()
     {
-        $this->form->employee_id = (int) $this->company->employees()->whereUuid($this->uuid)->value('id');
+        $this->form->employee_id = $this->company->employees->whereId($this->uuid)->value('id');
 
         $this->form->isCreating = true;
 
@@ -259,7 +259,7 @@ new #[Title('Tous les documents')] class extends Component {
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <div class="flex items-center gap-2">
-                                    <flux:button variant="primary" icon="arrow-down-tray" siez="sm"
+                                    <flux:button variant="primary" icon="arrow-down-tray" square
                                         wire:click="downloadDoc({{ $doc->id }})" />
                                     <flux:button wire:click="edit({{ $doc->id }})" size="sm" variant="ghost"
                                         icon="pencil" />

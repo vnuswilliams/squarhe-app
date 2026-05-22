@@ -17,14 +17,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('/pay', 'pages::payroll.pay')->name('pay');
     Route::livewire('/pay/check/payslips', 'pages::payroll.check-payslip')->name('pay.check.payslips');
     Route::livewire('/pay/payroll/close', 'pages::payroll.close-payroll')->name('pay.close.payroll');
+
+    Route::livewire('/leaves', 'pages::leaves.leaves')->name('leaves');
+
     Route::livewire('/employees/add', 'pages::employees.add-employee')->name('employees.add');
     Route::livewire('/employees/import', 'pages::employees.employee-import')->name('employees.import');
-
     Route::livewire('/employees/import/overtimes', 'pages::employees.company-overtimes-import')->name('employees.import.overtimes');
     Route::livewire('/employees/import/leaves', 'pages::employees.company-leaves-import')->name('employees.import.leaves');
     Route::livewire('/employees/import/remunerations', 'pages::employees.company-remunerations-import')->name('employees.import.remunerations');
-    Route::livewire('employee/profil/{id}', 'pages::employees.employee-profil')->name('employees.show');
-    Route::livewire('employee/finish/contract', 'pages::employees.employee-end-contract')->name('employees.end.contract');
+    Route::livewire('/employee/profil/{id}', 'pages::employees.employee-profil')->name('employees.show');
+    Route::livewire('/employee/finish/contract', 'pages::employees.employee-end-contract')->name('employees.end.contract');
 
     // web.php
     Route::get('/invitation/accept/{company_code}/{invitation}', AcceptInvitationController::class)->name('invitation.accept');

@@ -23,6 +23,7 @@ new #[Title('Paie')]  class extends Component
                 'declarations',
                 'payrollBook',
             ])
+            ->withCount('employees')
             ->first();
 
             

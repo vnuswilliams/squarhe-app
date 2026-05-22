@@ -20,14 +20,23 @@
         {{ __('Dashboard') }}
     </flux:sidebar.item>
 
-    <flux:sidebar.item 
-        icon="users" 
-        :href="route('employees')" 
-        :current="request()->routeIs(['employees', 'employees.*'])" 
-        wire:navigate
-    >
-        {{ __('Employees') }}
-    </flux:sidebar.item>
+<flux:sidebar.item 
+    icon="users" 
+    :href="route('employees')" 
+    :current="request()->routeIs(['employees', 'employees.*'])" 
+    wire:navigate
+>
+    {{ __('Employees') }}
+</flux:sidebar.item>
+
+<flux:sidebar.item 
+    icon="clock" 
+    :href="route('leaves')" 
+    :current="request()->routeIs(['leaves', 'leaves.*'])" 
+    wire:navigate
+>
+    {{ __('Absences') }}
+</flux:sidebar.item>
 
     <flux:sidebar.item 
         icon="banknotes" 

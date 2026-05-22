@@ -84,9 +84,9 @@ new class extends Component
     {
         return $query->where(function ($q) {
             $q->where('day_type', 'like', '%'.$this->searchQuery.'%')
-              ->orWhere('notes', 'like', '%'.$this->searchQuery.'%')
-              ->orWhere('added_by', 'like', '%'.$this->searchQuery.'%')
-              ->orWhere('week', 'like', '%'.$this->searchQuery.'%');
+            ->orWhere('added_by', 'like', '%'.$this->searchQuery.'%')
+            ->orWhere('week', 'like', '%'.$this->searchQuery.'%')
+            ->orWhere('notes', 'like', '%'.$this->searchQuery.'%');
         });
     }
 
@@ -188,75 +188,7 @@ new class extends Component
         return (new FastExcel($rows))->download('archives_heures_supp_'.$this->employee->id.'_'.now()->format('m_Y').'.xlsx');
     }
 
-    public function previewImport(): void
-    {
-        $this->validate([
-            'importFile' => ['required', 'file', 'mimes:xlsx,csv', 'max:5120'],
-        ]);
-
-        $rows = (new FastExcel)->import($this->importFile->getRealPath());
-        $this->previewRows = [];
-        $this->importErrors = [];
-
-        foreach ($rows as $index => $row) {
-            $data = [
-                'day_type' => $row['day_type'] ?? null,
-                'hours' => $row['hours'] ?? null,
-                'hours_rate' => $row['hours_rate'] ?? null,
-                'week' => $row['week'] ?? null,
-                'notes' => $row['notes'] ?? null,
-            ];
-
-            $validator = Validator::make($data, [
-                'day_type' => ['required', Rule::in(HsuppEnum::values())],
-                'hours' => ['required', 'numeric', 'min:1'],
-                'hours_rate' => ['required', 'numeric', 'min:1'],
-                'week' => ['required', 'numeric', 'regex:/^[1-5]$/'],
-                'notes' => ['nullable', 'string', 'max:100'],
-            ]);
-
-            if ($validator->fails()) {
-                $this->importErrors[] = ['line' => $index + 2, 'errors' => $validator->errors()->all()];
-            }
-
-            $this->previewRows[] = $data;
-        }
-
-        $this->readyToImport = count($this->importErrors) === 0 && count($this->previewRows) > 0;
-    }
-
-    public function confirmImport(): void
-    {
-        if (! $this->readyToImport) {
-            Flux::toast(variant: 'danger', text: __('toast.ov.launchImportFail'));
-            return;
-        }
-
-        $path = $this->importFile->store('imports');
-        ImportEmployeeOvertimesJob::dispatch($path, $this->employee->id);
-        $this->reset('importFile', 'previewRows', 'importErrors', 'readyToImport');
-        Flux::toast(variant: 'success', text: __('toast.ov.launchImport'));
-    }
-
-    public function downloadTemplate()
-    {
-        $path = 'templates/overtimes_import_template.xlsx';
-
-        if (! Storage::exists($path)) {
-            $rows = collect([[
-                'day_type' => HsuppEnum::HEURE_SUPP_120->value,
-                'hours' => 2,
-                'hours_rate' => 1500,
-                'week' => 1,
-                'notes' => 'Exemple',
-            ]]);
-
-            (new FastExcel($rows))->export(Storage::path($path));
-        }
-
-        return Storage::download($path);
-    }
-};
+   };
 ?>
 
 <div x-data="{ activeForm: null }">
@@ -274,8 +206,9 @@ new class extends Component
             <flux:dropdown>
                 <flux:button icon="bars-3" />
                 <flux:menu>
-                    <flux:menu.item @click="activeForm = 'b'">{{ __('Importer des heures supps') }}</flux:menu.item>
-                    <flux:menu.item wire:click="downloadTemplate">{{ __('Télécharger le template') }}</flux:menu.item>
+                    <flux:menu.item href="{{ route('employees.import.overtimes') }}">
+                        {{ __('Importer des heures supps') }}
+                    </flux:menu.item>
                 </flux:menu>
             </flux:dropdown>
         </div>
@@ -314,41 +247,7 @@ new class extends Component
             </flux:callout.text>
         </flux:callout>
     </x-container>
-
-    {{-- ─── FORM : IMPORT ─── --}}
-    <x-container x-show="activeForm === 'b'" x-transition>
-        <div class="flex justify-between items-center mb-5">
-            <flux:heading level="1" size="lg">{{ __('Importer les heures supp.') }}</flux:heading>
-            <flux:button wire:click="downloadTemplate" icon="arrow-down-tray">{{ __('Télécharger le template') }}</flux:button>
-        </div>
-
-        <form wire:submit="previewImport" class="space-y-4">
-            <flux:input type="file" wire:model="importFile" label="{{ __('Fichier Excel (xlsx/csv)') }}" />
-            <div class="flex justify-end items-center gap-2">
-                <flux:button type="button" @click="activeForm = null">{{ __('Annuler') }}</flux:button>
-                <flux:button type="submit" variant="primary">{{ __('Prévisualiser') }}</flux:button>
-            </div>
-        </form>
-
-        @if(!empty($previewRows))
-            <div class="mt-4">
-                <flux:text>{{ __('Lignes prévisualisées') }}: {{ count($previewRows) }}</flux:text>
-                @if(!empty($importErrors))
-                    <flux:callout icon="exclamation-triangle" variant="danger" class="mt-2">
-                        <flux:callout.heading>{{ __('Erreurs détectées') }}</flux:callout.heading>
-                        <flux:callout.text>
-                            @foreach($importErrors as $error)
-                                <div>{{ __('Ligne') }} {{ $error['line'] }}: {{ implode(', ', $error['errors']) }}</div>
-                            @endforeach
-                        </flux:callout.text>
-                    </flux:callout>
-                @endif
-                <div class="flex justify-end mt-3">
-                    <flux:button wire:click="confirmImport" variant="primary" :disabled="!$readyToImport">{{ __('Valider et importer') }}</flux:button>
-                </div>
-            </div>
-        @endif
-    </x-container>
+    
 
     {{-- ─── DELTA CARDS (stats globales, sans pagination) ─── --}}
     @if($this->overtimeStats->isNotEmpty())
@@ -424,222 +323,223 @@ new class extends Component
     </x-container>
 
     {{-- ─── MAIN TABLE (Sheaf UI) ─── --}}
-    <x-ui.table.container variant="default"                x-data="{ hiddenCols: $persist([]).as('overtimes-table-hidden-cols') }"    >
+    <x-container>
+        <x-ui.table.container variant="default"                x-data="{ hiddenCols: $persist([]).as('overtimes-table-hidden-cols') }"    >
 
-        {{-- Toolbar : bulk delete | search | column visibility --}}
-        <div class="flex items-center gap-2">
+            {{-- Toolbar : bulk delete | search | column visibility --}}
+            <div class="flex items-center gap-2">
 
-            {{-- Bulk-delete : visible seulement quand des lignes sont sélectionnées --}}
-            <div style="display:none;" wire:show="selectedIds.length">
-                <flux:button
-                    wire:click="deleteSelected"
-                    wire:confirm="{{ __('Voulez-vous vraiment supprimer les heures supp. sélectionnées ? Cette action est irréversible.') }}"
-                    variant="danger"
-                    size="sm"
-                    icon="trash"
-                >
-                    {{ __('Supprimer la sélection') }}
-                    (<span x-text="$wire.selectedIds.length"></span>)
-                </flux:button>
-            </div>
-
-            {{-- Search --}}
-            <div class="ml-auto">
-                <flux:input
-                    class="[&_input]:bg-transparent"
-                    placeholder="{{ __('Rechercher...') }}"
-                    leftIcon="magnifying-glass"
-                    wire:model.live.debounce.300ms="searchQuery"
-                />
-            </div>
-
-            {{-- Column visibility --}}
-            <x-ui.dropdown checkbox checkboxVariant position="bottom-end">
-                <x-slot:button>
-                    <x-ui.button
-                        icon="view-columns"
-                        variant="soft"
+                {{-- Bulk-delete : visible seulement quand des lignes sont sélectionnées --}}
+                <div style="display:none;" wire:show="selectedIds.length">
+                    <flux:button
+                        wire:click="deleteSelected"
+                        wire:confirm="{{ __('Voulez-vous vraiment supprimer les heures supp. sélectionnées ? Cette action est irréversible.') }}"
+                        variant="danger"
                         size="sm"
-                        class="rounded-box outline dark:outline-white/20 outline-neutral-900/10 dark:ring-white/15 ring-neutral-900/15 [[data-open]>&]:bg-white/5 [[data-open]>&]:ring-2 shadow-sm"
-                        tooltip="{{ __('Colonnes visibles') }}"
+                        icon="trash"
+                    >
+                        {{ __('Supprimer la sélection') }}
+                        (<span x-text="$wire.selectedIds.length"></span>)
+                    </flux:button>
+                </div>
+
+                {{-- Search --}}
+                <div class="ml-auto">
+                    <flux:input
+                        class="[&_input]:bg-transparent"
+                        placeholder="{{ __('Rechercher...') }}"
+                        leftIcon="magnifying-glass"
+                        wire:model.live.debounce.300ms="searchQuery"
                     />
-                </x-slot:button>
-                <x-slot:menu>
-                    <x-ui.dropdown.item readOnly>{{ __('Colonnes masquées') }}</x-ui.dropdown.item>
-                    <x-ui.dropdown.separator />
-                    <x-ui.dropdown.item value="hoursRate" x-model="hiddenCols">{{ __('Taux horaire') }}</x-ui.dropdown.item>
-                    <x-ui.dropdown.item value="addedBy" x-model="hiddenCols">{{ __('Ajouté par') }}</x-ui.dropdown.item>
-                    <x-ui.dropdown.item value="notes" x-model="hiddenCols">{{ __('Notes') }}</x-ui.dropdown.item>
-                </x-slot:menu>
-            </x-ui.dropdown>
+                </div>
 
-        </div>
+                {{-- Column visibility --}}
+                <x-ui.dropdown checkbox checkboxVariant position="bottom-end">
+                    <x-slot:button>
+                        <x-ui.button
+                            icon="view-columns"
+                            variant="soft"
+                            size="sm"
+                            class="rounded-box outline dark:outline-white/20 outline-neutral-900/10 dark:ring-white/15 ring-neutral-900/15 [[data-open]>&]:bg-white/5 [[data-open]>&]:ring-2 shadow-sm"
+                            tooltip="{{ __('Colonnes visibles') }}"
+                        />
+                    </x-slot:button>
+                    <x-slot:menu>
+                        <x-ui.dropdown.item readOnly>{{ __('Colonnes masquées') }}</x-ui.dropdown.item>
+                        <x-ui.dropdown.separator />
+                        <x-ui.dropdown.item value="hoursRate" x-model="hiddenCols">{{ __('Taux horaire') }}</x-ui.dropdown.item>
+                        <x-ui.dropdown.item value="addedBy" x-model="hiddenCols">{{ __('Ajouté par') }}</x-ui.dropdown.item>
+                        <x-ui.dropdown.item value="notes" x-model="hiddenCols">{{ __('Notes') }}</x-ui.dropdown.item>
+                    </x-slot:menu>
+                </x-ui.dropdown>
 
-        {{-- Table --}}
-        <x-ui.table
-            wire:loading
-            loadOn="pagination, search, sorting"
-            id="table">
-            <x-ui.table.header sticky class="dark:bg-neutral-900 bg-white">
-                <x-ui.table.columns withCheckAll>
+            </div>
 
-                    {{-- Semaine — sortable --}}
-                    <x-ui.table.head
-                        column="week"
-                        sortable
-                        :currentSortBy="$sortBy"
-                        :currentSortDir="$sortDir"
-                    >
-                        {{ __('Semaine') }}
-                    </x-ui.table.head>
+            {{-- Table --}}
+            <x-ui.table
+                wire:loading
+                loadOn="pagination, search, sorting"
+                id="table">
+                <x-ui.table.header sticky class="dark:bg-neutral-900 bg-white">
+                    <x-ui.table.columns withCheckAll>
 
-                    {{-- Type — sortable --}}
-                    <x-ui.table.head
-                        column="day_type"
-                        sortable
-                        :currentSortBy="$sortBy"
-                        :currentSortDir="$sortDir"
-                    >
-                        {{ __('Type') }}
-                    </x-ui.table.head>
+                        {{-- Semaine — sortable --}}
+                        <x-ui.table.head
+                            column="week"
+                            sortable
+                            :currentSortBy="$sortBy"
+                            :currentSortDir="$sortDir"
+                        >
+                            {{ __('Semaine') }}
+                        </x-ui.table.head>
 
-                    {{-- Heures — sortable, dropdown --}}
-                    <x-ui.table.head
-                        column="hours"
-                        sortable
-                        variant="dropdown"
-                        :currentSortBy="$sortBy"
-                        :currentSortDir="$sortDir"
-                    >
-                        {{ __('Heures') }}
-                    </x-ui.table.head>
+                        {{-- Type — sortable --}}
+                        <x-ui.table.head
+                            column="day_type"
+                            sortable
+                            :currentSortBy="$sortBy"
+                            :currentSortDir="$sortDir"
+                        >
+                            {{ __('Type') }}
+                        </x-ui.table.head>
 
-                    {{-- Taux horaire (masquable) — sortable, dropdown --}}
-                    <x-ui.table.head
-                        column="hours_rate"
-                        sortable
-                        variant="dropdown"
-                        :currentSortBy="$sortBy"
-                        :currentSortDir="$sortDir"
-                        x-show="!hiddenCols.includes('hoursRate')"
-                        x-cloak
-                    >
-                        {{ __('Taux horaire') }}
-                    </x-ui.table.head>
+                        {{-- Heures — sortable, dropdown --}}
+                        <x-ui.table.head
+                            column="hours"
+                            sortable
+                            variant="dropdown"
+                            :currentSortBy="$sortBy"
+                            :currentSortDir="$sortDir"
+                        >
+                            {{ __('Heures') }}
+                        </x-ui.table.head>
 
-                    {{-- Alloc estimés — sortable, dropdown --}}
-                    <x-ui.table.head
-                        column="alloc"
-                        sortable
-                        variant="dropdown"
-                        :currentSortBy="$sortBy"
-                        :currentSortDir="$sortDir"
-                    >
-                        {{ __('Alloc. estimés') }}
-                    </x-ui.table.head>
+                        {{-- Taux horaire (masquable) — sortable, dropdown --}}
+                        <x-ui.table.head
+                            column="hours_rate"
+                            sortable
+                            variant="dropdown"
+                            :currentSortBy="$sortBy"
+                            :currentSortDir="$sortDir"
+                            x-show="!hiddenCols.includes('hoursRate')"
+                            x-cloak
+                        >
+                            {{ __('Taux horaire') }}
+                        </x-ui.table.head>
 
-                    {{-- Ajouté par (masquable) --}}
-                    <x-ui.table.head x-show="!hiddenCols.includes('addedBy')" x-cloak>
-                        {{ __('Ajouté par') }}
-                    </x-ui.table.head>
-
-                    {{-- Notes (masquable) --}}
-                    <x-ui.table.head x-show="!hiddenCols.includes('notes')" x-cloak>
-                        {{ __('Notes') }}
-                    </x-ui.table.head>
-
-                    {{-- Actions --}}
-                    <x-ui.table.head>{{ __('Actions') }}</x-ui.table.head>
-
-                </x-ui.table.columns>
-            </x-ui.table.header>
-
-            <x-ui.table.rows>
-                @forelse($this->overtimes as $overtime)
-                    <x-ui.table.row
-                        :key="$overtime->id"
-                        :checkboxId="$overtime->id"
-                        class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
-                    >
-                        {{-- Semaine --}}
-                        <x-ui.table.cell>
-                            <span class="inline-flex items-center justify-center size-7 rounded-full bg-neutral-100 dark:bg-neutral-800 text-sm font-bold">
-                                S{{ $overtime->week }}
-                            </span>
-                        </x-ui.table.cell>
-
-                        {{-- Type --}}
-                        <x-ui.table.cell>
-                            <flux:heading class="font-medium">{{ $overtime->day_type->label() }}</flux:heading>
-                        </x-ui.table.cell>
-
-                        {{-- Heures --}}
-                        <x-ui.table.cell>
-                            <span class="font-semibold text-sm">{{ $overtime->hours }} h</span>
-                        </x-ui.table.cell>
-
-                        {{-- Taux horaire (masquable) --}}
-                        <x-ui.table.cell x-show="!hiddenCols.includes('hoursRate')" x-cloak>
-                            <span class="font-mono text-sm">
-                                {{ number_format($overtime->hours_rate, 0, ',', ' ') }} F cfa
-                            </span>
-                        </x-ui.table.cell>
-
-                        {{-- Alloc estimés --}}
-                        <x-ui.table.cell>
-                            <span class="font-mono text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                                {{ number_format($overtime->alloc, 0, ',', ' ') }} F cfa
-                            </span>
-                        </x-ui.table.cell>
+                        {{-- Alloc estimés — sortable, dropdown --}}
+                        <x-ui.table.head
+                            column="alloc"
+                            sortable
+                            variant="dropdown"
+                            :currentSortBy="$sortBy"
+                            :currentSortDir="$sortDir"
+                        >
+                            {{ __('Alloc. estimés') }}
+                        </x-ui.table.head>
 
                         {{-- Ajouté par (masquable) --}}
-                        <x-ui.table.cell x-show="!hiddenCols.includes('addedBy')" x-cloak>
-                            <span class="text-sm text-gray-500 dark:text-neutral-400">
-                                {{ $overtime->added_by ?? '—' }}
-                            </span>
-                        </x-ui.table.cell>
+                        <x-ui.table.head x-show="!hiddenCols.includes('addedBy')" x-cloak>
+                            {{ __('Ajouté par') }}
+                        </x-ui.table.head>
 
                         {{-- Notes (masquable) --}}
-                        <x-ui.table.cell x-show="!hiddenCols.includes('notes')" x-cloak>
-                            @if($overtime->notes)
-                                <flux:tooltip toggleable>
-                                    <flux:button icon="information-circle" size="sm" variant="ghost" />
-                                    <flux:tooltip.content>{{ $overtime->notes }}</flux:tooltip.content>
-                                </flux:tooltip>
-                            @else
-                                <span class="text-xs text-gray-400">—</span>
-                            @endif
-                        </x-ui.table.cell>
+                        <x-ui.table.head x-show="!hiddenCols.includes('notes')" x-cloak>
+                            {{ __('Notes') }}
+                        </x-ui.table.head>
 
                         {{-- Actions --}}
-                        <x-ui.table.cell>
-                            <div class="flex items-center gap-2">
-                                <flux:button wire:click="edit({{ $overtime->id }})" size="sm" variant="ghost" icon="pencil" tooltip="{{ __('Modifier') }}" />
-                                <flux:button wire:click="confirmBeforeDelete({{ $overtime->id }})" size="sm" variant="ghost" icon="trash" tooltip="{{ __('Supprimer') }}" />
-                            </div>
-                        </x-ui.table.cell>
-                    </x-ui.table.row>
-                @empty
-                    <x-ui.table.empty>
-                        <x-ui.empty>
-                            <x-ui.empty.media>
-                                <x-ui.icon name="inbox" class="size-10" />
-                            </x-ui.empty.media>
-                            <x-ui.empty.contents>
-                                <h3 class="text-lg font-semibold">{{ __('Aucune heure supp. trouvée') }}</h3>
-                                <p class="text-sm text-neutral-500">
-                                    {{ __('Aucune heure supplémentaire enregistrée pour ').$employee->name.'.' }}
-                                </p>
-                            </x-ui.empty.contents>
-                        </x-ui.empty>
-                    </x-ui.table.empty>
-                @endforelse
-            </x-ui.table.rows>
-        </x-ui.table>
-        {{ $this->overtimes->links(data: ['scrollTo' => "#table" ]) }}
+                        <x-ui.table.head>{{ __('Actions') }}</x-ui.table.head>
 
-    </x-ui.table.container>
+                    </x-ui.table.columns>
+                </x-ui.table.header>
 
+                <x-ui.table.rows>
+                    @forelse($this->overtimes as $overtime)
+                        <x-ui.table.row
+                            :key="$overtime->id"
+                            :checkboxId="$overtime->id"
+                            class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
+                        >
+                            {{-- Semaine --}}
+                            <x-ui.table.cell>
+                                <span class="inline-flex items-center justify-center size-7 rounded-full bg-neutral-100 dark:bg-neutral-800 text-sm font-bold">
+                                    S{{ $overtime->week }}
+                                </span>
+                            </x-ui.table.cell>
+
+                            {{-- Type --}}
+                            <x-ui.table.cell>
+                                <flux:heading class="font-medium">{{ $overtime->day_type->label() }}</flux:heading>
+                            </x-ui.table.cell>
+
+                            {{-- Heures --}}
+                            <x-ui.table.cell>
+                                <span class="font-semibold text-sm">{{ $overtime->hours }} h</span>
+                            </x-ui.table.cell>
+
+                            {{-- Taux horaire (masquable) --}}
+                            <x-ui.table.cell x-show="!hiddenCols.includes('hoursRate')" x-cloak>
+                                <span class="font-mono text-sm">
+                                    {{ number_format($overtime->hours_rate, 0, ',', ' ') }} F cfa
+                                </span>
+                            </x-ui.table.cell>
+
+                            {{-- Alloc estimés --}}
+                            <x-ui.table.cell>
+                                <span class="font-mono text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                                    {{ number_format($overtime->alloc, 0, ',', ' ') }} F cfa
+                                </span>
+                            </x-ui.table.cell>
+
+                            {{-- Ajouté par (masquable) --}}
+                            <x-ui.table.cell x-show="!hiddenCols.includes('addedBy')" x-cloak>
+                                <span class="text-sm text-gray-500 dark:text-neutral-400">
+                                    {{ $overtime->added_by ?? '—' }}
+                                </span>
+                            </x-ui.table.cell>
+
+                            {{-- Notes (masquable) --}}
+                            <x-ui.table.cell x-show="!hiddenCols.includes('notes')" x-cloak>
+                                @if($overtime->notes)
+                                    <flux:tooltip toggleable>
+                                        <flux:button icon="information-circle" size="sm" variant="ghost" />
+                                        <flux:tooltip.content>{{ $overtime->notes }}</flux:tooltip.content>
+                                    </flux:tooltip>
+                                @else
+                                    <span class="text-xs text-gray-400">—</span>
+                                @endif
+                            </x-ui.table.cell>
+
+                            {{-- Actions --}}
+                            <x-ui.table.cell>
+                                <div class="flex items-center gap-2">
+                                    <flux:button wire:click="edit({{ $overtime->id }})" size="sm" variant="ghost" icon="pencil" tooltip="{{ __('Modifier') }}" />
+                                    <flux:button wire:click="confirmBeforeDelete({{ $overtime->id }})" size="sm" variant="ghost" icon="trash" tooltip="{{ __('Supprimer') }}" />
+                                </div>
+                            </x-ui.table.cell>
+                        </x-ui.table.row>
+                    @empty
+                        <x-ui.table.empty>
+                            <x-ui.empty>
+                                <x-ui.empty.media>
+                                    <x-ui.icon name="inbox" class="size-10" />
+                                </x-ui.empty.media>
+                                <x-ui.empty.contents>
+                                    <h3 class="text-lg font-semibold">{{ __('Aucune heure supp. trouvée') }}</h3>
+                                    <p class="text-sm text-neutral-500">
+                                        {{ __('Aucune heure supplémentaire enregistrée pour ').$employee->name.'.' }}
+                                    </p>
+                                </x-ui.empty.contents>
+                            </x-ui.empty>
+                        </x-ui.table.empty>
+                    @endforelse
+                </x-ui.table.rows>
+            </x-ui.table>
+            {{ $this->overtimes->links(data: ['scrollTo' => "#table" ]) }}
+
+        </x-ui.table.container>
+    </x-container>
     {{-- ─── MODAL : EDIT ─── --}}
     <flux:modal name="edit-overtime-modal" class="min-w-225">
         <div class="space-y-6 pt-5">

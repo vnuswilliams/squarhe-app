@@ -143,10 +143,12 @@ use HasTableOptions;
      */
     public function deleteSelected()
     {
-        Gate::authorize("delete", Leave::class);
+        $wantToDelete = $this->baseQuery->whereIn("id", $this->selectedIds)->get();
 
-        $this->baseQuery()->whereIn("id", $this->selectedIds)->delete();
-
+        foreach ($wantToDelete as $deleteLeave) {
+            Gate::authorize("delete",[Leave::class, $deleteLeave]);
+            $deleteLeave->delete();
+        }
         $this->deselectAll();
         Flux::toast(variant: "success", text: "Les absences/congés sélectionnés ont été supprimés.");
     }
@@ -179,76 +181,7 @@ use HasTableOptions;
         return new FastExcel($rows)->download("archives_conges_" . $this->employee->id . "_" . now()->format("m_Y") . ".xlsx");
     }
 
-    public function previewImport(): void
-    {
-        $this->validate([
-            "importFile" => ["required", "file", "mimes:xlsx,csv", "max:5120"],
-        ]);
-
-        $rows = new FastExcel()->import($this->importFile->getRealPath());
-        $this->previewRows = [];
-        $this->importErrors = [];
-
-        foreach ($rows as $index => $row) {
-            $data = [
-                "type" => $row["type"] ?? null,
-                "start_date" => $row["start_date"] ?? null,
-                "end_date" => $row["end_date"] ?? null,
-                "notes" => $row["notes"] ?? null,
-                "last_leave" => $row["last_leave"] ?? null,
-            ];
-
-            $validator = Validator::make($data, [
-                "type" => ["required", Rule::in(LeaveTypeEnum::values())],
-                "start_date" => ["required", "date"],
-                "end_date" => ["required", "date", "after_or_equal:start_date"],
-                "notes" => ["nullable", "string", "max:100"],
-                "last_leave" => ["nullable", "date"],
-            ]);
-
-            if ($validator->fails()) {
-                $this->importErrors[] = ["line" => $index + 2, "errors" => $validator->errors()->all()];
-            }
-
-            $this->previewRows[] = $data;
-        }
-
-        $this->readyToImport = count($this->importErrors) === 0 && count($this->previewRows) > 0;
-    }
-
-    public function confirmImport(): void
-    {
-        if (!$this->readyToImport) {
-            Flux::toast(variant: "danger", text: __("Corrigez les erreurs avant import."));
-            return;
-        }
-
-        $path = $this->importFile->store("imports");
-        ImportEmployeeLeavesJob::dispatch($path, $this->employee->id, auth()->user()->name);
-        $this->reset("importFile", "previewRows", "importErrors", "readyToImport");
-        Flux::toast(variant: "success", text: __("Import lancé. Le traitement est en cours."));
-    }
-
-    public function downloadTemplate()
-    {
-        $path = "templates/leaves_import_template.xlsx";
-
-        if (!Storage::exists($path)) {
-            $rows = collect([
-                [
-                    "type" => LeaveTypeEnum::ANNUAL->value,
-                    "start_date" => now()->toDateString(),
-                    "end_date" => now()->toDateString(),
-                    "notes" => "Exemple",
-                    "last_leave" => now()->subMonth()->toDateString(),
-                ],
-            ]);
-
-            new FastExcel($rows)->export(Storage::path($path));
-        }
-
-        return Storage::download($path);
-    }
+    
 };
 ?>
 
@@ -270,9 +203,9 @@ use HasTableOptions;
             <flux:dropdown>
                 <flux:button icon="bars-3" />
                 <flux:menu>
-                    <flux:menu.item @click="activeForm = 'b'">{{ __("Importer des absences et congés") }}
+                    <flux:menu.item href="{{  route('employees.import.leaves') }}">
+                        Importer les absences et congés
                     </flux:menu.item>
-                    <flux:menu.item wire:click="downloadTemplate">{{ __("Télécharger le template") }}</flux:menu.item>
                 </flux:menu>
             </flux:dropdown>
         </div>
@@ -280,8 +213,7 @@ use HasTableOptions;
 
     {{-- ─── FORM : ADD LEAVE ─── --}}
     <x-container x-show="activeForm === 'a'" x-transition>
-        <flux:heading level="1" size="lg" class="mb-5">{{ __("Ajouter une absence ou un congé") }}
-        </flux:heading>
+        <flux:heading level="1" size="lg" class="mb-5">{{ __("Ajouter une absence ou un congé") }}        </flux:heading>
         <form wire:submit="save">
             <div class="py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <flux:select label="{{ __('Type d\'absence') }}" wire:model.live="form.type">
@@ -313,44 +245,7 @@ use HasTableOptions;
             </div>
         </form>
     </x-container>
-
-    {{-- ─── FORM : IMPORT ─── --}}
-    <x-container x-show="activeForm === 'b'" x-transition>
-        <div class="flex justify-between items-center mb-5">
-            <flux:heading level="1" size="lg">{{ __("Importer les absences") }}</flux:heading>
-            <flux:button wire:click="downloadTemplate" icon="arrow-down-tray">{{ __("Télécharger le template") }}
-            </flux:button>
-        </div>
-
-        <form wire:submit="previewImport" class="space-y-4">
-            <flux:input type="file" wire:model="importFile" label="{{ __('Fichier Excel (xlsx/csv)') }}" />
-            <div class="flex justify-end items-center gap-2">
-                <flux:button type="button" @click="activeForm = null">{{ __("Cancel") }}</flux:button>
-                <flux:button type="submit" variant="primary">{{ __("Prévisualiser") }}</flux:button>
-            </div>
-        </form>
-
-        @if (!empty($previewRows))
-            <div class="mt-4">
-                <flux:text>{{ __("Lignes prévisualisées") }}: {{ count($previewRows) }}</flux:text>
-                @if (!empty($importErrors))
-                    <flux:callout icon="exclamation-triangle" variant="danger" class="mt-2">
-                        <flux:callout.heading>{{ __("Erreurs détectées") }}</flux:callout.heading>
-                        <flux:callout.text>
-                            @foreach ($importErrors as $error)
-                                <div>{{ __("Ligne") }} {{ $error["line"] }}: {{ implode(", ", $error["errors"]) }}
-                                </div>
-                            @endforeach
-                        </flux:callout.text>
-                    </flux:callout>
-                @endif
-                <div class="flex justify-end mt-3">
-                    <flux:button wire:click="confirmImport" variant="primary" :disabled="!$readyToImport">
-                        {{ __("Valider et importer") }}</flux:button>
-                </div>
-            </div>
-        @endif
-    </x-container>
+   
 
     {{-- ─── DELTA CARDS (stats globales, sans pagination) ─── --}}
     <x-delta-card :cards='[
@@ -440,171 +335,172 @@ use HasTableOptions;
     </x-container>
 
     {{-- ─── MAIN TABLE (Sheaf UI) ─── --}}
-<x-container>
-<x-ui.table.container variant="default" x-data="{ hiddenCols: $persist([]).as('leaves-table-hidden-cols') }">
+    <x-container>
+        <x-ui.table.container variant="default" x-data="{ hiddenCols: $persist([]).as('leaves-table-hidden-cols') }">
 
-        {{-- Toolbar : bulk delete | search | column visibility --}}
-        <div class="flex items-center gap-2">
+            {{-- Toolbar : bulk delete | search | column visibility --}}
+            <div class="flex items-center gap-2">
 
-            {{-- Bulk-delete : visible seulement quand des lignes sont sélectionnées --}}
-            <div style="display:none;" wire:show="selectedIds.length">
-                <flux:button wire:click="deleteSelected"
-                    wire:confirm="{{ __('Voulez-vous vraiment supprimer les absences/congés sélectionnés ? Cette action est irréversible.') }}"
-                    variant="danger" size="sm" icon="trash">
-                    {{ __("Supprimer la sélection") }}
-                    (<span x-text="$wire.selectedIds.length"></span>)
-                </flux:button>
+                {{-- Bulk-delete : visible seulement quand des lignes sont sélectionnées --}}
+                <div style="display:none;" wire:show="selectedIds.length">
+                    <flux:button wire:click="deleteSelected"
+                        wire:confirm="{{ __('Voulez-vous vraiment supprimer les absences/congés sélectionnés ? Cette action est irréversible.') }}"
+                        variant="danger" size="sm" icon="trash">
+                        {{ __("Supprimer la sélection") }}
+                        (<span x-text="$wire.selectedIds.length"></span>)
+                    </flux:button>
+                </div>
+
+                {{-- Search --}}
+                <div class="ml-auto">
+                    <flux:input class="[&_input]:bg-transparent" placeholder="{{ __('Rechercher...') }}"
+                        leftIcon="magnifying-glass" wire:model.live.debounce.300ms="searchQuery" />
+                </div>
+
+                {{-- Column visibility --}}
+                <x-ui.dropdown checkbox checkboxVariant position="bottom-end">
+                    <x-slot:button>
+                    <flux:button icon="bars-3" />
+
+                    </x-slot:button>
+                    <x-slot:menu>
+                        <x-ui.dropdown.item readOnly>{{ __("Colonnes masquées") }}</x-ui.dropdown.item>
+                        <x-ui.dropdown.separator />
+                        <x-ui.dropdown.item value="approvedBy"
+                            x-model="hiddenCols">{{ __("Approuvé par") }}</x-ui.dropdown.item>
+                    </x-slot:menu>
+                </x-ui.dropdown>
+
             </div>
 
-            {{-- Search --}}
-            <div class="ml-auto">
-                <flux:input class="[&_input]:bg-transparent" placeholder="{{ __('Rechercher...') }}"
-                    leftIcon="magnifying-glass" wire:model.live.debounce.300ms="searchQuery" />
-            </div>
+            {{-- Table --}}
+            <x-ui.table  pagination:variant="full" wire:loading loadOn="pagination, search, sorting">
+                <x-ui.table.header sticky class="dark:bg-neutral-900 bg-white" id="table">
+                    <x-ui.table.columns withCheckAll>
 
-            {{-- Column visibility --}}
-            <x-ui.dropdown checkbox checkboxVariant position="bottom-end">
-                <x-slot:button>
-                <flux:button icon="bars-3" />
+                        {{-- Type — sortable --}}
+                        <x-ui.table.head column="type" sortable :currentSortBy="$sortBy" :currentSortDir="$sortDir">
+                            {{ __("Type") }}
+                        </x-ui.table.head>
 
-                </x-slot:button>
-                <x-slot:menu>
-                    <x-ui.dropdown.item readOnly>{{ __("Colonnes masquées") }}</x-ui.dropdown.item>
-                    <x-ui.dropdown.separator />
-                    <x-ui.dropdown.item value="approvedBy"
-                        x-model="hiddenCols">{{ __("Approuvé par") }}</x-ui.dropdown.item>
-                </x-slot:menu>
-            </x-ui.dropdown>
+                        {{-- Date début — sortable, dropdown --}}
+                        <x-ui.table.head column="start_date" sortable variant="dropdown" :currentSortBy="$sortBy"
+                            :currentSortDir="$sortDir">
+                            {{ __("Date de début") }}
+                        </x-ui.table.head>
 
-        </div>
+                        {{-- Date fin — sortable, dropdown --}}
+                        <x-ui.table.head column="end_date" sortable variant="dropdown" :currentSortBy="$sortBy"
+                            :currentSortDir="$sortDir">
+                            {{ __("Date de fin") }}
+                        </x-ui.table.head>
 
-        {{-- Table --}}
-        <x-ui.table  pagination:variant="full" wire:loading loadOn="pagination, search, sorting">
-            <x-ui.table.header sticky class="dark:bg-neutral-900 bg-white" id="table">
-                <x-ui.table.columns withCheckAll>
+                        {{-- Jours — sortable --}}
+                        <x-ui.table.head column="days" sortable :currentSortBy="$sortBy" :currentSortDir="$sortDir">
+                            {{ __("Jours") }}
+                        </x-ui.table.head>
 
-                    {{-- Type — sortable --}}
-                    <x-ui.table.head column="type" sortable :currentSortBy="$sortBy" :currentSortDir="$sortDir">
-                        {{ __("Type") }}
-                    </x-ui.table.head>
-
-                    {{-- Date début — sortable, dropdown --}}
-                    <x-ui.table.head column="start_date" sortable variant="dropdown" :currentSortBy="$sortBy"
-                        :currentSortDir="$sortDir">
-                        {{ __("Date de début") }}
-                    </x-ui.table.head>
-
-                    {{-- Date fin — sortable, dropdown --}}
-                    <x-ui.table.head column="end_date" sortable variant="dropdown" :currentSortBy="$sortBy"
-                        :currentSortDir="$sortDir">
-                        {{ __("Date de fin") }}
-                    </x-ui.table.head>
-
-                    {{-- Jours — sortable --}}
-                    <x-ui.table.head column="days" sortable :currentSortBy="$sortBy" :currentSortDir="$sortDir">
-                        {{ __("Jours") }}
-                    </x-ui.table.head>
-
-                    {{-- Statut — sortable --}}
-                    <x-ui.table.head column="status" sortable :currentSortBy="$sortBy" :currentSortDir="$sortDir">
-                        {{ __("Statut") }}
-                    </x-ui.table.head>
-
-                    {{-- Approuvé par (masquable) --}}
-                    <x-ui.table.head x-show="!hiddenCols.includes('approvedBy')" x-cloak>
-                        {{ __("Approuvé par") }}
-                    </x-ui.table.head>
-
-                                       {{-- Actions --}}
-                    <x-ui.table.head>{{ __("Actions") }}</x-ui.table.head>
-
-                </x-ui.table.columns>
-            </x-ui.table.header>
-
-            <x-ui.table.rows>
-                @forelse($this->leaves as $leave)
-                    <x-ui.table.row :key="$leave->id" :checkboxId="$leave->id"
-                        class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                        {{-- Type --}}
-                        <x-ui.table.cell>
-                            <flux:heading class="font-medium">
-                                {{ $leave->type->label() }}
-                                @if ($leave->notes)
-                                <flux:tooltip toggleable>
-                                    <flux:button icon="information-circle" size="sm" variant="ghost" />
-                                    <flux:tooltip.content>{{ $leave->notes }}</flux:tooltip.content>
-                                </flux:tooltip>
-                            @endif
-                        </flux:heading>
-                        </x-ui.table.cell>
-
-                        {{-- Date de début --}}
-                        <x-ui.table.cell>
-                            <span class="text-sm font-mono">
-                                {{ Carbon::parse($leave->start_date)->translatedFormat("d M Y") }}
-                            </span>
-                        </x-ui.table.cell>
-
-                        {{-- Date de fin --}}
-                        <x-ui.table.cell>
-                            <span class="text-sm font-mono">
-                                {{ Carbon::parse($leave->end_date)->translatedFormat("d M Y") }}
-                            </span>
-                        </x-ui.table.cell>
-
-                        {{-- Jours --}}
-                        <x-ui.table.cell>
-                            <span class="font-semibold text-sm">{{ $leave->days }}
-                                jr{{ $leave->days > 1 ? "s" : "" }}</span>
-                        </x-ui.table.cell>
-
-                        {{-- Statut --}}
-                        <x-ui.table.cell>
-                            <flux:badge color="{{ $leave->status->color() }}">
-                                {{ $leave->status->label() }}
-                            </flux:badge>
-                        </x-ui.table.cell>
+                        {{-- Statut — sortable --}}
+                        <x-ui.table.head column="status" sortable :currentSortBy="$sortBy" :currentSortDir="$sortDir">
+                            {{ __("Statut") }}
+                        </x-ui.table.head>
 
                         {{-- Approuvé par (masquable) --}}
-                        <x-ui.table.cell x-show="!hiddenCols.includes('approvedBy')" x-cloak>
-                            <span class="text-sm text-gray-500 dark:text-neutral-400">
-                                {{ $leave->approved_by ?? "—" }}
-                            </span>
-                        </x-ui.table.cell>
+                        <x-ui.table.head x-show="!hiddenCols.includes('approvedBy')" x-cloak>
+                            {{ __("Approuvé par") }}
+                        </x-ui.table.head>
 
-                                              {{-- Actions --}}
-                        <x-ui.table.cell>
-                            <div class="flex items-center gap-2">
-                                <flux:button wire:click="edit({{ $leave->id }})" size="sm" variant="ghost"
-                                    icon="pencil" tooltip="{{ __('Modifier') }}" />
-                                <flux:button wire:click="confirmBeforeDelete({{ $leave->id }})" size="sm"
-                                    variant="ghost" icon="trash" tooltip="{{ __('Supprimer') }}" />
-                            </div>
-                        </x-ui.table.cell>
-                    </x-ui.table.row>
-                @empty
-                    <x-ui.table.empty>
-                        <x-ui.empty>
-                            <x-ui.empty.media>
-                                <x-ui.icon name="inbox" class="size-10" />
-                            </x-ui.empty.media>
-                            <x-ui.empty.contents>
-                                <h3 class="text-lg font-semibold">{{ __("Aucune absence ou congé trouvé") }}</h3>
-                                <p class="text-sm text-neutral-500">
-                                    {{ __("Ajoutez une absence ou un congé pour commencer.") }}
-                                </p>
-                            </x-ui.empty.contents>
-                        </x-ui.empty>
-                    </x-ui.table.empty>
-                @endforelse
-            </x-ui.table.rows>
-        </x-ui.table>
-        {{ $this->leaves->links(data: ['scrollTo' => "#table" ]) }}
-    </x-ui.table.container>
-    
-</x-container>
+                                        {{-- Actions --}}
+                        <x-ui.table.head>{{ __("Actions") }}</x-ui.table.head>
+
+                    </x-ui.table.columns>
+                </x-ui.table.header>
+
+                <x-ui.table.rows>
+                    @forelse($this->leaves as $leave)
+                        <x-ui.table.row :key="$leave->id" :checkboxId="$leave->id"
+                            class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                            {{-- Type --}}
+                            <x-ui.table.cell>
+                                <flux:heading class="font-medium">
+                                    {{ $leave->type->label() }}
+                                    @if ($leave->notes)
+                                    <flux:tooltip toggleable>
+                                        <flux:button icon="information-circle" size="sm" variant="ghost" />
+                                        <flux:tooltip.content>{{ $leave->notes }}</flux:tooltip.content>
+                                    </flux:tooltip>
+                                @endif
+                            </flux:heading>
+                            </x-ui.table.cell>
+
+                            {{-- Date de début --}}
+                            <x-ui.table.cell>
+                                <span class="text-sm font-mono">
+                                    {{ Carbon::parse($leave->start_date)->translatedFormat("d M Y") }}
+                                </span>
+                            </x-ui.table.cell>
+
+                            {{-- Date de fin --}}
+                            <x-ui.table.cell>
+                                <span class="text-sm font-mono">
+                                    {{ Carbon::parse($leave->end_date)->translatedFormat("d M Y") }}
+                                </span>
+                            </x-ui.table.cell>
+
+                            {{-- Jours --}}
+                            <x-ui.table.cell>
+                                <span class="font-semibold text-sm">{{ $leave->days }}
+                                    jr{{ $leave->days > 1 ? "s" : "" }}</span>
+                            </x-ui.table.cell>
+
+                            {{-- Statut --}}
+                            <x-ui.table.cell>
+                                <flux:badge color="{{ $leave->status->color() }}">
+                                    {{ $leave->status->label() }}
+                                </flux:badge>
+                            </x-ui.table.cell>
+
+                            {{-- Approuvé par (masquable) --}}
+                            <x-ui.table.cell x-show="!hiddenCols.includes('approvedBy')" x-cloak>
+                                <span class="text-sm text-gray-500 dark:text-neutral-400">
+                                    {{ $leave->approved_by ?? "—" }}
+                                </span>
+                            </x-ui.table.cell>
+
+                                                {{-- Actions --}}
+                            <x-ui.table.cell>
+                                <div class="flex items-center gap-2">
+                                    <flux:button wire:click="edit({{ $leave->id }})" size="sm" variant="ghost"
+                                        icon="pencil" tooltip="{{ __('Modifier') }}" />
+                                    <flux:button wire:click="confirmBeforeDelete({{ $leave->id }})" size="sm"
+                                        variant="ghost" icon="trash" tooltip="{{ __('Supprimer') }}" />
+                                </div>
+                            </x-ui.table.cell>
+                        </x-ui.table.row>
+                    @empty
+                        <x-ui.table.empty>
+                            <x-ui.empty>
+                                <x-ui.empty.media>
+                                    <x-ui.icon name="inbox" class="size-10" />
+                                </x-ui.empty.media>
+                                <x-ui.empty.contents>
+                                    <h3 class="text-lg font-semibold">{{ __("Aucune absence ou congé trouvé") }}</h3>
+                                    <p class="text-sm text-neutral-500">
+                                        {{ __("Ajoutez une absence ou un congé pour commencer.") }}
+                                    </p>
+                                </x-ui.empty.contents>
+                            </x-ui.empty>
+                        </x-ui.table.empty>
+                    @endforelse
+                </x-ui.table.rows>
+            </x-ui.table>
+            {{ $this->leaves->links(data: ['scrollTo' => "#table" ]) }}
+        </x-ui.table.container>
+        
+    </x-container>
+
+
     {{-- ─── MODAL : EDIT ─── --}}
-
     <flux:modal name="edit-leave-modal" class="min-w-225">
         <div class="space-y-6 pt-5">
             <flux:heading size="lg">{{ __("Mettre à jour un congé ou une absence") }}</flux:heading>
@@ -613,7 +509,7 @@ use HasTableOptions;
                     <flux:select label="{{ __('Type de congé') }}" wire:model="form.type">
                         <option>{{ __("Choisir un type") }}</option>
                         @foreach (LeaveTypeEnum::options() as $case)
-                            <option value="{{ $case["value"] }}">{{ $case["label"] }}</option>
+                            <option value="{{ $case['value'] }}">{{ $case["label"] }}</option>
                         @endforeach
                     </flux:select>
 

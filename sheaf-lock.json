@@ -30,6 +30,15 @@
         ],
         "resources/views/components/ui/tab/panel.blade.php": [
             "tabs"
+        ],
+        "resources/js/globals/modals.js": [
+            "modal"
+        ],
+        "resources/js/utils.js": [
+            "modal"
+        ],
+        "resources/js/components/date-picker/index.js": [
+            "date-picker"
         ]
     },
     "helpers": {
@@ -43,7 +52,9 @@
             "select",
             "pagination",
             "dropdown",
-            "table"
+            "table",
+            "input",
+            "date-picker"
         ],
         "text": [
             "select"
@@ -60,6 +71,9 @@
         ],
         "dropdown": [
             "table"
+        ],
+        "input": [
+            "date-picker"
         ]
     }
 }

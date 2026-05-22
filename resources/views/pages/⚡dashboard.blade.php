@@ -1,5 +1,6 @@
 <?php
 
+use App\Charts\EmployeeChart;
 use App\Models\Invitation;
 use Flux\Flux;
 use Livewire\Attributes\Computed;
@@ -9,11 +10,18 @@ new class extends Component
 {
     public function mount()
     {
+        
         if (session()->has('error')) {
             Flux::toast(variant: 'danger', text: session('error'));
         } elseif (session()->has('success')) {
             Flux::toast(variant: 'success', text: session('success'));
         }
+    }
+    public function with(): array
+    {
+        return [
+            'chart' => app(EmployeeChart::class, ['company' => auth()->user()->company()->with('employees')->first()])->agePyramids(),
+            ];
     }
 
     #[Computed()]
@@ -31,12 +39,14 @@ new class extends Component
     {
         return $this->view()->title(__('Dashboard'));
     }
+
 };
 ?>
 
 <div>
-<livewire:dashboard.remuneration-overview-chart />
-
+    <x-container >
+        {!! $chart->container() !!}
+    </x-container>
     @if($this->invitations->isNotEmpty())
         <div class="mb-8 space-y-3">
             <flux:heading size="sm" class="flex items-center gap-2">
@@ -143,8 +153,6 @@ new class extends Component
             ]
         ]" 
         />
-        
 
-       
-
+    {{ $chart->script() }}
 </div>

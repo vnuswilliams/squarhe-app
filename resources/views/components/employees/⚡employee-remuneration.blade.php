@@ -214,76 +214,7 @@ new class extends Component
 
         Flux::toast(variant: 'success', text: __('toast.remun.avgSuccess'));
     }
-
-    public function previewImport(): void
-    {
-        $this->validate([
-            'importFile' => ['required', 'file', 'mimes:xlsx,csv', 'max:5120'],
-        ]);
-
-        $rows = (new FastExcel)->import($this->importFile->getRealPath());
-        $this->previewRows = [];
-        $this->importErrors = [];
-
-        foreach ($rows as $index => $row) {
-            $data = [
-                'name' => $row['name'] ?? null,
-                'amount' => $row['amount'] ?? null,
-                'periodicity' => $row['periodicity'] ?? null,
-                'impact' => $row['impact'] ?? null,
-                'notes' => $row['notes'] ?? null,
-            ];
-
-            $validator = Validator::make($data, [
-                'name' => ['required', Rule::in(RemunerationEnum::values())],
-                'amount' => ['required', 'numeric', 'min:100'],
-                'periodicity' => ['required', Rule::in(PeriodicityEnum::values())],
-                'impact' => ['required', Rule::in(ImpactEnum::values())],
-                'notes' => ['nullable', 'string', 'max:100'],
-            ]);
-
-            if ($validator->fails()) {
-                $this->importErrors[] = ['line' => $index + 2, 'errors' => $validator->errors()->all()];
-            }
-
-            $this->previewRows[] = $data;
-        }
-
-        $this->readyToImport = count($this->importErrors) === 0 && count($this->previewRows) > 0;
-    }
-
-    public function confirmImport(): void
-    {
-        if (! $this->readyToImport) {
-            Flux::toast(variant: 'danger', text: __('toast.remun.importLaunch'));
-
-            return;
-        }
-
-        $path = $this->importFile->store('imports');
-        ImportEmployeeRemunerationsJob::dispatch($path, $this->employee->id);
-        $this->reset('importFile', 'previewRows', 'importErrors', 'readyToImport');
-        Flux::toast(variant: 'success', text: __('toast.remun.importLaunch'));
-    }
-
-    public function downloadTemplate()
-    {
-        $path = 'templates/remunerations_import_template.xlsx';
-
-        if (! Storage::exists($path)) {
-            $rows = collect([[
-                'name' => RemunerationEnum::SUR_SALAIRE->value,
-                'amount' => 10000,
-                'periodicity' => PeriodicityEnum::MONTHLY->value,
-                'impact' => ImpactEnum::NEUTRE->value,
-                'notes' => 'Exemple',
-            ]]);
-
-            (new FastExcel($rows))->export(Storage::path($path));
-        }
-
-        return Storage::download($path);
-    }
+   
 
     public function exportSelected()
     {
@@ -317,8 +248,9 @@ new class extends Component
                 <flux:button icon="bars-3" />
                 <flux:menu>
                     <flux:menu.item @click="activeForm = 'b'">{{ __('Add average salary') }}</flux:menu.item>
-                    <flux:menu.item @click="activeForm = 'c'">{{ __('Importer des éléments') }}</flux:menu.item>
-                    <flux:menu.item wire:click="downloadTemplate">{{ __('Télécharger le template') }}</flux:menu.item>
+                    <flux:menu.item href="{{ route('employees.import.remunerations') }}">
+{{ __('Importer des éléments de rémun') }}
+</flux:menu.item>
                 </flux:menu>
             </flux:dropdown>
         </div>
@@ -589,15 +521,16 @@ new class extends Component
                     >
                         {{-- Nom --}}
                         <x-ui.table.cell>
-                            <flux:heading class="font-medium">{{ $remun->name->label() }}
+                            <div class="flex items-center gap-1">
+                                <flux:heading class="font-medium">
+                                    {{ $remun->name->label() }}
+                                </flux:heading>
+
 
                                 @if($remun->notes)
-                                <flux:tooltip toggleable>
-                                    <flux:button icon="information-circle" square />
-                                    <flux:tooltip.content>{{ $remun->notes }}</flux:tooltip.content>
-                                </flux:tooltip>
+                                <flux:button icon="information-circle" variant="ghost" tooltip="{{ $remun->notes }}" />
                                 @endif
-                            </flux:heading>
+                            </div>
                         </x-ui.table.cell>
 
                         {{-- Type --}}
