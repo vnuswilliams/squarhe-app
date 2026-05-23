@@ -1,26 +1,56 @@
 <?php
 
-use App\Enums\ContractTypeEnum;
 use App\Enums\StatusEnum;
-use App\Models\Employee;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Title("Modules employés")] class extends Component {
-  
+new #[Title('Modules employés')] class extends Component
+{
+
+
+
     #[Computed]
     public function company()
     {
-        return auth()->user()->company()->with('employees')->first();
+        return auth()->user()->company()->withCount('employees')->first();
     }
-    public function delete(string $id)
+
+    public function with(): array
     {
-        $employee = Employee::whereId($id)->whereCompanyId($this->company->id)->firstOrFail();
-        Gate::authorize("delete", [Employee::class, $employee]);
-        $employee->delete();
+        return [
+            'card' => [
+                [
+                    'label' => 'Effectif total',
+                    'current' => $this->company->employees_count,
+                    'delta' => '',
+                    'color' => 'blue',
+                ],
+                [
+                    'label' => 'Fin de contrat (mois)',
+                    'current' => $this->company->employees
+                        ->where(function ($employee) {
+                            return $employee->end_date &&
+                            $employee->end_date->month === now()->month &&
+                            $employee->end_date->year === now()->year;
+                        })->count(),
+                    'delta' => '',
+                    'color' => 'amber',
+                ],
+                [
+                    'label' => 'Contrats expirés',
+                    'current' => $this->company->employees->where('end_date', '<', now())->count(),
+                    'delta' => '',
+                    'color' => 'rose',
+                ],
+                [
+                    'label' => 'En congés',
+                    'current' => $this->company->employees->where('status', StatusEnum::ONLEAVE->value)->count(),
+                    'delta' => '',
+                    'color' => 'emerald',
+                ],
+            ],
+        ];
     }
 };
 ?>
@@ -47,43 +77,14 @@ new #[Title("Modules employés")] class extends Component {
     </div>
     @if ($this->company)
 
-        <x-delta-card :cards='[
-            [
-                "label" => "Effectif total",
-                "current" =>  $this->company->employees->where("status", "!=", StatusEnum::TERMINATED->value)->count(),
-                "delta" => "",
-                "color" => "blue",
-            ],
-            [
-                "label" => "Fin de contrat (mois)",
-                "current" => $this->company->employees
-        ->where(function ($employee) {
-            return $employee->end_date &&
-            $employee->end_date->month === now()->month &&
-            $employee->end_date->year === now()->year;
-        })->count(),
-                "delta" => "",
-                "color" => "amber",
-            ],
-            [
-                "label" => "Contrats expirés",
-                "current" => $this->company->employees->where("end_date", "<", now())->count(),
-                "delta" => "",
-                "color" => "rose",
-            ],
-            [
-                "label" => "En congés",
-                "current" => $this->company->employees->where("status", StatusEnum::ONLEAVE->value)->count(),
-                "delta" => "",
-                "color" => "emerald",
-            ],
-        ]' />
+        <x-delta-card :cards="$card" />
 
 
         <x-ui.tabs variant="non-contained">
             <x-ui.tab.group>
                 <x-ui.tab label="Vue d'ensemble" icon="globe-alt" />
                 <x-ui.tab label="Tous les employés" icon="users" />
+                <x-ui.tab label="En congé" icon="clock" />
                 <x-ui.tab label="Fin de contrat" icon="clock" />
                 <x-ui.tab label="Contrats expirés" icon="document-minus" />
             </x-ui.tab.group>
@@ -91,17 +92,21 @@ new #[Title("Modules employés")] class extends Component {
                 </x-ui.tab.panel>
 
             <x-ui.tab.panel>
-                <livewire:employees.list-employee :companyId="$this->company->id" />
+                <livewire:employees.list-employee :company="$this->company" />
             </x-ui.tab.panel>
-
+            
             <x-ui.tab.panel>
-                <livewire:employees.list-employee-expiring :companyId="$this->company->id" />
+               
+                <livewire:employees.list-employee-onleave :company="$this->company" />
+                </x-ui.tab.panel>
+            <x-ui.tab.panel>
+                <livewire:employees.list-employee-expiring :company="$this->company" />
                
             </x-ui.tab.panel>
 
             <x-ui.tab.panel>
                
-                <livewire:employees.list-employee-expired :companyId="$this->company->id" />
+                <livewire:employees.list-employee-expired :company="$this->company" />
                 </x-ui.tab.panel>
 
             

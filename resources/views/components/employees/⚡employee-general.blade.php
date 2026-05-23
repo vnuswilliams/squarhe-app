@@ -59,7 +59,6 @@ new class extends Component
                     <flux:text variant="subtle" size="sm">{{ __('Nom Complet') }}</flux:text>
                     <flux:text class="font-medium">{{ $employee->name }}</flux:text>
                 </div>
-
                 <div class="space-y-1">
                     <flux:text variant="subtle" size="sm">{{ __('Date de Naissance') }}</flux:text>
                     <flux:text class="font-medium">{{ $employee->bday ? \Carbon\Carbon::parse($employee->bday)->format('d/m/Y') : 'N/A' }}</flux:text>
@@ -107,7 +106,7 @@ new class extends Component
 
                 <div class="space-y-1">
                     <flux:text variant="subtle" size="sm">{{ __('Département') }}</flux:text>
-                    <flux:text class="font-medium">{{ $employee->department ?? 'N/A' }}</flux:text>
+                    <flux:text class="font-medium">{{ $employee->department->label() ?? 'N/A' }}</flux:text>
                 </div>
 
                 <div class="space-y-1">

@@ -1,31 +1,37 @@
 <?php
 
 use App\Concerns\HasTableOptions;
-use App\Models\Leave;
+use App\Models\LeaveSnapshot;
 use Flux\Flux;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithoutUrlPagination;
 use Livewire\WithPagination;
-use  Carbon\Carbon;
+use Carbon\Carbon;
 use App\Livewire\Forms\EmployeeLeaveForm;
 use App\Services\CalculateDays;
 use App\Enums\LeaveTypeEnum;
 
-
 new class extends Component
 {
-    use HasTableOptions, WithoutUrlPagination,      WithPagination;
+    use HasTableOptions, WithoutUrlPagination, WithPagination;
 
     public $ids;
 
     public $employees;
-
+public $company;
     #[Computed]
     public function baseQuery()
     {
-        return Leave::whereIn('employee_id', $this->ids);
+        
+        if (! $this->company) {
+            return LeaveSnapshot::query()->whereRaw('1 = 0');
+        }
+
+        return LeaveSnapshot::whereHas('payrollClosure', function ($query) {
+            $query->where('company_id', $this->company->id);
+        });
     }
 
     public $filterType = '';
@@ -37,17 +43,14 @@ new class extends Component
     #[Computed]
     public function leaves()
     {
-        $paginator = $this->baseQuery()
-            ->where('employee_id', 'like', '%'.$this->filterEmployee.'%')
-            ->where('type', 'like', '%'.$this->filterType.'%')
-            ->where('status', 'like', '%'.$this->filterStatus.'%')
+        return $this->baseQuery()
+            ->when(filled($this->filterEmployee), fn ($q) => $q->where('employee_id', $this->filterEmployee))
+            ->when(filled($this->filterType), fn ($q) => $q->where('type', $this->filterType))
+            ->when(filled($this->filterStatus), fn ($q) => $q->where('status', $this->filterStatus))
             ->when(filled($this->searchQuery), fn ($q) => $this->applySearch($q))
             ->when(filled($this->sortBy), fn ($q) => $this->applySorting($q))
             ->latest()
             ->paginate(20);
-
-
-        return $paginator;
     }
 
     /**
@@ -62,8 +65,6 @@ new class extends Component
                 ->orWhere('approved_by', 'like', '%'.$this->searchQuery.'%');
         });
     }
-
-    
 }; ?>
 
 <div>

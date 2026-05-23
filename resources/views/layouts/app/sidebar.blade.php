@@ -159,5 +159,6 @@
         @endpersist
 
         @fluxScripts
+        @larapexChartScripts
     </body>
 </html>

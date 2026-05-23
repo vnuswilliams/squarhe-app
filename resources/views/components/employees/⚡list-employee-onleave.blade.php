@@ -8,6 +8,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithoutUrlPagination;
 use Livewire\WithPagination;
+use App\Enums\StatusEnum;
 
 new class extends Component {
     use WithPagination, WithoutUrlPagination;
@@ -31,7 +32,7 @@ new class extends Component {
 
     protected function baseQuery()
     {
-        return $this->company->employees()->whereMonth("end_date", now()->month)->whereYear("end_date", now()->year);
+        return $this->company->employees()->where('status', StatusEnum::ONLEAVE->value);
     }
     protected function applySearch($query)
     {
@@ -48,16 +49,13 @@ new class extends Component {
 <div x-data="{
     hiddenCols: $persist([]).as('employees-table-hidden-cols'),
 }">
-
-    {{-- ─── MAIN TABLE (Sheaf UI) ──────────────────────────────────────────────── --}}
-     {{-- Toolbar ──────────────────────────────────────────────────────────── --}}
+  {{-- Toolbar ──────────────────────────────────────────────────────────── --}}
         <div class="flex justify-between items-center gap-2">
 
             <div>
-                <flux:heading level="1" class="font-bold">Employé(e)s avec contrat expiré</flux:heading>
-                <flux:text class="text-gray-300">Visualisez et gérer tous les employés en fin de contrat ce mois-ci.
-                </flux:text>
-                </div>
+                <flux:heading level="1" class="font-bold">Employé(e)s en fin de contrat</flux:heading>
+                <flux:text class="text-gray-300">Visualisez et gérer tous les employés dont contrat a expiré.                </flux:text>
+            </div>
             <div class="flex items-center gap-2">
                 {{-- Search --}}
                 <flux:input placeholder="{{ __('Nom, poste, département…') }}"
@@ -69,11 +67,11 @@ new class extends Component {
 
 
         </div>
-        <x-container>
-
+   <x-container>
+   {{-- ─── MAIN TABLE (Sheaf UI) ──────────────────────────────────────────────── --}}
     <x-ui.table.container variant="default">
 
-       
+      
 
         {{-- Table ────────────────────────────────────────────────────────────── --}}
         <x-ui.table wire:loading loadOn="pagination, search, sorting">
@@ -155,11 +153,11 @@ new class extends Component {
                         </x-ui.table.cell>
 
                         <x-ui.table.cell>
-                            <span class="text-sm font-mono font-extrabold">
+                            <span class="text-sm font-mono">
                                 {{ $employee->end_date?->translatedFormat("d M Y") ?? "—" }}
                             </span>
                         </x-ui.table.cell>
-                        
+                       
 
                         {{-- Actions --}}
                         <x-ui.table.cell>
@@ -184,7 +182,7 @@ new class extends Component {
                                     @if ($searchQuery)
                                         Aucun résultat pour votre recherche " {{ $searchQuery }} ".
                                     @else
-                                        {{ __("Le contrat d'aucun de vos employés ne se termine ce mois-ci.") }}
+                                        {{ __("Le contrat d'aucun de vos employés n'est arrivé a terme.") }}
                                     @endif
                                 </p>
                                 <flux:button variant="primary" href="{{ route('employees.add') }}" wire:navigate>
@@ -201,5 +199,5 @@ new class extends Component {
         {{ $this->employees->links(data: ["scrollTo" => "#table"]) }}
 
     </x-ui.table.container>
-    </x-container>
-    </div>
+   </x-container>
+</div>

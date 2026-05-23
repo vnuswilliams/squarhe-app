@@ -37,6 +37,18 @@ enum LeaveTypeEnum: string
         };
     }
 
+    public static function forselect(): array
+    {
+        return [
+            self::ANNUAL,
+            self::PATERNITY,
+            self::UNPAID,
+            self::SPECIAL,
+            self::INJUSTIFY_LEAVE,
+            self::JUSTIFY_LEAVE,
+        ];
+    }
+
 
 
   

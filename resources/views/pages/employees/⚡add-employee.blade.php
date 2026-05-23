@@ -107,7 +107,7 @@ new #[Title('Ajouter un employé')] class extends Component
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 <!-- Department -->
-<flux:select id="department" wire:model="form.department" :label="__('department')">
+<flux:select id="department" wire:model="form.department" :label="__('Départment')">
                     <flux:select.option value=""> Choisir une option</flux:select.option>
                     @foreach (DepartmentEnum::options() as $case)
                     <flux:select.option value="{{ $case['value'] }}">{{ $case['label'] }}</flux:select.option>

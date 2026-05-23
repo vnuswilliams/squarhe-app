@@ -41,6 +41,11 @@ class Company extends Model
         return $this->hasMany(Employee::class)->latest();
     }
 
+    public function payrollClosures(): HasMany
+    {
+        return $this->hasMany(PayrollClosure::class);
+    }
+
     public function payrollBook()
     {
         return $this->hasOne(PayrollBook::class);

@@ -21,13 +21,13 @@ class EmployeeObserver
         $data = $employee->data ?? []; // Ensure $data is always an array
 
         // Rule 1: Civility Male -> child = 0
-        if ($data['civility'] === CivilityEnum::MALE->value && $data['child'] !== 0) {
+        if (isset($data['civility']) && $data['civility'] === CivilityEnum::MALE->value && isset($data['child']) && $data['child'] !== 0) {
             $data['child'] = 0;
             $needsSave = true;
         }
 
         // Rule 2: Nationality Foreign -> contract_type CDD/ESSAY
-        if ($data['nationality'] === NationalityEnum::FOREIGN->value && ! in_array($employee->contract_type, [ContractTypeEnum::CDD->value, ContractTypeEnum::ESSAY->value])) {
+        if (isset($data['nationality']) && $data['nationality'] === NationalityEnum::FOREIGN->value && ! in_array($employee->contract_type, [ContractTypeEnum::CDD->value, ContractTypeEnum::ESSAY->value])) {
             $employee->contract_type = ContractTypeEnum::CDD->value;
             $needsSave = true;
         }

@@ -17,7 +17,6 @@ use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 
 #[ObservedBy(EmployeeObserver::class)]
 #[UsePolicy(EmployeePolicy::class)]
@@ -32,12 +31,11 @@ use Illuminate\Support\Str;
     'start_date',
     'end_date',
     'base_salary',
-    'data'
+    'data',
 ])]
 class Employee extends Model
 {
-
-    //contenu du array data 
+    // contenu du array data
     /*
     'birth_date',
     'nationality',
@@ -50,21 +48,24 @@ class Employee extends Model
     'smic',
 
     */
-    use EmployeeAccessors, HasUuids, HasSnaps;
+    use EmployeeAccessors, HasSnaps, HasUuids;
 
     protected function casts(): array
     {
         return [
-            'end_date'    => 'date',
-            'start_date'  => 'date',
+            'end_date' => 'date',
+            'start_date' => 'date',
             'base_salary' => 'integer',
-            'data'        => 'array',
-            'contract_type' => ContractTypeEnum::class, 
-            'status'      => StatusEnum::class,
-    'department' => DepartmentEnum::class,
-    ];
+            'data' => 'array',
+            'contract_type' => ContractTypeEnum::class,
+            'status' => StatusEnum::class,
+            'department' => DepartmentEnum::class,
+        ];
     }
-
+public function isExpired(): bool
+{
+    return $this->end_date < now() || $this->contract_type === ContractTypeEnum::INTERNSHIP->value ||  $this->status === StatusEnum::TERMINATED->value;
+}
     // ─────────────────────────────────────────────
     //  Scopes — statut
     // ─────────────────────────────────────────────
@@ -151,7 +152,7 @@ class Employee extends Model
     {
         return $query->where(function (Builder $q): void {
             $q->doesntHave('payslip')
-              ->orWhereHas('payslip', fn (Builder $sub) => $sub->where('status', StatusEnum::PENDING->value));
+                ->orWhereHas('payslip', fn (Builder $sub) => $sub->where('status', StatusEnum::PENDING->value));
         });
     }
 
@@ -196,7 +197,7 @@ class Employee extends Model
 
     public function endContract()
     {
-        return $this->hasMany(EndContract::class)->latest() ;
+        return $this->hasMany(EndContract::class)->latest();
     }
 
     public function remunerations()

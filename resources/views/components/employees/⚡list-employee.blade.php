@@ -13,7 +13,7 @@ new class extends Component
     use HasTableOptions;
     use WithoutUrlPagination, WithPagination;
 
-    public $companyId;
+    public $company;
 
     // ─── Computed ─────────────────────────────────────────────────────────────
     public $searchStatus = '';
@@ -40,7 +40,7 @@ new class extends Component
 
     protected function baseQuery()
     {
-        return Employee::whereCompanyId($this->companyId);
+        return $this->company->employees();
     }
 
     protected function applySearch($query)

@@ -147,7 +147,9 @@ new class extends Component {
             "color" => "amber",
         ],
     ]' />
-
+    @if($this->employee->isExpired())
+<flux:callout color="rose" class="mb-4"  icon="exclamation-circle" heading="Cette alerte apparaît lorsque le contrat de votre resource est expiré ou est en stage, Veuillez regularisez dans l'onglet conntrat."/>
+            @endif
 
     <x-ui.tabs variant="non-contained">
     
@@ -159,24 +161,35 @@ new class extends Component {
             <x-ui.tab label="Heures supps." icon="clock" />
             <x-ui.tab label="Documents" icon="folder" />
         </x-ui.tab.group>
+            
         <x-ui.tab.panel>
             <livewire:employees.employee-general :employee="$this->employee" />
 
         </x-ui.tab.panel>
         <x-ui.tab.panel>
+            @if(!$this->employee->isExpired())
             <livewire:employees.employee-remuneration :employee="$this->employee" />
-
+            @else
+            <x-empty-state message="Le contrat de votre employé est expiré ou n'a pas accès à ce  module" />
+            @endif
         </x-ui.tab.panel>
         <x-ui.tab.panel>
             <livewire:employees.employee-contract :employee="$this->employee" />
-
         </x-ui.tab.panel>
         <x-ui.tab.panel>
+            @if(!$this->employee->isExpired())
             <livewire:employees.employee-leaves :employee="$this->employee" />
+            @else
+            <x-empty-state message="Le contrat de votre employé est expiré ou n'a pas accès à ce  module" />
+            @endif
 
         </x-ui.tab.panel>
         <x-ui.tab.panel>
+            @if(!$this->employee->isExpired())
             <livewire:employees.employee-overtime :employee="$this->employee" />
+            @else
+            <x-empty-state message="Le contrat de votre employé est expiré ou n'a pas accès à ce  module" />
+            @endif
 
         </x-ui.tab.panel>
         <x-ui.tab.panel>

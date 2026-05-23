@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "db17cf12245e63c9477d000853386b7b",
+    "content-hash": "ee57d4a11509ba00bc58f12aa9fb06b6",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -8937,17 +8937,11 @@
         },
         {
             "name": "vnuswilliams/larapex-charts",
-            "version": "v1.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/vnuswilliams/larapex-charts.git",
-                "reference": "0a64b8799e15831a87b42e2596f693b6a60621bc"
-            },
+            "version": "dev-master",
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/vnuswilliams/larapex-charts/zipball/0a64b8799e15831a87b42e2596f693b6a60621bc",
-                "reference": "0a64b8799e15831a87b42e2596f693b6a60621bc",
-                "shasum": ""
+                "type": "path",
+                "url": "/home/vnuswilliams/Bureau/larapex-charts",
+                "reference": "562147a41540eeb5d2a8ed71a4f7a12cce06f711"
             },
             "require": {
                 "ext-json": "*",
@@ -8961,12 +8955,12 @@
             "type": "library",
             "extra": {
                 "laravel": {
-                    "aliases": {
-                        "LarapexChart": "vnusWilliams\\LarapexCharts\\Facades\\LarapexChart"
-                    },
                     "providers": [
                         "vnusWilliams\\LarapexCharts\\LarapexChartsServiceProvider"
-                    ]
+                    ],
+                    "aliases": {
+                        "LarapexChart": "vnusWilliams\\LarapexCharts\\Facades\\LarapexChart"
+                    }
                 }
             },
             "autoload": {
@@ -8974,7 +8968,19 @@
                     "vnusWilliams\\LarapexCharts\\": "src"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
+            "autoload-dev": {
+                "psr-4": {
+                    "vnusWilliams\\LarapexCharts\\Tests\\": "tests"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "vendor/bin/phpunit"
+                ],
+                "test-coverage": [
+                    "vendor/bin/phpunit --coverage-html coverage"
+                ]
+            },
             "license": [
                 "MIT"
             ],
@@ -8992,10 +8998,9 @@
                 "larapex",
                 "vnusWilliams"
             ],
-            "support": {
-                "source": "https://github.com/vnuswilliams/larapex-charts/tree/v1.0"
-            },
-            "time": "2026-05-21T23:29:05+00:00"
+            "transport-options": {
+                "relative": false
+            }
         },
         {
             "name": "vnuswilliams/squarhe-subscription",
@@ -14960,7 +14965,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "vnuswilliams/larapex-charts": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

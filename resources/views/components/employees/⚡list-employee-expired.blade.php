@@ -13,7 +13,7 @@ new class extends Component {
     use WithPagination, WithoutUrlPagination;
     use HasTableOptions;
 
-    public $companyId;
+    public $company;
     //─── Computed ─────────────────────────────────────────────────────────────
     #[Computed]
     public function employees()
@@ -31,7 +31,7 @@ new class extends Component {
 
     protected function baseQuery()
     {
-        return Employee::whereCompanyId($this->companyId)->where("end_date", "<", now());
+        return $this->company->employees()->where("end_date", "<", now());
     }
     protected function applySearch($query)
     {

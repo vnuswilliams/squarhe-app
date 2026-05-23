@@ -6,6 +6,12 @@
     "keywords": [
         "laravel",
         "framework"
+    ],  
+    "repositories" : [
+        {
+            "type" : "path",
+            "url" : "/home/vnuswilliams/Bureau/larapex-charts"
+        }
     ]
   ,
     "license": "MIT",
@@ -25,7 +31,7 @@
         "spatie/laravel-activitylog": "^5.0",
         "spatie/laravel-passkeys": "^1.7",
         "spatie/laravel-permission": "^7.3",
-        "vnuswilliams/larapex-charts": "^1.0",
+        "vnuswilliams/larapex-charts": "@dev",
         "vnuswilliams/squarhe-subscription": "^1.0",
         "wireui/heroicons": "^2.10"
     },

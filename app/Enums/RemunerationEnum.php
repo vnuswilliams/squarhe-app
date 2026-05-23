@@ -28,7 +28,6 @@ enum RemunerationEnum: string
     case SAISIE_SALAIRE = 'saisie_salaire';
     case RETENUE_CANTINE = 'retenue_cantine';
     case ACCOMPTE_SALAIRE = 'accompte_salaire';
-
     case RETENUE_ABSENCES = 'retenues_absences';
 
     // --- 2xx : PRIMES ---
@@ -61,6 +60,7 @@ enum RemunerationEnum: string
     case INDEMNITE_PREAVIS = 'indemnite_preavis';
     case INDEMNITE_CHOMAGE_TECHNIQUE = 'indemnite_chomage_technique';
     case INDEMNITE_COMPENSATRISE_CONGE_PAYE = 'indemnite_compensatrise_conge_page';
+
     // --- 4xx : IMPÔTS ---
     case IRPP = 'irpp';
     case CENTIME_COMMUNAL = 'centime_additionnel_communal';
@@ -98,6 +98,8 @@ enum RemunerationEnum: string
     case AVANTAGE_REP_TELEPHONE = 'avantage_rep_telephone';
     case AVANTAGE_REP_INTERNET = 'avantage_rep_internet';
     case AVANTAGE_REP_GARDINNAGE = 'avantage_rep_gardinnage';
+
+    // -------------------------------------------------------------------------
 
     public static function forSelect(): array
     {
@@ -215,90 +217,89 @@ enum RemunerationEnum: string
     public function label(): string
     {
         return match ($this) {
-            self::SALAIRE_BASE => 'Salaire de base',
-            self::SUR_SALAIRE => 'Sursalaire',
-            self::TREIZIEME_MOIS => '13ème mois',
-            self::ALLOCATION_CONGE => 'Allocation de congé',
-            self::ALLOCATION_CONGE_SUPPLEMENTAIRE => 'Allocation congé supplémentaire',
-            self::HEURE_SUPP_120 => 'Heures supplémentaires (120%)',
-            self::HEURE_SUPP_130 => 'Heures supplémentaires (130%)',
-            self::HEURE_SUPP_140 => 'Heures supplémentaires (140%)',
-            self::HEURE_SUPP_150 => 'Heures supplémentaires (150%)',
-            self::HEURE_SUPP_200 => 'Heures supplémentaires (200%)',
-            self::HEURE_SUPP => 'Heures supp.',
+            self::SALAIRE_BASE                       => __('remuneration.salaire_base'),
+            self::SUR_SALAIRE                        => __('remuneration.sur_salaire'),
+            self::TREIZIEME_MOIS                     => __('remuneration.treizieme_mois'),
+            self::ALLOCATION_CONGE                   => __('remuneration.allocation_conge'),
+            self::ALLOCATION_CONGE_SUPPLEMENTAIRE    => __('remuneration.allocation_conge_supplementaire'),
+            self::HEURE_SUPP_120                     => __('remuneration.heure_supp_120'),
+            self::HEURE_SUPP_130                     => __('remuneration.heure_supp_130'),
+            self::HEURE_SUPP_140                     => __('remuneration.heure_supp_140'),
+            self::HEURE_SUPP_150                     => __('remuneration.heure_supp_150'),
+            self::HEURE_SUPP_200                     => __('remuneration.heure_supp_200'),
+            self::HEURE_SUPP                         => __('remuneration.heure_supp'),
 
-            self::RETENUE_AVANCE_SALAIRE => 'Retenue avance sur salaire',
-            self::RETENUE_PRET_EMPLOYE => 'Retenue prêt employé',
-            self::RETENUE_SANCTION => 'Retenue sanction disciplinaire',
-            self::SAISIE_SALAIRE => 'Saisie sur salaire',
-            self::RETENUE_CANTINE => 'Retenue cantine',
-            self::ACCOMPTE_SALAIRE => 'Accompte sur salaire',
-            self::RETENUE_ABSENCES => 'Retenues absences',
+            self::RETENUE_AVANCE_SALAIRE             => __('remuneration.retenue_avance_salaire'),
+            self::RETENUE_PRET_EMPLOYE               => __('remuneration.retenue_pret_employe'),
+            self::RETENUE_SANCTION                   => __('remuneration.retenue_sanction'),
+            self::SAISIE_SALAIRE                     => __('remuneration.saisie_salaire'),
+            self::RETENUE_CANTINE                    => __('remuneration.retenue_cantine'),
+            self::ACCOMPTE_SALAIRE                   => __('remuneration.accompte_salaire'),
+            self::RETENUE_ABSENCES                   => __('remuneration.retenue_absences'),
 
-            self::PRIME_ANCIENNETE => 'Prime d’ancienneté',
-            self::PRIME_RENDEMENT => 'Prime de rendement',
-            self::PRIME_PRODUCTION => 'Prime de production',
-            self::PRIME_FONCTION => 'Prime de fonction',
-            self::PRIME_RISQUE => 'Prime de risque',
-            self::PRIME_CAISSE => 'Prime de caisse',
-            self::PRIME_PANIER => 'Prime de panier',
-            self::PRIME_ASSIDUITE => 'Prime d’assiduité',
-            self::PRIME_TECHNICITE => 'Prime de technicité',
-            self::PRIME_OUTILLAGE => 'Prime d’outillage',
-            self::PRIME_INSALUBRITE => 'Prime d\'insalubrité',
+            self::PRIME_INSALUBRITE                  => __('remuneration.prime_insalubrite'),
+            self::PRIME_ANCIENNETE                   => __('remuneration.prime_anciennete'),
+            self::PRIME_RENDEMENT                    => __('remuneration.prime_rendement'),
+            self::PRIME_TECHNICITE                   => __('remuneration.prime_technicite'),
+            self::PRIME_PRODUCTION                   => __('remuneration.prime_production'),
+            self::PRIME_FONCTION                     => __('remuneration.prime_fonction'),
+            self::PRIME_RISQUE                       => __('remuneration.prime_risque'),
+            self::PRIME_CAISSE                       => __('remuneration.prime_caisse'),
+            self::PRIME_PANIER                       => __('remuneration.prime_panier'),
+            self::PRIME_ASSIDUITE                    => __('remuneration.prime_assiduite'),
+            self::PRIME_OUTILLAGE                    => __('remuneration.prime_outillage'),
 
-            self::INDEMNITE_LOGEMENT => 'Indemnité de logement',
-            self::INDEMNITE_TRANSPORT => 'Indemnité de transport',
-            self::INDEMNITE_SUJETION => 'Indemnité de sujétion',
-            self::INDEMNITE_REPAS => 'Indemnité de repas',
-            self::INDEMNITE_INSALUBRITE => 'Indemnité d’insalubrité',
-            self::INDEMNITE_SALISSURE => 'Indemnité de salissure',
-            self::INDEMNITE_DEPLACEMENT => 'Indemnité de déplacement',
-            self::INDEMNITE_LAIT => 'Indemnité de lait',
-            self::INDEMNITE_REPRESENTATION => 'Indemnité de représentation',
-            self::INDEMNITE_BICYCLETTE => 'Indemnité de bicyclette',
-            self::INDEMNITE_SECURITE => 'Indemnité de sécurité',
-            self::INDEMNITE_USAGE_VEHICULE => 'Indemnité d’usage de véhicule',
-            self::INDEMNITE_LICENCIEMENT => 'Indemnité de licenciement',
-            self::INDEMNITE_PREAVIS => 'Indemnité de préavis',
-            self::INDEMNITE_CHOMAGE_TECHNIQUE => 'Indemnité de chômage technique',
-            self::INDEMNITE_COMPENSATRISE_CONGE_PAYE => 'Indemnité compensatrise du congé payé',
+            self::INDEMNITE_LOGEMENT                 => __('remuneration.indemnite_logement'),
+            self::INDEMNITE_TRANSPORT                => __('remuneration.indemnite_transport'),
+            self::INDEMNITE_SUJETION                 => __('remuneration.indemnite_sujetion'),
+            self::INDEMNITE_REPAS                    => __('remuneration.indemnite_repas'),
+            self::INDEMNITE_INSALUBRITE              => __('remuneration.indemnite_insalubrite'),
+            self::INDEMNITE_SALISSURE                => __('remuneration.indemnite_salissure'),
+            self::INDEMNITE_DEPLACEMENT              => __('remuneration.indemnite_deplacement'),
+            self::INDEMNITE_LAIT                     => __('remuneration.indemnite_lait'),
+            self::INDEMNITE_REPRESENTATION           => __('remuneration.indemnite_representation'),
+            self::INDEMNITE_BICYCLETTE               => __('remuneration.indemnite_bicyclette'),
+            self::INDEMNITE_SECURITE                 => __('remuneration.indemnite_securite'),
+            self::INDEMNITE_USAGE_VEHICULE           => __('remuneration.indemnite_usage_vehicule'),
+            self::INDEMNITE_LICENCIEMENT             => __('remuneration.indemnite_licenciement'),
+            self::INDEMNITE_PREAVIS                  => __('remuneration.indemnite_preavis'),
+            self::INDEMNITE_CHOMAGE_TECHNIQUE        => __('remuneration.indemnite_chomage_technique'),
+            self::INDEMNITE_COMPENSATRISE_CONGE_PAYE => __('remuneration.indemnite_compensatrice_conge_paye'),
 
-            self::IRPP => 'IRPP (Impôt sur le revenu)',
-            self::CENTIME_COMMUNAL => 'Centime additionnel communal',
-            self::FNE => 'Fonds national de l’emploi (FNE)',
-            self::CREDIT_FONCIER => 'Crédit foncier du Cameroun',
-            self::TAXE_DEVELOPPEMENT => 'Taxe de développement local',
-            self::REDEVANCE_AUDIO_VISUELLE => 'Redevance audiovisuelle',
-            self::SYNDICAT => 'Syndicat',
+            self::IRPP                               => __('remuneration.irpp'),
+            self::CENTIME_COMMUNAL                   => __('remuneration.centime_communal'),
+            self::FNE                                => __('remuneration.fne'),
+            self::CREDIT_FONCIER                     => __('remuneration.credit_foncier'),
+            self::TAXE_DEVELOPPEMENT                 => __('remuneration.taxe_developpement'),
+            self::REDEVANCE_AUDIO_VISUELLE           => __('remuneration.redevance_audio_visuelle'),
+            self::SYNDICAT                           => __('remuneration.syndicat'),
 
-            self::CNPS_VIEILLESSE_SALARIALE => 'CNPS – Pension vieillesse (salariale)',
-            self::CNPS_VIEILLESSE_PATRONALE => 'CNPS – Pension vieillesse (patronale)',
-            self::CNPS_ALLOCATION_FAMILIALE => 'CNPS – Allocation familiale',
-            self::CNPS_ACCIDENT_MALADIE_PRO => 'CNPS – Accident et maladie pro',
+            self::CNPS_VIEILLESSE_SALARIALE          => __('remuneration.cnps_vieillesse_salariale'),
+            self::CNPS_VIEILLESSE_PATRONALE          => __('remuneration.cnps_vieillesse_patronale'),
+            self::CNPS_ALLOCATION_FAMILIALE          => __('remuneration.cnps_allocation_familiale'),
+            self::CNPS_ACCIDENT_MALADIE_PRO          => __('remuneration.cnps_accident_maladie_pro'),
 
-            self::AVANTAGE_LOGEMENT => 'Advnat – logement',
-            self::AVANTAGE_VEHICULE => 'Advnat – véhicule',
-            self::AVANTAGE_NOURRITURE => 'Advnat – nourriture',
-            self::AVANTAGE_DOMESTIQUE => 'Advnat – domestique',
-            self::AVANTAGE_ELECTRICITE => 'Advnat – électricité',
-            self::AVANTAGE_EAU => 'Advnat – eau',
-            self::AVANTAGE_CARBURANT => 'Advnat - carburant',
-            self::AVANTAGE_TELEPHONE => 'Advnat - téléphone',
-            self::AVANTAGE_INTERNET => 'Advnat - internet',
-            self::AVANTAGE_GARDINNAGE => 'Advnat - gardinnage',
+            self::AVANTAGE_LOGEMENT                  => __('remuneration.avantage_logement'),
+            self::AVANTAGE_VEHICULE                  => __('remuneration.avantage_vehicule'),
+            self::AVANTAGE_NOURRITURE                => __('remuneration.avantage_nourriture'),
+            self::AVANTAGE_DOMESTIQUE                => __('remuneration.avantage_domestique'),
+            self::AVANTAGE_ELECTRICITE               => __('remuneration.avantage_electricite'),
+            self::AVANTAGE_EAU                       => __('remuneration.avantage_eau'),
+            self::AVANTAGE_CARBURANT                 => __('remuneration.avantage_carburant'),
+            self::AVANTAGE_TELEPHONE                 => __('remuneration.avantage_telephone'),
+            self::AVANTAGE_INTERNET                  => __('remuneration.avantage_internet'),
+            self::AVANTAGE_GARDINNAGE                => __('remuneration.avantage_gardinnage'),
 
-            self::AVANTAGE_REP_LOGEMENT => 'Iran – logement',
-            self::AVANTAGE_REP_VEHICULE => 'Iran – véhicule',
-            self::AVANTAGE_REP_NOURRITURE => 'Iran – nourriture',
-            self::AVANTAGE_REP_DOMESTIQUE => 'Iran – domestique',
-            self::AVANTAGE_REP_ELECTRICITE => 'Iran – électricité',
-            self::AVANTAGE_REP_EAU => 'Iran – eau',
-            self::AVANTAGE_REP_CARBURANT => 'Iran - carburant',
-            self::AVANTAGE_REP_TELEPHONE => 'Iran - téléphone',
-            self::AVANTAGE_REP_INTERNET => 'Iran - internet',
-            self::AVANTAGE_REP_GARDINNAGE => 'Iran - gardinnage',
-
+            self::AVANTAGE_REP_LOGEMENT              => __('remuneration.avantage_rep_logement'),
+            self::AVANTAGE_REP_VEHICULE              => __('remuneration.avantage_rep_vehicule'),
+            self::AVANTAGE_REP_NOURRITURE            => __('remuneration.avantage_rep_nourriture'),
+            self::AVANTAGE_REP_DOMESTIQUE            => __('remuneration.avantage_rep_domestique'),
+            self::AVANTAGE_REP_ELECTRICITE           => __('remuneration.avantage_rep_electricite'),
+            self::AVANTAGE_REP_EAU                   => __('remuneration.avantage_rep_eau'),
+            self::AVANTAGE_REP_CARBURANT             => __('remuneration.avantage_rep_carburant'),
+            self::AVANTAGE_REP_TELEPHONE             => __('remuneration.avantage_rep_telephone'),
+            self::AVANTAGE_REP_INTERNET              => __('remuneration.avantage_rep_internet'),
+            self::AVANTAGE_REP_GARDINNAGE            => __('remuneration.avantage_rep_gardinnage'),
         };
     }
 
@@ -323,12 +324,12 @@ enum RemunerationEnum: string
             self::AVANTAGE_REP_DOMESTIQUE => 0.05,
             self::AVANTAGE_REP_ELECTRICITE => 0.04,
             self::AVANTAGE_REP_EAU => 0.02,
-
             self::AVANTAGE_REP_CARBURANT => 0.10,
             self::AVANTAGE_REP_TELEPHONE => 0.05,
             self::AVANTAGE_REP_INTERNET => 0.05,
             self::AVANTAGE_REP_GARDINNAGE => 0.05,
 
+            default => null,
         };
     }
 
@@ -382,7 +383,6 @@ enum RemunerationEnum: string
             self::AVANTAGE_INTERNET => PayslipItemsEnum::AVANTAGE_INTERNET->code(),
             self::AVANTAGE_GARDINNAGE => PayslipItemsEnum::AVANTAGE_GARDINNAGE->code(),
 
-            // indemnite representative des avant en nat
             self::AVANTAGE_REP_LOGEMENT => PayslipItemsEnum::AVANTAGE_REP_LOGEMENT->code(),
             self::AVANTAGE_REP_VEHICULE => PayslipItemsEnum::AVANTAGE_REP_VEHICULE->code(),
             self::AVANTAGE_REP_NOURRITURE => PayslipItemsEnum::AVANTAGE_REP_NOURRITURE->code(),

@@ -218,9 +218,9 @@ use HasTableOptions;
             <div class="py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <flux:select label="{{ __('Type d\'absence') }}" wire:model.live="form.type">
                     <option>{{ __("Choisir un type") }}</option>
-                    @foreach (LeaveTypeEnum::options() as $case)
-                        <option value="{{ $case['value'] }}">{{ $case["label"] }}</option>
-                    @endforeach
+                    @foreach (LeaveTypeEnum::forselect() as $option)
+                            <flux:select.option value="{{ $option->value }}">{{ $option->name }}</flux:select.option>
+                         @endforeach
                 </flux:select>
 
                 <flux:input wire:model="form.approved_by" label="{{ __('Approuvé par') }}" />
@@ -508,8 +508,8 @@ use HasTableOptions;
                 <div class="grid sm:grid-cols-3 gap-4">
                     <flux:select label="{{ __('Type de congé') }}" wire:model="form.type">
                         <option>{{ __("Choisir un type") }}</option>
-                        @foreach (LeaveTypeEnum::options() as $case)
-                            <option value="{{ $case['value'] }}">{{ $case["label"] }}</option>
+                        @foreach (LeaveTypeEnum::forSelect() as $option)
+                            <flux:select.option value="{{ $option->value }}">{{ $option->name }}</flux:select.option>
                         @endforeach
                     </flux:select>
 
