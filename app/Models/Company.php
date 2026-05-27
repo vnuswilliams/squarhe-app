@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\CompanyHasManyThrough;
 use App\Enums\StatusEnum;
 use App\Observers\CompanyObserver;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -19,6 +20,7 @@ class Company extends Model
 {
     use SoftDeletes;
     use HasSubscriptions;
+    use CompanyHasManyThrough;
 
     protected function casts(): array
     {
