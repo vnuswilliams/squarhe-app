@@ -1,0 +1,10 @@
+/* TEAM */
+    Developer: Gemini CLI
+    Site: http://localhost
+
+/* SITE */
+    Last update: 2026/06/01
+    Language: French, English
+    Doctype: HTML5
+    IDE: VS Code, Gemini CLI
+    Framework: Laravel, Livewire, Tailwind CSS

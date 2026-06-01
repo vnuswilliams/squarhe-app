@@ -6,18 +6,12 @@
     "keywords": [
         "laravel",
         "framework"
-    ],  
-    "repositories" : [
-        {
-            "type" : "path",
-            "url" : "/home/vnuswilliams/Bureau/larapex-charts"
-        }
-    ]
-  ,
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.3",
         "barryvdh/laravel-dompdf": "^3.1",
+        "erag/laravel-pwa": "*",
         "erusev/parsedown": "^1.8",
         "laravel/fortify": "^1.34",
         "laravel/framework": "^13.0",
@@ -31,7 +25,7 @@
         "spatie/laravel-activitylog": "^5.0",
         "spatie/laravel-passkeys": "^1.7",
         "spatie/laravel-permission": "^7.3",
-        "vnuswilliams/larapex-charts": "@dev",
+        "vnuswilliams/larapex-charts": "*",
         "vnuswilliams/squarhe-subscription": "^1.0",
         "wireui/heroicons": "^2.10"
     },

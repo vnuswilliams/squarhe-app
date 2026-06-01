@@ -160,5 +160,6 @@
 
         @fluxScripts
         @larapexChartScripts
+        @RegisterServiceWorkerScript
     </body>
 </html>

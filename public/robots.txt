@@ -1,2 +1,13 @@
 User-agent: *
-Disallow:
+Disallow: /dashboard
+Disallow: /notifications
+Disallow: /employees
+Disallow: /documents
+Disallow: /metrics
+Disallow: /support
+Disallow: /pay
+Disallow: /leaves
+Disallow: /settings
+Disallow: /api/
+
+Sitemap: http://localhost/sitemap.xml

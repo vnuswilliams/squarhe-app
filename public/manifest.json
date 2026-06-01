@@ -1,0 +1,16 @@
+{
+    "name": "Squarhe",
+    "short_name": "Squarhe",
+    "background_color": "#ffffff",
+    "display": "standalone",
+    "description": "Optimisez votre gestion RH et paie avec Squarhe. Simple, rapide et conforme.",
+    "theme_color": "#000000",
+    "start_url": "/",
+    "icons": [
+        {
+            "src": "logo.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

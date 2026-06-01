@@ -24,5 +24,6 @@
         @endpersist
 
         @fluxScripts
+        @RegisterServiceWorkerScript
     </body>
 </html>

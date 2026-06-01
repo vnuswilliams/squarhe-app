@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ee57d4a11509ba00bc58f12aa9fb06b6",
+    "content-hash": "8bc352ad315e512a28b47c5a0f8f1889",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -973,6 +973,78 @@
             "time": "2025-03-06T22:45:56+00:00"
         },
         {
+            "name": "erag/laravel-pwa",
+            "version": "v2.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/eramitgupta/laravel-pwa.git",
+                "reference": "412ae1ec3d1857c5284d05bf5df62dfd21c9ed25"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/eramitgupta/laravel-pwa/zipball/412ae1ec3d1857c5284d05bf5df62dfd21c9ed25",
+                "reference": "412ae1ec3d1857c5284d05bf5df62dfd21c9ed25",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/support": "^8.12|^9.0|^10.0|^11.0|^12.0|^13.0",
+                "laravel/pint": "^1.13",
+                "php": ">=8.0.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "PWA": "EragLaravelPwa\\Facades\\PWA"
+                    },
+                    "providers": [
+                        "EragLaravelPwa\\EragLaravelPwaServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "files": [
+                    "src/Pwahelpers.php"
+                ],
+                "psr-4": {
+                    "EragLaravelPwa\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Er Amiit Gupta",
+                    "email": "info.eramitgupta@gmail.com",
+                    "homepage": "https://github.com/eramitgupta"
+                }
+            ],
+            "description": "A simple and easy-to-use PWA (Progressive Web App) package for Laravel applications.",
+            "keywords": [
+                "Progressive Web App",
+                "laravel",
+                "laravel package",
+                "laravel pwa",
+                "manifest",
+                "offline",
+                "pwa",
+                "service worker"
+            ],
+            "support": {
+                "issues": "https://github.com/eramitgupta/laravel-pwa/issues",
+                "source": "https://github.com/eramitgupta/laravel-pwa/tree/v2.1.0"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/eramitgupta",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-04-11T04:15:34+00:00"
+        },
+        {
             "name": "erusev/parsedown",
             "version": "1.8.0",
             "source": {
@@ -1928,6 +2000,74 @@
                 "source": "https://github.com/laravel/passkeys-server"
             },
             "time": "2026-04-22T01:16:23+00:00"
+        },
+        {
+            "name": "laravel/pint",
+            "version": "v1.29.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/laravel/pint.git",
+                "reference": "0770e9b7fafd50d4586881d456d6eb41c9247a80"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/laravel/pint/zipball/0770e9b7fafd50d4586881d456d6eb41c9247a80",
+                "reference": "0770e9b7fafd50d4586881d456d6eb41c9247a80",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "ext-mbstring": "*",
+                "ext-tokenizer": "*",
+                "ext-xml": "*",
+                "php": "^8.2.0"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.95.1",
+                "illuminate/view": "^12.56.0",
+                "larastan/larastan": "^3.9.6",
+                "laravel-zero/framework": "^12.1.0",
+                "mockery/mockery": "^1.6.12",
+                "nunomaduro/termwind": "^2.4.0",
+                "pestphp/pest": "^3.8.6",
+                "shipfastlabs/agent-detector": "^1.1.3"
+            },
+            "bin": [
+                "builds/pint"
+            ],
+            "type": "project",
+            "autoload": {
+                "psr-4": {
+                    "App\\": "app/",
+                    "Database\\Seeders\\": "database/seeders/",
+                    "Database\\Factories\\": "database/factories/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Nuno Maduro",
+                    "email": "enunomaduro@gmail.com"
+                }
+            ],
+            "description": "An opinionated code formatter for PHP.",
+            "homepage": "https://laravel.com",
+            "keywords": [
+                "dev",
+                "format",
+                "formatter",
+                "lint",
+                "linter",
+                "php"
+            ],
+            "support": {
+                "issues": "https://github.com/laravel/pint/issues",
+                "source": "https://github.com/laravel/pint"
+            },
+            "time": "2026-04-20T15:26:14+00:00"
         },
         {
             "name": "laravel/prompts",
@@ -8937,11 +9077,17 @@
         },
         {
             "name": "vnuswilliams/larapex-charts",
-            "version": "dev-master",
+            "version": "v3.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/vnuswilliams/larapex-charts.git",
+                "reference": "ca21aa0f64d6b9491f5a1148a5c9c4aa1a46e5c2"
+            },
             "dist": {
-                "type": "path",
-                "url": "/home/vnuswilliams/Bureau/larapex-charts",
-                "reference": "562147a41540eeb5d2a8ed71a4f7a12cce06f711"
+                "type": "zip",
+                "url": "https://api.github.com/repos/vnuswilliams/larapex-charts/zipball/ca21aa0f64d6b9491f5a1148a5c9c4aa1a46e5c2",
+                "reference": "ca21aa0f64d6b9491f5a1148a5c9c4aa1a46e5c2",
+                "shasum": ""
             },
             "require": {
                 "ext-json": "*",
@@ -8955,12 +9101,12 @@
             "type": "library",
             "extra": {
                 "laravel": {
-                    "providers": [
-                        "vnusWilliams\\LarapexCharts\\LarapexChartsServiceProvider"
-                    ],
                     "aliases": {
                         "LarapexChart": "vnusWilliams\\LarapexCharts\\Facades\\LarapexChart"
-                    }
+                    },
+                    "providers": [
+                        "vnusWilliams\\LarapexCharts\\LarapexChartsServiceProvider"
+                    ]
                 }
             },
             "autoload": {
@@ -8968,19 +9114,7 @@
                     "vnusWilliams\\LarapexCharts\\": "src"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "vnusWilliams\\LarapexCharts\\Tests\\": "tests"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/phpunit"
-                ],
-                "test-coverage": [
-                    "vendor/bin/phpunit --coverage-html coverage"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -8998,9 +9132,10 @@
                 "larapex",
                 "vnusWilliams"
             ],
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "source": "https://github.com/vnuswilliams/larapex-charts/tree/v3.0"
+            },
+            "time": "2026-05-23T04:25:54+00:00"
         },
         {
             "name": "vnuswilliams/squarhe-subscription",
@@ -12215,74 +12350,6 @@
             "time": "2026-02-09T13:44:54+00:00"
         },
         {
-            "name": "laravel/pint",
-            "version": "v1.29.1",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/laravel/pint.git",
-                "reference": "0770e9b7fafd50d4586881d456d6eb41c9247a80"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/laravel/pint/zipball/0770e9b7fafd50d4586881d456d6eb41c9247a80",
-                "reference": "0770e9b7fafd50d4586881d456d6eb41c9247a80",
-                "shasum": ""
-            },
-            "require": {
-                "ext-json": "*",
-                "ext-mbstring": "*",
-                "ext-tokenizer": "*",
-                "ext-xml": "*",
-                "php": "^8.2.0"
-            },
-            "require-dev": {
-                "friendsofphp/php-cs-fixer": "^3.95.1",
-                "illuminate/view": "^12.56.0",
-                "larastan/larastan": "^3.9.6",
-                "laravel-zero/framework": "^12.1.0",
-                "mockery/mockery": "^1.6.12",
-                "nunomaduro/termwind": "^2.4.0",
-                "pestphp/pest": "^3.8.6",
-                "shipfastlabs/agent-detector": "^1.1.3"
-            },
-            "bin": [
-                "builds/pint"
-            ],
-            "type": "project",
-            "autoload": {
-                "psr-4": {
-                    "App\\": "app/",
-                    "Database\\Seeders\\": "database/seeders/",
-                    "Database\\Factories\\": "database/factories/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Nuno Maduro",
-                    "email": "enunomaduro@gmail.com"
-                }
-            ],
-            "description": "An opinionated code formatter for PHP.",
-            "homepage": "https://laravel.com",
-            "keywords": [
-                "dev",
-                "format",
-                "formatter",
-                "lint",
-                "linter",
-                "php"
-            ],
-            "support": {
-                "issues": "https://github.com/laravel/pint/issues",
-                "source": "https://github.com/laravel/pint"
-            },
-            "time": "2026-04-20T15:26:14+00:00"
-        },
-        {
             "name": "laravel/roster",
             "version": "v0.5.1",
             "source": {
@@ -14965,14 +15032,12 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "vnuswilliams/larapex-charts": 20
-    },
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
         "php": "^8.3"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.6.0"
 }
