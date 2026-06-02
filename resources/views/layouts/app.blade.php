@@ -1,5 +1,5 @@
 <x-layouts::app.sidebar :title="$title ?? null">
-    <div x-data x-show="$store.offline.showSyncBanner" 
+    <div x-data x-show="$store.offline?.showSyncBanner === true"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0 -translate-y-4"
          x-transition:enter-end="opacity-100 translate-y-0"

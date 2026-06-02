@@ -69,7 +69,7 @@ new #[Title('Modules employés')] class extends Component
             <flux:text variant="subtle">Gérez vos ressources</flux:text>
         </div>
         {{-- Indicateur Offline --}}
-        <div x-data x-show="!$store.offline.isOnline" class="flex items-center gap-2 px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs font-bold border border-amber-200 dark:border-amber-800">
+        <div x-data x-show="$store.offline?.isOnline === false" class="flex items-center gap-2 px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs font-bold border border-amber-200 dark:border-amber-800">
             <flux:icon.wifi class="size-4" />
             <span>{{ __('offline.offline_badge') }}</span>
         </div>
@@ -88,9 +88,9 @@ new #[Title('Modules employés')] class extends Component
     </div>
 
     {{-- Vue Offline --}}
-    <div x-data x-show="!$store.offline.isOnline" class="mt-8 space-y-6">
+    <div x-data x-show="$store.offline?.isOnline === false" class="mt-8 space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <template x-for="emp in $store.offline.localData.employees" :key="emp._id">
+            <template x-for="emp in ($store.offline?.localData?.employees || [])" :key="emp._id">
                 <div class="p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm">
                     <div class="flex items-center gap-3">
                         <div class="size-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold" x-text="emp.name.charAt(0)"></div>
@@ -106,7 +106,7 @@ new #[Title('Modules employés')] class extends Component
                 </div>
             </template>
         </div>
-        <template x-if="$store.offline.localData.employees.length === 0">
+        <template x-if="($store.offline?.localData?.employees || []).length === 0">
             <div class="p-12 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl">
                 <flux:icon.user-group class="size-12 mx-auto text-zinc-300 mb-4" />
                 <flux:heading>{{ __('offline.no_local_data_title') }}</flux:heading>
@@ -116,12 +116,12 @@ new #[Title('Modules employés')] class extends Component
     </div>
 
     @if ($this->company)
-        <div x-show="$store.offline.isOnline">
+        <div x-show="$store.offline?.isOnline !== false">
             <x-delta-card :cards="$card" />
         </div>
 
 
-        <x-ui.tabs variant="non-contained" x-show="$store.offline.isOnline">
+        <x-ui.tabs variant="non-contained" x-show="$store.offline?.isOnline !== false">
             <x-ui.tab.group>
                 <x-ui.tab label="Vue d'ensemble" icon="globe-alt" />
                 <x-ui.tab label="Tous les employés" icon="users" />
