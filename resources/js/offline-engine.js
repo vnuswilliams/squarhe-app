@@ -1,197 +1,306 @@
-// resources/js/offline-engine.js
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
+
+const OFFLINE_STORES = ['employees', 'companies', 'leaves', 'overtimes', 'remunerations', 'payslips', 'documents', 'payroll_closures'];
+
+const requestToPromise = (request) => new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+});
+
+const transactionDone = (transaction) => new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+});
 
 export const OfflineEngine = {
     db: null,
     cryptoKey: null,
     hmacKey: null,
     dbName: 'SquarheOfflineDB',
+    dbVersion: 3,
+    stores: OFFLINE_STORES,
 
     async init() {
+        if (!('indexedDB' in window) || !window.crypto?.subtle) {
+            throw new Error('Offline storage requires IndexedDB and WebCrypto support.');
+        }
+
         this.db = await this.openDB();
-        this.cryptoKey = await this.getOrCreateKey('device_encryption_key', { name: "AES-GCM", length: 256 }, ["encrypt", "decrypt"]);
+        this.cryptoKey = await this.getOrCreateKey('device_encryption_key', { name: 'AES-GCM', length: 256 }, ['encrypt', 'decrypt']);
         this.hmacKey = await this.getPersistentKey('device_hmac_key');
-        console.log("🔐 Offline Engine Initialized.");
     },
 
     openDB() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open(this.dbName, 1);
-            request.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                if (!db.objectStoreNames.contains('data')) db.createObjectStore('data', { keyPath: 'id' });
-                if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
+            const request = indexedDB.open(this.dbName, this.dbVersion);
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+
+                if (!db.objectStoreNames.contains('data')) {
+                    db.createObjectStore('data', { keyPath: 'id' });
+                }
+
+                if (!db.objectStoreNames.contains('records')) {
+                    const store = db.createObjectStore('records', { keyPath: 'key' });
+                    store.createIndex('store', 'store', { unique: false });
+                    store.createIndex('status', 'status', { unique: false });
+                    store.createIndex('store_status', ['store', 'status'], { unique: false });
+                    store.createIndex('updated_at', 'updated_at', { unique: false });
+                }
+
+                if (!db.objectStoreNames.contains('outbox')) {
+                    const store = db.createObjectStore('outbox', { keyPath: 'id' });
+                    store.createIndex('status', 'status', { unique: false });
+                    store.createIndex('created_at', 'created_at', { unique: false });
+                }
+
+                if (!db.objectStoreNames.contains('meta')) {
+                    db.createObjectStore('meta');
+                }
             };
+
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
     },
 
-    async getOrCreateKey(name, config, usages) {
-        const tx = this.db.transaction('meta', 'readonly');
-        const store = tx.objectStore('meta');
-        const savedKey = await new Promise(r => {
-            const req = store.get(name);
-            req.onsuccess = () => r(req.result);
-        });
+    async getMeta(name) {
+        const transaction = this.db.transaction('meta', 'readonly');
+        return requestToPromise(transaction.objectStore('meta').get(name));
+    },
 
-        if (savedKey) return savedKey;
+    async setMeta(name, value) {
+        const transaction = this.db.transaction('meta', 'readwrite');
+        transaction.objectStore('meta').put(value, name);
+        await transactionDone(transaction);
+    },
+
+    async getOrCreateKey(name, config, usages) {
+        const savedKey = await this.getMeta(name);
+
+        if (savedKey) {
+            return savedKey;
+        }
 
         const newKey = await window.crypto.subtle.generateKey(config, false, usages);
+        await this.setMeta(name, newKey);
 
-        const txSave = this.db.transaction('meta', 'readwrite');
-        txSave.objectStore('meta').put(newKey, name);
-        
         return newKey;
     },
 
     async getPersistentKey(name) {
-        const tx = this.db.transaction('meta', 'readonly');
-        const store = tx.objectStore('meta');
-        return await new Promise(r => {
-            const req = store.get(name);
-            req.onsuccess = () => r(req.result);
-        });
+        return this.getMeta(name);
     },
 
     async setHMACSecret(rawSecret) {
-        const encoder = new TextEncoder();
-        const keyData = encoder.encode(rawSecret);
-
         this.hmacKey = await window.crypto.subtle.importKey(
-            "raw",
-            keyData,
-            { name: "HMAC", hash: "SHA-256" },
+            'raw',
+            textEncoder.encode(rawSecret),
+            { name: 'HMAC', hash: 'SHA-256' },
             false,
-            ["sign"]
+            ['sign'],
         );
 
-        const tx = this.db.transaction('meta', 'readwrite');
-        tx.objectStore('meta').put(this.hmacKey, 'device_hmac_key');
+        await this.setMeta('device_hmac_key', this.hmacKey);
+    },
+
+    canonicalStringify(value) {
+        if (value === null || typeof value !== 'object') {
+            return JSON.stringify(value);
+        }
+
+        if (Array.isArray(value)) {
+            return `[${value.map((item) => this.canonicalStringify(item)).join(',')}]`;
+        }
+
+        return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${this.canonicalStringify(value[key])}`).join(',')}}`;
     },
 
     async encrypt(data) {
         const iv = window.crypto.getRandomValues(new Uint8Array(12));
-        const encoded = new TextEncoder().encode(JSON.stringify(data));
-        
         const ciphertext = await window.crypto.subtle.encrypt(
-            { name: "AES-GCM", iv: iv },
+            { name: 'AES-GCM', iv },
             this.cryptoKey,
-            encoded
+            textEncoder.encode(JSON.stringify(data)),
         );
 
         return {
             iv: Array.from(iv),
-            blob: ciphertext
+            blob: ciphertext,
         };
     },
 
     async decrypt(encryptedData) {
         const decrypted = await window.crypto.subtle.decrypt(
-            { name: "AES-GCM", iv: new Uint8Array(encryptedData.iv) },
+            { name: 'AES-GCM', iv: new Uint8Array(encryptedData.iv) },
             this.cryptoKey,
-            encryptedData.blob
+            encryptedData.blob,
         );
 
-        return JSON.parse(new TextDecoder().decode(decrypted));
+        return JSON.parse(textDecoder.decode(decrypted));
     },
 
     async signPayload(payload) {
-        if (!this.hmacKey) throw new Error("HMAC Key not initialized.");
+        if (!this.hmacKey) {
+            throw new Error('HMAC key is not initialized.');
+        }
 
-        const encoder = new TextEncoder();
-        const data = encoder.encode(JSON.stringify(payload));
-        
         const signature = await window.crypto.subtle.sign(
-            "HMAC",
+            'HMAC',
             this.hmacKey,
-            data
+            textEncoder.encode(this.canonicalStringify(payload)),
         );
 
         return Array.from(new Uint8Array(signature))
-            .map(b => b.toString(16).padStart(2, '0'))
+            .map((byte) => byte.toString(16).padStart(2, '0'))
             .join('');
     },
 
     async verifyServerSignature(data, signature) {
+        if (!signature) {
+            return false;
+        }
+
         const expected = await this.signPayload(data);
         return expected === signature;
     },
 
-    async saveBatch(storeName, items) {
-        const tx = this.db.transaction(storeName, 'readwrite');
-        const store = tx.objectStore(storeName);
-        for (const item of items) {
-            const encrypted = await this.encrypt(item);
-            await store.put({
-                id: item.id,
-                ...encrypted,
-                status: 'synced',
-                updated_at: item.updated_at || new Date().toISOString()
-            });
-        }
+    keyFor(storeName, id) {
+        return `${storeName}:${id}`;
     },
 
-    async saveLocal(id, data, status = 'pending') {
-        const encrypted = await this.encrypt(data);
-        const record = {
-            id: id,
+    async saveBatch(storeName, items, status = 'synced') {
+        if (!Array.isArray(items) || items.length === 0) {
+            return;
+        }
+
+        const transaction = this.db.transaction('records', 'readwrite');
+        const store = transaction.objectStore('records');
+
+        for (const item of items) {
+            if (!item?.id) {
+                continue;
+            }
+
+            const encrypted = await this.encrypt(item);
+            store.put({
+                key: this.keyFor(storeName, item.id),
+                id: item.id,
+                store: storeName,
+                ...encrypted,
+                status,
+                updated_at: item.updated_at || new Date().toISOString(),
+            });
+        }
+
+        await transactionDone(transaction);
+    },
+
+    async saveSnapshot(snapshot) {
+        const datasets = snapshot?.datasets || {};
+        const transaction = this.db.transaction('meta', 'readwrite');
+        transaction.objectStore('meta').put(snapshot.server_time || Date.now(), 'last_snapshot_at');
+        await transactionDone(transaction);
+
+        await Promise.all(Object.entries(datasets).map(([storeName, items]) => this.saveBatch(storeName, items)));
+    },
+
+    async saveLocal(storeName, id, data, operation = 'upsert') {
+        if (!id) {
+            throw new Error('A local record id is required.');
+        }
+
+        const now = new Date().toISOString();
+        const encrypted = await this.encrypt({ ...data, id, updated_at: data.updated_at || now });
+        const transaction = this.db.transaction('records', 'readwrite');
+
+        transaction.objectStore('records').put({
+            key: this.keyFor(storeName, id),
+            id,
+            store: storeName,
             ...encrypted,
-            status: status,
-            updated_at: new Date().toISOString()
-        };
-        const tx = this.db.transaction('data', 'readwrite');
-        await tx.objectStore('data').put(record);
+            operation,
+            status: 'pending',
+            updated_at: now,
+        });
+
+        await transactionDone(transaction);
     },
 
     async getPendingData() {
-        return new Promise((resolve) => {
-            const tx = this.db.transaction('data', 'readonly');
-            const store = tx.objectStore('data');
-            const request = store.openCursor();
-            const pending = [];
-            request.onsuccess = (e) => {
-                const cursor = e.target.result;
-                if (cursor) {
-                    if (cursor.value.status === 'pending') {
-                        pending.push(cursor.value);
-                    }
-                    cursor.continue();
-                } else {
-                    resolve(pending);
-                }
-            };
-        });
-    },
+        const transaction = this.db.transaction('records', 'readonly');
+        const index = transaction.objectStore('records').index('status');
+        const records = await requestToPromise(index.getAll('pending'));
+        const pending = [];
 
-    async getAll(storeName = 'data') {
-        const tx = this.db.transaction(storeName, 'readonly');
-        const store = tx.objectStore(storeName);
-        const results = await new Promise(r => {
-            const req = store.getAll();
-            req.onsuccess = () => r(req.result);
-        });
-
-        // Déchiffrer chaque élément
-        const decrypted = [];
-        for (const item of results) {
+        for (const record of records) {
             try {
-                const data = await this.decrypt(item);
-                decrypted.push({ ...data, _status: item.status, _id: item.id });
-            } catch (e) {
-                console.error("Failed to decrypt item", item.id, e);
+                pending.push({
+                    id: record.id,
+                    store: record.store,
+                    operation: record.operation || 'upsert',
+                    updated_at: record.updated_at,
+                    data: await this.decrypt(record),
+                });
+            } catch (error) {
+                console.error('Failed to decrypt pending record', record.key, error);
             }
         }
+
+        return pending;
+    },
+
+    async markSynced(acks = []) {
+        if (!Array.isArray(acks) || acks.length === 0) {
+            return;
+        }
+
+        const transaction = this.db.transaction('records', 'readwrite');
+        const store = transaction.objectStore('records');
+
+        for (const ack of acks) {
+            const key = ack.key || this.keyFor(ack.store || 'employees', ack.id || ack);
+            const record = await requestToPromise(store.get(key));
+
+            if (record) {
+                record.status = 'synced';
+                record.operation = null;
+                record.updated_at = ack.synced_at || new Date().toISOString();
+                store.put(record);
+            }
+        }
+
+        await transactionDone(transaction);
+    },
+
+    async getAll(storeName = 'employees') {
+        const transaction = this.db.transaction('records', 'readonly');
+        const records = await requestToPromise(transaction.objectStore('records').index('store').getAll(storeName));
+        const decrypted = [];
+
+        for (const item of records) {
+            try {
+                const data = await this.decrypt(item);
+                decrypted.push({ ...data, _status: item.status, _id: item.id, _store: item.store });
+            } catch (error) {
+                console.error('Failed to decrypt item', item.key, error);
+            }
+        }
+
         return decrypted;
     },
 
-    async getById(id, storeName = 'data') {
-        const tx = this.db.transaction(storeName, 'readonly');
-        const store = tx.objectStore(storeName);
-        const item = await new Promise(r => {
-            const req = store.get(id);
-            req.onsuccess = () => r(req.result);
-        });
-        if (!item) return null;
-        return await this.decrypt(item);
-    }
+    async getById(id, storeName = 'employees') {
+        const transaction = this.db.transaction('records', 'readonly');
+        const item = await requestToPromise(transaction.objectStore('records').get(this.keyFor(storeName, id)));
+
+        if (!item) {
+            return null;
+        }
+
+        return this.decrypt(item);
+    },
 };
