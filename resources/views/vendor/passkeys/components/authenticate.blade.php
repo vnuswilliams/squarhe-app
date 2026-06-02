@@ -13,9 +13,9 @@
 
     <div onclick="authenticateWithPasskey()">
         @if ($slot->isEmpty())
-            <div class="underline cursor-pointer">
+            <flux:button icon="finger-print" class="w-full" >
                 {{ __('passkeys::passkeys.authenticate_using_passkey') }}
-            </div>
+            </flux:button>
         @else
             {{ $slot }}
         @endif

@@ -24,10 +24,10 @@ return [
         'background_color' => '#ffffff',
         'display' => 'standalone',
         'description' => 'Optimisez votre gestion RH et paie avec Squarhe. Simple, rapide et conforme.',
-        'theme_color' => '#000000',
+        'theme_color' => '#ffffff',
         'icons' => [
             [
-                'src' => 'logo.png',
+                'src' => 'apple-touch-icon.png',
                 'sizes' => '512x512',
                 'type' => 'image/png',
             ],
