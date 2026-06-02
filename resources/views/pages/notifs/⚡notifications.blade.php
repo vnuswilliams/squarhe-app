@@ -110,7 +110,7 @@ new #[Title('Notifications')] class extends Component
             <flux:heading level="1" class="font-bold">Notifications
                  @if ($this->unreadNotificationsCount > 0)
                  <flux:badge color="green">
-                     
+
                      {{ __(':count non lu(s)', ['count' => $this->unreadNotificationsCount]) }}
                     </flux:badge>
                     @endif
@@ -126,15 +126,16 @@ new #[Title('Notifications')] class extends Component
         </flux:button>
     </div>
     <div class="mx-auto flex max-w-5xl flex-col gap-4">
-             @php
-        $tabs = [__('Notifications')];
-        if ($this->isOwner) {
-        $tabs[] = __('notif.log');
-        }
-        @endphp
 
-        <x-tabs :tabs="$tabs" storageKey="notificationsTabs">
-            @slot('tab1')
+        <x-ui.tabs variant="non-contained">
+
+        <x-ui.tab.group>
+            <x-ui.tab label="{{ __('Notifications') }}" icon="globe-alt" />
+            <x-ui.tab label="{{ __('notif.log') }}" icon="credit-card" />
+        </x-ui.tab.group>
+
+
+        <x-ui.tab.panel>
             <div class="grid gap-4">
                 @forelse ($this->notifications as $notification)
                 <article class="rounded-3xl border p-4 shadow-sm transition duration-150 ease-in-out hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-950/80 {{ $notification->read_at ? 'border-slate-200/80 bg-white/90 dark:border-slate-800/80 dark:bg-slate-950/70' : 'border-emerald-400/30 bg-emerald-50/70 ring-1 ring-emerald-200/60 dark:bg-emerald-500/10' }}">
@@ -210,10 +211,10 @@ new #[Title('Notifications')] class extends Component
                 </flux:button>
             </div>
             @endif
-            @endslot
-
+        </x-ui.tab.panel>
             @if ($this->isOwner)
-            @slot('tab2')
+
+        <x-ui.tab.panel>
             <div class="grid gap-4">
                 @forelse ($this->activities as $activity)
                 <article class="rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-sm transition duration-150 ease-in-out hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-950/80">
@@ -270,8 +271,11 @@ new #[Title('Notifications')] class extends Component
                 </flux:button>
             </div>
             @endif
-            @endslot
-            @endif
-        </x-tabs>
+        </x-ui.tab.panel>
+@endif
+
+
+        </x-ui.tabs>
+
     </div>
 </div>

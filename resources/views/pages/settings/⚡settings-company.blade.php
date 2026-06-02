@@ -41,7 +41,7 @@ new #[Title('Modifier les paramètres de la société')] class extends Component
         // Deafults based on provided JSON structure
         $defaults = config('squarhe.defaults');
 
-        $saved = $this->company->data ?? [];
+        $saved = $this->company?->data ?? [];
 
         $settings = array_replace_recursive($defaults, $saved);
         $this->originalSettings = $settings;
@@ -75,7 +75,7 @@ new #[Title('Modifier les paramètres de la société')] class extends Component
     #[Computed]
     public function company()
     {
-        return auth()->user()->company;
+        return auth()->user()?->company;
     }
     public function save()
     {
@@ -103,7 +103,7 @@ new #[Title('Modifier les paramètres de la société')] class extends Component
         ]);
 
         // Merge form updates into original settings to preserve rates
-        $newData = $this->company->data ?? [];
+        $newData = $this->company?->data ?? [];
 
         // Simple scalar values
         $newData['rav'] = $this->rav;
@@ -135,8 +135,8 @@ new #[Title('Modifier les paramètres de la société')] class extends Component
             }
         }
 
-        $this->company->data = $newData;
-        $this->company->save();
+        $this->company?->data = $newData;
+        $this->company?->save();
         Flux::toast(variant: 'success', text: __('toast.settingupdatecompanysuccess'));
     }
 
@@ -164,11 +164,11 @@ new #[Title('Modifier les paramètres de la société')] class extends Component
             'fixedHolidays.*' => 'required|date',
         ]);
 
-        $settings = $this->company->data ?? [];
+        $settings = $this->company?->data ?? [];
         $settings['fixedHolidays'] = array_map(fn($date) => date('m-d', strtotime($date)), $this->fixedHolidays);
 
-        $this->company->data = $settings;
-        $this->company->save();
+        $this->company?->data = $settings;
+        $this->company?->save();
         Flux::toast(variant: 'success', text: 'toast.holidaysave');
     }
 };

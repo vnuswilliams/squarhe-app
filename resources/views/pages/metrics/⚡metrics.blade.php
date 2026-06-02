@@ -31,7 +31,7 @@ new #[Title('Métriques')] class extends Component {
         }
 
         $refs = Payslip::query()
-            ->whereHas('employee', fn ($query) => $query->where('company_id', $this->company->id))
+            ->whereHas('employee', fn ($query) => $query->where('company_id', $this->company?->id))
             ->whereNotNull('ref')
             ->pluck('ref')
             ->filter()
@@ -85,7 +85,7 @@ new #[Title('Métriques')] class extends Component {
 
         $payslips = Payslip::query()
             ->where('ref', $ref)
-            ->whereHas('employee', fn ($query) => $query->where('company_id', $this->company->id))
+            ->whereHas('employee', fn ($query) => $query->where('company_id', $this->company?->id))
             ->get();
 
         $gross = 0.0;
@@ -104,11 +104,11 @@ new #[Title('Métriques')] class extends Component {
             'net_to_pay_total' => $netToPay,
             'overtime_hours_total' => (float) Overtime::query()
                 ->where('ref', $ref)
-                ->whereHas('employee', fn ($query) => $query->where('company_id', $this->company->id))
+                ->whereHas('employee', fn ($query) => $query->where('company_id', $this->company?->id))
                 ->sum('hours'),
             'leave_days_total' => (float) Leave::query()
                 ->where('ref', $ref)
-                ->whereHas('employee', fn ($query) => $query->where('company_id', $this->company->id))
+                ->whereHas('employee', fn ($query) => $query->where('company_id', $this->company?->id))
                 ->sum('days'),
         ];
     }
@@ -119,7 +119,7 @@ new #[Title('Métriques')] class extends Component {
             return [];
         }
 
-        $closure = $this->company->payrollClosures()->where('ref', $ref)->latest('id')->first();
+        $closure = $this->company?->payrollClosures()->where('ref', $ref)->latest('id')->first();
 
         if (! $closure || ! method_exists($closure, 'snapshots')) {
             return [];

@@ -10,7 +10,7 @@ new class extends Component
 {
     public function mount()
     {
-        
+
         if (session()->has('error')) {
             Flux::toast(variant: 'danger', text: session('error'));
         } elseif (session()->has('success')) {
@@ -20,8 +20,34 @@ new class extends Component
     public function with(): array
     {
         return [
-            'chart' => app(EmployeeChart::class, ['company' => auth()->user()->company()->with('employees')->first()])->agePyramids(),
-            ];
+            'chart' => app(EmployeeChart::class, ['company' => auth()->user()?->company()->with('employees')->first()])->agePyramids(),
+            "cards" => [
+            [
+                'label' => 'effecti total',
+                'current' =>148,
+                'delta' => '',
+                'color' => 'blue'
+            ],
+            [
+                'label' => 'Masse salariale',
+                'current' =>  12.5,
+                'delta' => '',
+                'color' => 'emerald'
+            ],
+            [
+                'label' => 'Congés en cours',
+                'current' =>  12,
+                'delta' => '',
+                'color' => 'rose'
+            ],
+            [
+                'label' => 'Contrat exprirant',
+                'current' =>  12,
+                'delta' => '',
+                'color' => 'rose'
+            ]
+        ]
+                    ];
     }
 
     #[Computed()]
@@ -45,7 +71,9 @@ new class extends Component
 
 <div>
     <x-container >
-        {!! $chart->container() !!}
+        @if ($chart)
+            {!! $chart->container() !!}
+        @endif
     </x-container>
     @if($this->invitations->isNotEmpty())
         <div class="mb-8 space-y-3">
@@ -105,7 +133,7 @@ new class extends Component
 
 
     <!-- Top Bar -->
-    <div class="px-6 py-4 flex items-center justify-between flex-shrink-0">
+    <div class="px-6 py-4 flex items-center justify-between srink-0">
       <div>
         <h1 class="text-xl font-bold text-gray-900">Tableau de bord</h1>
         <p class="text-sm text-gray-500 mt-0.5">Vendredi 2 Mai 2025 — Cycle de paie : Mai 2025</p>
@@ -126,33 +154,6 @@ new class extends Component
     <div class="px-6 pb-6 mt-6">
 </div>
     <!-- Scrollable Body -->
-    <x-delta-card  :cards="[
-            [
-                'label' => 'effecti total',
-                'current' =>148,
-                'delta' => '',
-                'color' => 'blue'
-            ],
-            [
-                'label' => 'Masse salariale',
-                'current' =>  12.5,
-                'delta' => '',
-                'color' => 'emerald'
-            ],
-            [
-                'label' => 'Congés en cours',
-                'current' =>  12,
-                'delta' => '',
-                'color' => 'rose'
-            ],
-            [
-                'label' => 'Contrat exprirant',
-                'current' =>  12,
-                'delta' => '',
-                'color' => 'rose'
-            ]
-        ]" 
+    <x-delta-card  :cards="$cards"
         />
-
-    {{ $chart->script() }}
 </div>

@@ -23,11 +23,16 @@ new #[Title('Souscription')] class extends Component
     #[Computed]
     public function company()
     {
-        return auth()->user()->company;
+        return auth()->user()?->company;
     }
 
     public function mount(): void
     {
+        if (! $this->company) {
+            $this->selectedFamily = 'starter';
+            $this->selectedPlan = PlanEnum::STARTER_S1->value;
+            return;
+        }
 
         // Pré-sélectionner le plan actif si existant
         $current = app(SubscriptionService::class)->currentPlan($this->company);
@@ -49,25 +54,25 @@ new #[Title('Souscription')] class extends Component
     #[Computed]
     public function currentPlan(): ?PlanEnum
     {
-        return app(SubscriptionService::class)->currentPlan($this->company);
+        return $this->company ? app(SubscriptionService::class)->currentPlan($this->company) : null;
     }
 
     #[Computed]
     public function hasActiveSubscription(): bool
     {
-        return app(SubscriptionService::class)->hasActiveSubscription($this->company);
+        return $this->company ? app(SubscriptionService::class)->hasActiveSubscription($this->company) : false;
     }
 
     #[Computed]
     public function remainingSlots(): int
     {
-        return app(SubscriptionService::class)->remainingEmployeeSlots($this->company);
+        return $this->company ? app(SubscriptionService::class)->remainingEmployeeSlots($this->company) : 0;
     }
 
     #[Computed]
     public function expiresAt(): ?Carbon
     {
-        return app(SubscriptionService::class)->expiresAt($this->company);
+        return $this->company ? app(SubscriptionService::class)->expiresAt($this->company) : null;
     }
 
     /**
@@ -132,6 +137,11 @@ new #[Title('Souscription')] class extends Component
     /** Souscrit ou change de plan. */
     public function subscribe(): void
     {
+        if (! $this->company) {
+            Flux::toast(variant: 'danger', text: 'Entreprise introuvable.');
+            return;
+        }
+
         // Policy check
         // $this->authorize('subscribe', $this->company);
 
@@ -166,6 +176,10 @@ new #[Title('Souscription')] class extends Component
     /** Annule l'abonnement actif. */
     public function cancelSubscription(): void
     {
+        if (! $this->company) {
+            Flux::toast(variant: 'danger', text: 'Entreprise introuvable.');
+            return;
+        }
 
         // Gate::authorize('cancelSubscription', [Subscription::class] );
         try {
@@ -184,6 +198,10 @@ new #[Title('Souscription')] class extends Component
     /** Supprimer l'abonnement actif. */
     public function deleteSubscription(): void
     {
+        if (! $this->company) {
+            Flux::toast(variant: 'danger', text: 'Entreprise introuvable.');
+            return;
+        }
 
         try {
             app(SubscriptionService::class)->suppress($this->company);
@@ -202,18 +220,17 @@ new #[Title('Souscription')] class extends Component
 ?>
 
 <section class="w-full">
-<div class="flex flex-wrap items-center justify-between gap-2">
-        <div>
-            <flux:heading size="xl"> Choisissez votre offre </flux:heading>
-            <flux:text variant="subtle">
-            Tarif fixe mensuel · Changez de tranche à tout moment · 7 jours de grâce inclus
-            </flux:text>
+    @if ($this->company)
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+                <flux:heading size="xl"> Choisissez votre offre </flux:heading>
+                <flux:text variant="subtle">
+                    Tarif fixe mensuel · Changez de tranche à tout moment · 7 jours de grâce inclus
+                </flux:text>
+            </div>
         </div>
-       
-    </div>
 
         <div class="max-w-5xl mx-auto my-6 space-y-8 ">
-          
 
             {{-- ════════════════════════════════════════════════════════
                 BANDEAU PLAN ACTUEL
@@ -398,7 +415,7 @@ new #[Title('Souscription')] class extends Component
                                     Souscrire à ce plan
                                 @endif
                             </span>
-                           
+
                         </flux:button>
                     </div>
                 </div>
@@ -476,11 +493,13 @@ new #[Title('Souscription')] class extends Component
                     <flux:callout icon="information-circle" class="mt-5">
                         <flux:callout.heading> Information</flux:callout.heading>
                         <flux:callout.text>
-                            L'annulation de votre abonnement vous laisse la possibilité de continuer à utiliser les fonctionnalités 
+                            L'annulation de votre abonnement vous laisse la possibilité de continuer à utiliser les fonctionnalités
                             jusqu'a la fin de votre abonnement hors la suppression supprime définitive votre abonnement et vous perdrez accès à toutes les fonctionnalités.
                         </flux:callout.text>
                     </flux:callout>
                     @endif
         </div>
-
+    @else
+        <x-no-company />
+    @endif
 </section>

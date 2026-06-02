@@ -38,7 +38,7 @@ new #[Title('Import rémunérations (entreprise)')] class extends Component {
     public function employees()
     {
         return Employee::query()
-            ->where('company_id', auth()->user()->company_id)
+            ->where('company_id', auth()->user()?->company_id)
             ->orderBy('name')
             ->get(['id', 'name', 'email']);
     }
@@ -131,7 +131,7 @@ new #[Title('Import rémunérations (entreprise)')] class extends Component {
                 'notes'          => $row['notes'] ?? null,
             ];
 
-            $employee = Employee::where('company_id', auth()->user()->company_id)
+            $employee = Employee::where('company_id', auth()->user()?->company_id)
                 ->where('email', $data['employee_email'])
                 ->first();
 
@@ -173,7 +173,7 @@ new #[Title('Import rémunérations (entreprise)')] class extends Component {
         }
 
         foreach ($this->allRows as $row) {
-            $employee = Employee::where('company_id', auth()->user()->company_id)
+            $employee = Employee::where('company_id', auth()->user()?->company_id)
                 ->where('email', $row['employee_email'])
                 ->first();
 
@@ -187,7 +187,7 @@ new #[Title('Import rémunérations (entreprise)')] class extends Component {
                 'periodicity' => $row['periodicity'],
                 'impact'      => $row['impact'],
                 'notes'       => $row['notes'],
-                'added_by'    => auth()->user()->name,
+                'added_by'    => auth()->user()?->name,
             ]);
         }
 

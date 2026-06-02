@@ -8,11 +8,14 @@ use vnusWilliams\LarapexCharts\LarapexChart;
 class LeaveChart
 {
     public function __construct(
-        public Company $company
+        public ?Company $company
     ) {}
-    public function leavePerEmployee(): \vnusWilliams\LarapexCharts\BarChart
+    public function leavePerEmployee(): ?\vnusWilliams\LarapexCharts\BarChart
     {
-        $stats = $this->company->employees()
+        if (!$this->company) {
+            return null;
+        }
+        $stats = $this->company?->employees()
             ->join('leaves', 'employees.id', '=', 'leaves.employee_id')
             ->selectRaw('employees.name, SUM(leaves.days) as total_days')
             ->groupBy('employees.id', 'employees.name')
@@ -25,15 +28,19 @@ class LeaveChart
             ->setToolbar(show: true)
             ->setGrid();
     }
-    public function leavePerDepertment(): \vnusWilliams\LarapexCharts\BarChart
+    public function leavePerDepertment(): ?\vnusWilliams\LarapexCharts\BarChart
     {
-        $stats = $this->company->employees()
+        if (!$this->company) {
+            return null;
+        }
+
+        $stats = $this->company?->employees()
         ->join('leaves', 'employees.id', '=', 'leaves.employee_id')
         ->selectRaw('employees.department, SUM(leaves.days) as total_days')
         ->groupBy('employees.department')
         ->reorder()
         ->get();
-    
+
     return (new LarapexChart)->barChart()
         ->setTitle('Absences ou congé par département')
         ->addData(
@@ -52,9 +59,13 @@ class LeaveChart
         ->setGrid();
     }
 
-    public function leavePerType(): \vnusWilliams\LarapexCharts\PieChart
+    public function leavePerType(): ?\vnusWilliams\LarapexCharts\PieChart
     {
-        $stats = $this->company->employees()
+        if (!$this->company) {
+            return null;
+        }
+
+        $stats = $this->company?->employees()
             ->join('leaves', 'employees.id', '=', 'leaves.employee_id')
             ->selectRaw('leaves.type, SUM(leaves.days) as total_days')
             ->groupBy('leaves.type')
@@ -73,9 +84,12 @@ class LeaveChart
             ->setLabels($labels);
     }
 
-    public function leavePerStatus(): \vnusWilliams\LarapexCharts\DonutChart
+    public function leavePerStatus(): ?\vnusWilliams\LarapexCharts\DonutChart
     {
-        $stats = $this->company->employees()
+        if (!$this->company) {
+            return null;
+        }
+        $stats = $this->company?->employees()
             ->join('leaves', 'employees.id', '=', 'leaves.employee_id')
             ->selectRaw('leaves.status, SUM(leaves.days) as total_days')
             ->groupBy('leaves.status')

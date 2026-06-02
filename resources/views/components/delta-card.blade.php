@@ -110,20 +110,20 @@ $defaultColor = ['dot' => 'bg-slate-400', 'ring' => 'ring-slate-400/20'];
     @php
     $color = $colorMap[$card['color'] ?? ''] ?? $defaultColor;
     $isUp = $card['up'] ?? true;
-    $deltaClass = $isUp ? 'text-emerald-400' : 'text-rose-400';
+    $deltaClass = $isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
     $arrow = $isUp ? '↑' : '↓';
     @endphp
 
-    <div class="bg-white/3 border border-white/6 rounded-xl p-4
-                    hover:bg-white/5.5 hover:border-white/10
-                    transition-colors duration-200">
+    <div class="bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-2xl p-4
+                    hover:bg-zinc-50 dark:hover:bg-white/10 hover:border-zinc-300 dark:hover:border-white/20
+                    transition-all duration-200 shadow-sm dark:shadow-none">
 
         {{-- En-tête : label + badge delta --}}
         <div class="flex items-start justify-between mb-2">
             <div class="flex items-center gap-1.5">
                 {{-- Point coloré (indicateur de catégorie) --}}
                 <span class="inline-block w-1.5 h-1.5 rounded-full ring-2 {{ $color['dot'] }} {{ $color['ring'] }}"></span>
-                <p class="text-xs text-white/40">{{ $card['label'] }}</p>
+                <p class="text-xs font-medium text-zinc-500 dark:text-white/50 uppercase tracking-wider">{{ $card['label'] }}</p>
             </div>
 
             <span class="inline-flex items-center gap-0.5 text-xs font-bold {{ $deltaClass }}">
@@ -133,13 +133,15 @@ $defaultColor = ['dot' => 'bg-slate-400', 'ring' => 'ring-slate-400/20'];
         </div>
 
         {{-- Valeur principale --}}
-        <p class="text-base sm:text-lg font-bold text-white font-mono tracking-tight">
+        <p class="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white font-mono tracking-tight">
             {{ $card['current'] }}
         </p>
 
         {{-- Comparaison période précédente --}}
         @if (array_key_exists('prev', $card) )
-        <p class="text-xs text-white/25 mt-0.5">{{ $card['prev'] }}</p>
+        <p class="text-xs text-zinc-400 dark:text-white/30 mt-0.5">
+            {{ __('vs') }} {{ $card['prev'] }}
+        </p>
         @endif
     </div>
     @endforeach

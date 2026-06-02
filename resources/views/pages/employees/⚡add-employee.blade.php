@@ -17,7 +17,7 @@ new #[Title('Ajouter un employé')] class extends Component
     #[Computed]
     public function company()
     {
-        return auth()->user()->company()->first();
+        return auth()->user()?->company()->first();
     }
 
     public function save()
@@ -28,7 +28,9 @@ new #[Title('Ajouter un employé')] class extends Component
         $employee = $this->form->create();
 
         Flux::toast(variant: 'success', text: " L' employé(e) a été crée(e) avec succès");
-        app(SubscriptionService::class)->consumeEmployeeSlot($this->company);
+        if ($this->company) {
+            app(SubscriptionService::class)->consumeEmployeeSlot($this->company);
+        }
         $this->redirect(route('employees.show', ['id' => $employee->id]), navigate: true);
     }
 };

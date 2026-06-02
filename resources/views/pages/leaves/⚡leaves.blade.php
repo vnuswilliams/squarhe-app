@@ -24,7 +24,7 @@ public function mount()
     #[Computed]
     public function company()
     {
-        return auth()->user()->company()->with('employees')->first();
+        return auth()->user()?->company()->with('employees')->first();
     }
 
     #[Computed]
@@ -120,25 +120,25 @@ public function mount()
     <x-delta-card :cards='[
             [
                 "label" => "Bulletin générés et validés",
-                "current" =>  $this->company->employees->where("status", "!=", StatusEnum::TERMINATED->value)->count(),
+                "current" =>  $this->company?->employees->where("status", "!=", StatusEnum::TERMINATED->value)->count() ?? 0,
                 "delta" => "",
                 "color" => "blue",
             ],
             [
                 "label" => "Livre de paie ",
-                "current" =>  $this->company->employees->where("status", "!=", StatusEnum::TERMINATED->value)->count(),
+                "current" =>  $this->company?->employees->where("status", "!=", StatusEnum::TERMINATED->value)->count() ?? 0,
                 "delta" => "",
                 "color" => "blue",
             ],
             [
                 "label" => "Effectif total",
-                "current" =>  $this->company->employees->where("status", "!=", StatusEnum::TERMINATED->value)->count(),
+                "current" =>  $this->company?->employees->where("status", "!=", StatusEnum::TERMINATED->value)->count() ?? 0,
                 "delta" => "",
                 "color" => "blue",
             ],
             [
                 "label" => "Effectif total",
-                "current" =>  $this->company->employees->where("status", "!=", StatusEnum::TERMINATED->value)->count(),
+                "current" =>  $this->company?->employees->where("status", "!=", StatusEnum::TERMINATED->value)->count() ?? 0,
                 "delta" => "",
                 "color" => "blue",
             ],

@@ -23,7 +23,7 @@ new #[Title('Mettre à jour votre entreprise')] class extends Component {
     #[Computed]
     public function company()
     {
-        return auth()->user()->company;
+        return auth()->user()?->company;
     }
 
     public function update(): void
@@ -49,11 +49,11 @@ new #[Title('Mettre à jour votre entreprise')] class extends Component {
     public function deleteCompany(): void
     {
         Gate::authorize('delete', $this->company);
-        auth()->user()->notify(new DeleteCompanyNotification(
+        auth()->user()?->notify(new DeleteCompanyNotification(
                     company: $this->company,
                     user: auth()->user(),
                 ));
-        $deleteCompany = $this->company->delete();
+        $deleteCompany = $this->company?->delete();
         if ($deleteCompany) {
 
 

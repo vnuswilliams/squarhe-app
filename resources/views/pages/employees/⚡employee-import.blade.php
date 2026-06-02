@@ -39,7 +39,7 @@ new #[Title('Importer des employés')] class extends Component
     #[Computed]
     public function company()
     {
-        return auth()->user()->company()->first();
+        return auth()->user()?->company()->first();
     }
 
     // ──────────────────────────────────────────────
@@ -151,7 +151,7 @@ new #[Title('Importer des employés')] class extends Component
 
         ImportEmployeesJob::dispatch(
             $this->tempPath,
-            $this->company->id,
+            $this->company?->id,
             auth()->id(),
         );
 

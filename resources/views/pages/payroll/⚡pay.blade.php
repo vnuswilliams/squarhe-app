@@ -17,7 +17,7 @@ new #[Title('Paie')]  class extends Component
     {
         return auth()
             ->user()
-            ->company()
+            ?->company()
             ->with([
                 'employees.payslip',
                 'declarations',
@@ -58,25 +58,25 @@ new #[Title('Paie')]  class extends Component
     <x-delta-card :cards='[
             [
                 "label" => "Bulletin générés et validés",
-                "current" =>  $this->company->employees->where("status", "!=", StatusEnum::TERMINATED->value)->count(),
+                "current" =>  $this->company?->employees->where("status", "!=", StatusEnum::TERMINATED->value)->count() ?? 0,
                 "delta" => "",
                 "color" => "blue",
             ],
             [
                 "label" => "Livre de paie ",
-                "current" =>  $this->company->employees->where("status", "!=", StatusEnum::TERMINATED->value)->count(),
+                "current" =>  $this->company?->employees->where("status", "!=", StatusEnum::TERMINATED->value)->count() ?? 0,
                 "delta" => "",
                 "color" => "blue",
             ],
             [
                 "label" => "Effectif total",
-                "current" =>  $this->company->employees->where("status", "!=", StatusEnum::TERMINATED->value)->count(),
+                "current" =>  $this->company?->employees->where("status", "!=", StatusEnum::TERMINATED->value)->count() ?? 0,
                 "delta" => "",
                 "color" => "blue",
             ],
             [
                 "label" => "Effectif total",
-                "current" =>  $this->company->employees->where("status", "!=", StatusEnum::TERMINATED->value)->count(),
+                "current" =>  $this->company?->employees->where("status", "!=", StatusEnum::TERMINATED->value)->count() ?? 0,
                 "delta" => "",
                 "color" => "blue",
             ],

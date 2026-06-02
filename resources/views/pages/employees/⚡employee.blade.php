@@ -13,22 +13,28 @@ new #[Title('Modules employés')] class extends Component
     #[Computed]
     public function company()
     {
-        return auth()->user()->company()->withCount('employees')->first();
+        return auth()->user()?->company()->withCount('employees')->first();
     }
 
     public function with(): array
     {
+        if (! $this->company) {
+            return [
+                'card' => [],
+            ];
+        }
+
         return [
             'card' => [
                 [
                     'label' => 'Effectif total',
-                    'current' => $this->company->employees_count,
+                    'current' => $this->company?->employees_count,
                     'delta' => '',
                     'color' => 'blue',
                 ],
                 [
                     'label' => 'Fin de contrat (mois)',
-                    'current' => $this->company->employees
+                    'current' => $this->company?->employees
                         ->where(function ($employee) {
                             return $employee->end_date &&
                             $employee->end_date->month === now()->month &&
@@ -39,13 +45,13 @@ new #[Title('Modules employés')] class extends Component
                 ],
                 [
                     'label' => 'Contrats expirés',
-                    'current' => $this->company->employees->where('end_date', '<', now())->count(),
+                    'current' => $this->company?->employees->where('end_date', '<', now())->count(),
                     'delta' => '',
                     'color' => 'rose',
                 ],
                 [
                     'label' => 'En congés',
-                    'current' => $this->company->employees->where('status', StatusEnum::ONLEAVE->value)->count(),
+                    'current' => $this->company?->employees->where('status', StatusEnum::ONLEAVE->value)->count(),
                     'delta' => '',
                     'color' => 'emerald',
                 ],

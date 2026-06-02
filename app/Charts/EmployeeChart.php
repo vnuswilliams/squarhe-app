@@ -10,7 +10,7 @@ class EmployeeChart
 {
 
 public function __construct(
-    public Company $company
+    public ?Company $company
 ){}
     public function build(): \vnusWilliams\LarapexCharts\BarChart
     {
@@ -22,33 +22,36 @@ public function __construct(
             ->setXAxis(['January', 'February', 'March', 'April', 'May', 'June']);
     }
 
-    public function agePyramids(): \vnusWilliams\LarapexCharts\BarChart
+    public function agePyramids(): \vnusWilliams\LarapexCharts\BarChart|null
     {
-        $employees = $this->company->employees;
+        $employees = $this->company?->employees;
+       if($employees){
         $dep =  [];
         foreach($employees as $emp)
-{
-$dep = array_unique([$emp->department]);
-}     
-$female = $employees
-    ->where('data.civility', CivilityEnum::FEMALE->value)
-    ->groupBy('department')
-    ->map(fn ($group) => $group->count())
-    ->values()
-    ->toArray();       
-$mal = $employees->where('data.civility', CivilityEnum::MALE->value)
-->map(fn ($group) => $group->count())
-->values()
-->toArray();  
-        return (new LarapexChart)->barChart()
-            ->setTitle('Femmes vs Hommes')
-            ->setSubtitle('Répartition des genres/département.')
-            ->addData($mal, 'Hommes')
-            ->addData($female, 'Femmes')
-            ->setXAxis($dep) 
-            ->setStatesHover(LarapexChart::STATE_NONE)
-            ->setStatesActive(LarapexChart::STATE_DARKEN, true)
-                ->setGrid();
+        {
+            $dep = array_unique([$emp->department]);
+        }
+        $female = $employees
+            ->where('data.civility', CivilityEnum::FEMALE->value)
+            ->groupBy('department')
+            ->map(fn ($group) => $group->count())
+            ->values()
+            ->toArray();
+        $mal = $employees->where('data.civility', CivilityEnum::MALE->value)
+            ->map(fn ($group) => $group->count())
+            ->values()
+            ->toArray();
+                return (new LarapexChart)->barChart()
+                    ->setTitle('Femmes vs Hommes')
+                    ->setSubtitle('Répartition des genres/département.')
+                    ->addData($mal, 'Hommes')
+                    ->addData($female, 'Femmes')
+                    ->setXAxis($dep)
+                    ->setStatesHover(LarapexChart::STATE_NONE)
+                    ->setStatesActive(LarapexChart::STATE_DARKEN, true)
+                        ->setGrid();
 
-    }
+            }
+            return null;
+       }
 }

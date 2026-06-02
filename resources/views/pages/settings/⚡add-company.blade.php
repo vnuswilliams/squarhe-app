@@ -22,7 +22,7 @@ new #[Title('Ajouter une entreprise')] class extends Component {
     #[Computed]
     public function company()
     {
-        return auth()->user()->company;
+        return auth()->user()?->company;
     }
 
     public function save(): void

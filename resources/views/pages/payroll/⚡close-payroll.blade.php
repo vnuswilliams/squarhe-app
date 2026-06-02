@@ -38,22 +38,27 @@ new #[Title('Clôturer la paie')] class extends Component {
             return;
         }
 
+        if (! $this->company) {
+            Flux::toast(variant: 'danger', text: 'Entreprise introuvable.');
+            return;
+        }
+
         $ref = now()->format('m-Y');
 
 
         // Vérification du verrouillage avant toute action
-        $existingClosure = $this->company->payrollClosures->where('ref', $ref)->first();
+        $existingClosure = $this->company?->payrollClosures->where('ref', $ref)->first();
 
         if ($existingClosure && $existingClosure->status === StatusEnum::LOCKED) {
             Flux::toast(variant: 'warning', text: 'Cette période est verrouillée, vous ne pouvez plus la modifier.');
             return;
         }
 
-        $this->closure = $this->company->payrollClosures()->updateOrCreate(
+        $this->closure = $this->company?->payrollClosures()->updateOrCreate(
             ['ref' => $ref],
             [
                 'status' => $this->closeNow ? StatusEnum::CLOSED : StatusEnum::DRAFT,
-                'closed_by' => auth()->user()->name,
+                'closed_by' => auth()->user()?->name,
                 'closed_at' => now(),
                 'send_payslips_by_email' => $this->sendPayslipsByEmail,
                 'scheduled_at' => $this->closeNow ? null : Carbon::parse($this->closureDate)->startOfDay(),
@@ -62,7 +67,7 @@ new #[Title('Clôturer la paie')] class extends Component {
         unset($this->company);
 
         if ($this->closeNow) {
-            ClosePayrollJob::dispatch($this->closure, true, auth()->user()->company_id);
+            ClosePayrollJob::dispatch($this->closure, true, auth()->user()?->company_id);
             Flux::toast(variant: 'success', text: 'La clôture immédiate a été lancée avec succès.');
             return;
         }
@@ -72,11 +77,11 @@ new #[Title('Clôturer la paie')] class extends Component {
 
 
     #[Computed]
-    private function company()
+    public function company()
     {
         return  auth()
             ->user()
-            ->company()
+            ?->company()
             ->with(['payrollClosures', 'declarations'])
             ->first();
     }

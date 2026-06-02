@@ -28,7 +28,7 @@ new #[Title('Manager les admins de votre entreprise')] class extends Component {
     #[Computed]
     public function company()
     {
-        return auth()->user()->company;
+        return auth()->user()?->company;
     }
     public function rules(): array
     {
@@ -68,13 +68,13 @@ new #[Title('Manager les admins de votre entreprise')] class extends Component {
         $sender = auth()->user();
 
         // Supprimer les invitations en attente déjà envoyées à ce destinataire
-        Invitation::where('recipient_id', $recipient->id)->where('company_id', $this->company->id)->whereNull('accepted_at')->where('expires_at', '>', now())->delete();
+        Invitation::where('recipient_id', $recipient->id)->where('company_id', $this->company?->id)->whereNull('accepted_at')->where('expires_at', '>', now())->delete();
 
         $invitation = Invitation::create([
             'sender_id' => $sender->id,
             'recipient_id' => $recipient->id,
-            'company_id' => $this->company->id,
-            'company_code' => $this->company->company_code,
+            'company_id' => $this->company?->id,
+            'company_code' => $this->company?->company_code,
             'role' => $this->role,
             'expires_at' => now()->addHours(),
         ]);
@@ -90,7 +90,7 @@ new #[Title('Manager les admins de votre entreprise')] class extends Component {
     {
         $this->validateOnly("editingRoles.{$userId}");
 
-        $user = User::where('id', $userId)->where('company_id', $this->company->id)->firstOrFail();
+        $user = User::where('id', $userId)->where('company_id', $this->company?->id)->firstOrFail();
 
         if ($user->hasRole(CompanyRoleEnum::OWNER->value)) {
             Flux::toast(text: __('You cannot change the Owner role.'), variant: 'danger');
@@ -105,7 +105,7 @@ new #[Title('Manager les admins de votre entreprise')] class extends Component {
 
     public function removeFromCompany(int $userId): void
     {
-        $user = User::where('id', $userId)->where('company_id', $this->company->id)->firstOrFail();
+        $user = User::where('id', $userId)->where('company_id', $this->company?->id)->firstOrFail();
 
         if ($user->hasRole(CompanyRoleEnum::OWNER->value)) {
             Flux::toast(text: __('You cannot remove the Owner from the company.'), variant: 'danger');
@@ -121,7 +121,7 @@ new #[Title('Manager les admins de votre entreprise')] class extends Component {
     }
     public function with(): array
     {
-        $members = User::where('company_id', $this->company->id)
+        $members = User::where('company_id', $this->company?->id)
             ->where('id', '!=', auth()->id())            
             ->paginate(10, pageName: 'mem_page');
 

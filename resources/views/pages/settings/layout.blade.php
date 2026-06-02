@@ -1,7 +1,7 @@
 <div class="flex items-start max-md:flex-col">
     <div class="me-10 w-full pb-4 md:w-55">
         <flux:navlist aria-label="{{ __('Settings') }}">
-@if(!auth()->user()->company_id)
+@if(!auth()->user()?->company_id)
         <flux:navlist.item :href="route('settings.company.add')" wire:navigate>{{ __('Add company') }}</flux:navlist.item>
         @else
             <flux:navlist.item :href="route('settings.company.update')" wire:navigate>{{ __('Update company') }}</flux:navlist.item>

@@ -26,7 +26,7 @@ new #[Title('Tous les documents')] class extends Component {
     #[Computed]
     public function company()
     {
-       return auth()->user()->company()->with('employees')->first();
+       return auth()->user()?->company()->with('employees')->first();
     }
 
     public function toggleFormAddDocument()
@@ -38,7 +38,7 @@ new #[Title('Tous les documents')] class extends Component {
     public function documents()
     {
         return Document::whereHas('employee', function ($q) {
-            $q->where('company_id', $this->company->id);
+            $q->where('company_id', $this->company?->id);
         })
             ->with('employee')
             ->get();
@@ -46,7 +46,7 @@ new #[Title('Tous les documents')] class extends Component {
 
     public function save()
     {
-        $this->form->employee_id = $this->company->employees->whereId($this->uuid)->value('id');
+        $this->form->employee_id = $this->company?->employees->whereId($this->uuid)->value('id');
 
         $this->form->isCreating = true;
 
@@ -136,7 +136,7 @@ new #[Title('Tous les documents')] class extends Component {
                         {{-- Type de document --}}
                         <flux:select wire:model="uuid" label="A quel collaborateur appartient ce document ?">
                             <option value="">Choisir un collaborateur</option>
-                            @foreach ($this->company->employees as $emp)
+                            @foreach ($this->company?->employees ?? [] as $emp)
                                 <option value="{{ $emp->id }}">{{ $emp->shortName }}</option>
                             @endforeach
 
@@ -302,7 +302,7 @@ new #[Title('Tous les documents')] class extends Component {
                         <flux:select wire:model="form.employee_id"
                             label="A quel collaborateur appartient ce document ?">
                             <option value="">Choisir un collaborateur</option>
-                            @foreach ($this->company->employees as $emp)
+                            @foreach ($this->company?->employees ?? [] as $emp)
                                 <option value="{{ $emp->id }}">{{ $emp->shortName }}</option>
                             @endforeach
 
