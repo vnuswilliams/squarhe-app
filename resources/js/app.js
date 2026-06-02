@@ -5,6 +5,16 @@ import { OfflineEngine } from './offline-engine';
 window.ApexCharts = ApexCharts
 window.OfflineEngine = OfflineEngine;
 
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(() => {
+            navigator.serviceWorker.ready.then((registration) => {
+                registration.active?.postMessage({ type: 'CACHE_APP_SHELL' });
+            });
+        }).catch((error) => console.error('Service worker registration failed', error));
+    });
+}
+
 document.addEventListener('alpine:init', () => {
     Alpine.store('offline', {
         isOnline: navigator.onLine,
@@ -42,7 +52,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         async loadLocalData() {
-            this.localData.employees = await OfflineEngine.getAll('data');
+            this.localData.employees = await OfflineEngine.getAll('employees');
 
             // Calculer les métriques locales pour le dashboard
             this.localData.metrics.totalEmployees = this.localData.employees.length;
@@ -51,13 +61,12 @@ document.addEventListener('alpine:init', () => {
 
             console.log("Local data and metrics loaded", this.localData);
         },
-        },
 
         async bootstrap() {
             let deviceId = localStorage.getItem('device_id');
             
             // 1. Register device if not exists
-            if (!deviceId) {
+            if (!deviceId || !OfflineEngine.hmacKey) {
                 try {
                     const res = await fetch('/api/device/register', {
                         method: 'POST',
@@ -80,11 +89,7 @@ document.addEventListener('alpine:init', () => {
             }
 
             // 2. Fetch initial snapshot if data store is empty
-            const tx = OfflineEngine.db.transaction('data', 'readonly');
-            const count = await new Promise(r => {
-                const req = tx.objectStore('data').count();
-                req.onsuccess = () => r(req.result);
-            });
+            const count = (await OfflineEngine.getAll('employees')).length;
 
             if (count === 0) {
                 try {
@@ -99,7 +104,7 @@ document.addEventListener('alpine:init', () => {
                         const data = await res.json();
                         
                         if (await OfflineEngine.verifyServerSignature(data, signature)) {
-                            await OfflineEngine.saveBatch('data', data.employees);
+                            await OfflineEngine.saveSnapshot(data);
                             console.log("Initial data snapshot loaded");
                             await this.loadLocalData();
                         }
@@ -107,6 +112,8 @@ document.addEventListener('alpine:init', () => {
                 } catch (e) {
                     console.error("Snapshot fetch failed", e);
                 }
+            } else {
+                await this.triggerSync();
             }
         },
 
@@ -118,7 +125,7 @@ document.addEventListener('alpine:init', () => {
 
         async triggerSync() {
             const deviceId = localStorage.getItem('device_id');
-            if (!deviceId) {
+            if (!deviceId || !OfflineEngine.hmacKey) {
                 console.error("Device ID missing. Needs registration.");
                 return;
             }
@@ -141,25 +148,21 @@ document.addEventListener('alpine:init', () => {
                         'Accept': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
                     },
-                    body: JSON.stringify(payload)
+                    body: OfflineEngine.canonicalStringify(payload)
                 });
 
                 if (response.ok) {
                     const data = await response.json();
-                    // Mark as synced local
-                    const tx = OfflineEngine.db.transaction('data', 'readwrite');
-                    const store = tx.objectStore('data');
-                    for (const id of data.ack) {
-                        const item = await new Promise(r => {
-                            const req = store.get(id);
-                            req.onsuccess = () => r(req.result);
-                        });
-                        if (item) {
-                            item.status = 'synced';
-                            store.put(item);
-                        }
+                    const signature = response.headers.get('X-Server-Signature');
+
+                    if (!(await OfflineEngine.verifyServerSignature(data, signature))) {
+                        throw new Error('Invalid server signature.');
                     }
-                    
+
+                    await OfflineEngine.markSynced(data.ack);
+                    await OfflineEngine.saveSnapshot(data);
+                    await this.loadLocalData();
+
                     this.pendingChanges = 0;
                     this.showSyncBanner = false;
                     console.log("Sync successful");

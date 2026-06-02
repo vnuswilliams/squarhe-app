@@ -14,6 +14,10 @@ class DeviceKey extends Model
         'last_sync_at',
     ];
 
+    protected $hidden = [
+        'secret',
+    ];
+
     protected $casts = [
         'secret' => 'encrypted',
         'last_sync_at' => 'datetime',

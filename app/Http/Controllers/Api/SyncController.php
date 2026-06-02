@@ -5,109 +5,274 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\DeviceKey;
 use App\Models\Employee;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class SyncController extends Controller
 {
-    public function register(Request $request)
+    private const SYNCABLE_EMPLOYEE_FIELDS = [
+        'name',
+        'status',
+        'department',
+        'job_title',
+        'contract_type',
+        'start_date',
+        'end_date',
+        'base_salary',
+        'data',
+    ];
+
+    public function register(Request $request): JsonResponse
     {
         $secret = bin2hex(random_bytes(32));
         $deviceId = (string) Str::uuid();
 
         DeviceKey::create([
-            'user_id' => auth()->id(),
+            'user_id' => $request->user()->id,
             'device_id' => $deviceId,
-            'secret' => $secret
+            'secret' => $secret,
+            'last_sync_at' => null,
         ]);
 
         return response()->json([
             'device_id' => $deviceId,
-            'secret' => $secret
+            'secret' => $secret,
         ]);
     }
 
-    public function snapshot(Request $request)
+    public function snapshot(Request $request): JsonResponse
     {
-        $deviceId = $request->header('X-Device-Id');
-        $device = DeviceKey::where('device_id', $deviceId)->first();
+        $device = $this->deviceForRequest($request);
 
-        if (!$device) {
-            return response()->json(['error' => 'Appareil non enregistré'], 403);
+        if (! $device) {
+            return response()->json(['error' => __('offline.device_not_registered')], 403);
         }
 
         $company = $request->user()->company;
-        if (!$company) {
-            return response()->json(['error' => 'Entreprise non trouvée'], 404);
+
+        if (! $company) {
+            return response()->json(['error' => __('offline.company_not_found')], 404);
         }
 
-        $data = [
-            'employees' => $company->employees()->with(['payslip', 'remunerations', 'leaves', 'overtimes'])->get(),
-            'company' => $company,
-            'server_time' => now()->timestamp
-        ];
+        $responseData = $this->snapshotData($request, null);
+        $device->update(['last_sync_at' => now()]);
 
-        $signature = hash_hmac('sha256', json_encode($data), $device->secret);
-
-        return response()->json($data)
-                         ->header('X-Server-Signature', $signature);
+        return $this->signedResponse($responseData, $device);
     }
 
-    public function sync(Request $request)
+    public function sync(Request $request): JsonResponse
     {
-        $deviceId = $request->header('X-Device-Id');
-        $signature = $request->header('X-Payload-Signature');
-        $payloadRaw = $request->getContent();
-        $payload = json_decode($payloadRaw, true);
+        $device = $this->deviceForRequest($request);
 
-        $device = DeviceKey::where('device_id', $deviceId)->first();
-
-        if (!$device) {
-            return response()->json(['error' => 'Appareil non enregistré'], 403);
+        if (! $device) {
+            return response()->json(['error' => __('offline.device_not_registered')], 403);
         }
 
-        // Vérification HMAC
-        $expectedSignature = hash_hmac('sha256', $payloadRaw, $device->secret);
-        if (!hash_equals($expectedSignature, (string)$signature)) {
-            return response()->json(['error' => 'Signature invalide'], 403);
+        $payload = json_decode($request->getContent(), true);
+
+        if (! is_array($payload)) {
+            return response()->json(['error' => __('offline.invalid_payload')], 422);
         }
 
-        return DB::transaction(function () use ($payload, $device) {
+        if (! $this->hasValidSignature($payload, $request->header('X-Payload-Signature'), $device)) {
+            return response()->json(['error' => __('offline.invalid_signature')], 403);
+        }
+
+        if (! $request->user()->company) {
+            return response()->json(['error' => __('offline.company_not_found')], 404);
+        }
+
+        $validator = Validator::make($payload, [
+            'timestamp' => ['required', 'integer'],
+            'changes' => ['sometimes', 'array', 'max:250'],
+            'changes.*.id' => ['required', 'string', 'max:80'],
+            'changes.*.store' => ['required', Rule::in(['employees'])],
+            'changes.*.operation' => ['required', Rule::in(['upsert', 'delete'])],
+            'changes.*.updated_at' => ['required', 'date'],
+            'changes.*.data' => ['required_if:changes.*.operation,upsert', 'array'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        return DB::transaction(function () use ($request, $payload, $device): JsonResponse {
             $ack = [];
-            
-            // PUSH
-            if (isset($payload['changes'])) {
-                foreach ($payload['changes'] as $change) {
-                    // Ici on simule pour Employee, à généraliser selon les besoins
-                    $employee = Employee::find($change['id']);
-                    $data = $change['data']; // Note: dans une vraie version, le serveur déchiffrerait si besoin ou stockerait brut
+            $conflicts = [];
+            $lastSyncAt = $device->last_sync_at;
 
-                    if ($employee) {
-                        if (strtotime($change['updated_at']) > $employee->updated_at->timestamp) {
-                            $employee->update($data);
-                        }
-                    } else {
-                        Employee::create(array_merge($data, ['id' => $change['id']]));
-                    }
-                    $ack[] = $change['id'];
+            foreach ($payload['changes'] ?? [] as $change) {
+                $result = $this->applyEmployeeChange($request, $change);
+
+                if ($result['conflict'] ?? false) {
+                    $conflicts[] = $result['conflict'];
+                    continue;
                 }
+
+                $ack[] = [
+                    'id' => $change['id'],
+                    'store' => 'employees',
+                    'key' => 'employees:'.$change['id'],
+                    'synced_at' => now()->toISOString(),
+                ];
             }
 
-            // PULL
-            $updates = Employee::where('updated_at', '>', $device->last_sync_at ?? '1970-01-01')->get();
+            $responseData = $this->snapshotData($request, $lastSyncAt, $ack, $conflicts);
             $device->update(['last_sync_at' => now()]);
 
-            $responseData = [
-                'updates' => $updates,
-                'ack' => $ack,
-                'server_time' => now()->timestamp
-            ];
-
-            $responseSignature = hash_hmac('sha256', json_encode($responseData), $device->secret);
-
-            return response()->json($responseData)
-                             ->header('X-Server-Signature', $responseSignature);
+            return $this->signedResponse($responseData, $device);
         });
+    }
+
+    private function applyEmployeeChange(Request $request, array $change): array
+    {
+        $company = $request->user()->company;
+        $clientUpdatedAt = Carbon::parse($change['updated_at']);
+        $employee = $company->employees()->whereKey($change['id'])->first();
+
+        if (($change['operation'] ?? 'upsert') === 'delete') {
+            if ($employee && $employee->updated_at->greaterThan($clientUpdatedAt)) {
+                return ['conflict' => $this->conflictPayload('employees', $employee)];
+            }
+
+            $employee?->delete();
+
+            return ['ok' => true];
+        }
+
+        $data = Arr::only($change['data'] ?? [], self::SYNCABLE_EMPLOYEE_FIELDS);
+
+        $validator = Validator::make($data, [
+            'name' => ['required', 'string', 'max:255'],
+            'status' => ['nullable', 'string', 'max:50'],
+            'department' => ['nullable', 'string', 'max:80'],
+            'job_title' => ['nullable', 'string', 'max:255'],
+            'contract_type' => ['nullable', 'string', 'max:80'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'base_salary' => ['nullable', 'integer', 'min:0'],
+            'data' => ['nullable', 'array'],
+        ]);
+
+        if ($validator->fails()) {
+            return ['conflict' => [
+                'id' => $change['id'],
+                'store' => 'employees',
+                'reason' => 'validation',
+                'errors' => $validator->errors()->toArray(),
+            ]];
+        }
+
+        if ($employee && $employee->updated_at->greaterThan($clientUpdatedAt)) {
+            return ['conflict' => $this->conflictPayload('employees', $employee)];
+        }
+
+        $company->employees()->updateOrCreate(
+            ['id' => $change['id']],
+            array_merge($validator->validated(), ['company_id' => $company->id]),
+        );
+
+        return ['ok' => true];
+    }
+
+    private function snapshotData(Request $request, ?Carbon $since = null, array $ack = [], array $conflicts = []): array
+    {
+        $company = $request->user()->company;
+        $employees = $company->employees()
+            ->with(['payslip', 'remunerations', 'leaves', 'overtimes', 'documents'])
+            ->when($since, fn ($query) => $query->where('updated_at', '>', $since))
+            ->get();
+
+        return [
+            'ack' => $ack,
+            'conflicts' => $conflicts,
+            'datasets' => [
+                'companies' => [$company->fresh()],
+                'employees' => $employees,
+                'payslips' => $employees->pluck('payslip')->filter()->values(),
+                'remunerations' => $employees->flatMap->remunerations->values(),
+                'leaves' => $employees->flatMap->leaves->values(),
+                'overtimes' => $employees->flatMap->overtimes->values(),
+                'documents' => $employees->flatMap->documents->values(),
+            ],
+            'server_time' => now()->toISOString(),
+        ];
+    }
+
+    private function conflictPayload(string $store, Employee $employee): array
+    {
+        return [
+            'id' => $employee->id,
+            'store' => $store,
+            'reason' => 'server_newer',
+            'server_record' => $employee->fresh(),
+        ];
+    }
+
+    private function deviceForRequest(Request $request): ?DeviceKey
+    {
+        $deviceId = $request->header('X-Device-Id');
+
+        if (! is_string($deviceId) || $deviceId === '') {
+            return null;
+        }
+
+        return DeviceKey::query()
+            ->where('user_id', $request->user()->id)
+            ->where('device_id', $deviceId)
+            ->first();
+    }
+
+    private function hasValidSignature(array $payload, ?string $signature, DeviceKey $device): bool
+    {
+        if (! is_string($signature) || $signature === '') {
+            return false;
+        }
+
+        return hash_equals($this->signatureFor($payload, $device), $signature);
+    }
+
+    private function signedResponse(array $responseData, DeviceKey $device): JsonResponse
+    {
+        return response()->json($responseData)
+            ->header('X-Server-Signature', $this->signatureFor($responseData, $device));
+    }
+
+    private function signatureFor(array $payload, DeviceKey $device): string
+    {
+        return hash_hmac('sha256', $this->canonicalJson($payload), $device->secret);
+    }
+
+    private function canonicalJson(mixed $value): string
+    {
+        if (is_array($value)) {
+            if (array_is_list($value)) {
+                return '['.collect($value)
+                    ->map(fn ($item) => $this->canonicalJson($item))
+                    ->implode(',').']';
+            }
+
+            ksort($value);
+
+            return '{'.collect($value)
+                ->map(fn ($item, $key) => json_encode((string) $key).':'.$this->canonicalJson($item))
+                ->implode(',').'}';
+        }
+
+        if ($value instanceof \JsonSerializable) {
+            return $this->canonicalJson($value->jsonSerialize());
+        }
+
+        if ($value instanceof \Illuminate\Contracts\Support\Arrayable) {
+            return $this->canonicalJson($value->toArray());
+        }
+
+        return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 }

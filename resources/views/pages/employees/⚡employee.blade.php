@@ -71,7 +71,7 @@ new #[Title('Modules employés')] class extends Component
         {{-- Indicateur Offline --}}
         <div x-data x-show="!$store.offline.isOnline" class="flex items-center gap-2 px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs font-bold border border-amber-200 dark:border-amber-800">
             <flux:icon.wifi class="size-4" />
-            <span>Mode Hors-ligne (Données locales)</span>
+            <span>{{ __('offline.offline_badge') }}</span>
         </div>
         <div>
             <flux:button variant="primary" icon="user-plus" href='{{ route("employees.add") }}' wire:navigate />
@@ -109,8 +109,8 @@ new #[Title('Modules employés')] class extends Component
         <template x-if="$store.offline.localData.employees.length === 0">
             <div class="p-12 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl">
                 <flux:icon.user-group class="size-12 mx-auto text-zinc-300 mb-4" />
-                <flux:heading>Aucune donnée locale</flux:heading>
-                <flux:text>Connectez-vous une fois pour synchroniser vos données.</flux:text>
+                <flux:heading>{{ __('offline.no_local_data_title') }}</flux:heading>
+                <flux:text>{{ __('offline.no_local_data_body') }}</flux:text>
             </div>
         </template>
     </div>

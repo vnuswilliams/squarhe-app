@@ -16,8 +16,10 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('device_id')->unique();
             $table->text('secret');
-            $table->timestamp('last_sync_at')->nullable();
+            $table->timestamp('last_sync_at')->nullable()->index();
             $table->timestamps();
+
+            $table->index(['user_id', 'device_id']);
         });
     }
 

@@ -8,11 +8,11 @@
             <div class="flex items-center gap-3">
                 <flux:icon.arrow-path class="animate-spin w-5 h-5" />
                 <p class="text-sm font-medium">
-                    Connexion rétablie ! Des modifications attendent d'être synchronisées.
+                    {{ __('offline.sync_banner') }}
                 </p>
             </div>
             <button @click="$store.offline.triggerSync()" class="text-xs bg-white text-blue-600 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-50 transition-colors">
-                Synchroniser
+                {{ __('offline.sync_action') }}
             </button>
         </div>
     </div>
