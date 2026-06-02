@@ -27,7 +27,7 @@
         {{-- Livewire morphdom removes non-declared attributes on re-render.
             wire:ignore preserves the data-state attribute set by Alpine... --}}
         wire:ignore
-        class="peer absolute inset-0 opacity-0 cursor-pointer focus:[&~]:outline"
+        class="peer absolute inset-0 opacity-0 cursor-pointer focus:[&~*]:outline"
     >
 
     <span

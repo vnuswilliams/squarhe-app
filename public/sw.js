@@ -1,47 +1,53 @@
-"use strict";
-
-const CACHE_NAME = "offline-cache-v1";
-const OFFLINE_URL = '/offline.html';
-
-const filesToCache = [
-    OFFLINE_URL
+const CACHE_NAME = 'squarhe-v4';
+const APP_SHELL = [
+    '/',
+    '/login',
+    '/dashboard',
+    '/employees',
+    '/build/assets/app-BoTqgwSd.css',
+    '/build/assets/app-Iqm5ExNU.js',
+    '/favicon.ico',
 ];
 
-self.addEventListener("install", (event) => {
+self.addEventListener('install', (event) => {
+    console.log('[SW] Installing and caching shell');
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then((cache) => cache.addAll(filesToCache))
+        caches.open(CACHE_NAME).then((cache) => {
+            return cache.addAll(APP_SHELL);
+        })
     );
-});
-
-self.addEventListener("fetch", (event) => {
-    if (event.request.mode === 'navigate') {
-        event.respondWith(
-            fetch(event.request)
-                .catch(() => {
-                    return caches.match(OFFLINE_URL);
-                })
-        );
-    } else {
-        event.respondWith(
-            caches.match(event.request)
-                .then((response) => {
-                    return response || fetch(event.request);
-                })
-        );
-    }
+    self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
+    console.log('[SW] Activating and cleaning old caches');
     event.waitUntil(
-        caches.keys().then((cacheNames) => {
+        caches.keys().then((keys) => {
             return Promise.all(
-                cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
-                        return caches.delete(cacheName);
-                    }
-                })
+                keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
             );
+        })
+    );
+    self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+    if (event.request.method !== 'GET') return;
+    if (event.request.url.includes('/api/')) return;
+
+    event.respondWith(
+        caches.match(event.request).then((cachedResponse) => {
+            if (cachedResponse) {
+                return cachedResponse;
+            }
+
+            return fetch(event.request).catch(() => {
+                if (event.request.mode === 'navigate') {
+                    console.log('[SW] Network failed, serving App Shell for:', event.request.url);
+                    return caches.match('/');
+                }
+                return null;
+            });
         })
     );
 });
